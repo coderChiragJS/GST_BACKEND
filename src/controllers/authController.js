@@ -38,7 +38,7 @@ module.exports = {
             const newUser = await User.create({ name, email, password });
 
             res.status(201).json({
-                message: 'User registered successfully. Waiting for Admin Approval.',
+                message: 'User registered successfully.',
                 userId: newUser.userId
             });
         } catch (error) {
@@ -73,8 +73,7 @@ module.exports = {
                 {
                     userId: user.userId,
                     email: user.email,
-                    role: user.role,
-                    approvalStatus: user.approvalStatus
+                    role: user.role
                 },
                 JWT_SECRET,
                 { expiresIn: '1d' }
@@ -87,8 +86,7 @@ module.exports = {
                     userId: user.userId,
                     name: user.name,
                     email: user.email,
-                    role: user.role || 'USER',
-                    approvalStatus: user.approvalStatus
+                    role: user.role || 'USER'
                 }
             });
         } catch (error) {

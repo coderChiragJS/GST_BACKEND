@@ -18,9 +18,10 @@ const User = {
             name,
             passwordHash,
             role: options.role || 'USER', // Default role
-            approvalStatus: options.approvalStatus || 'PENDING', // Default status
             subscriptionActive: false,
-            trialDays: 0,
+            trialDays: 14, // Default trial period
+            trialStartDate: now,
+            trialEndDate: new Date(new Date().setDate(new Date().getDate() + 14)).toISOString(),
             createdAt: now,
         };
 
