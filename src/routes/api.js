@@ -27,6 +27,14 @@ router.post('/business', authMiddleware, businessController.createBusiness);
 router.get('/business', authMiddleware, businessController.getMyBusinesses);
 router.put('/business/:businessId', authMiddleware, businessController.updateBusiness);
 
+// Party (Buyer/Customer) Routes (Protected)
+const partyController = require('../controllers/partyController');
+router.post('/parties', authMiddleware, partyController.createParty);
+router.get('/parties', authMiddleware, partyController.listParties);
+router.get('/parties/:partyId', authMiddleware, partyController.getParty);
+router.put('/parties/:partyId', authMiddleware, partyController.updateParty);
+router.delete('/parties/:partyId', authMiddleware, partyController.deleteParty);
+
 // Health Check
 router.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
