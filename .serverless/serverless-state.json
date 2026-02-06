@@ -8,12 +8,15 @@
       "name": "aws",
       "runtime": "nodejs20.x",
       "region": "eu-north-1",
+      "memorySize": 2048,
+      "timeout": 30,
       "stage": "dev",
       "environment": {
         "USERS_TABLE": "GST_USERS",
         "BUSINESSES_TABLE": "GST_BUSINESSES",
         "PARTIES_TABLE": "GST_PARTIES",
         "PRODUCTS_TABLE": "GST_PRODUCTS",
+        "INVOICES_TABLE": "GST_INVOICES",
         "JWT_SECRET": "dev-secret-key-change-in-prod",
         "ADMIN_SECRET_KEY": "dev-admin-secret-key",
         "UPLOADS_BUCKET": {
@@ -125,6 +128,12 @@
                       "index",
                       "GSI1"
                     ]
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "InvoicesTable",
+                    "Arn"
                   ]
                 }
               ]
@@ -255,19 +264,20 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-eu-north-1-b42b58cd-da17",
-                "S3Key": "serverless/gst-billing-backend/dev/1770279804582-2026-02-05T08:23:24.582Z/gst-billing-backend.zip"
+                "S3Key": "serverless/gst-billing-backend/dev/1770379582043-2026-02-06T12:06:22.043Z/gst-billing-backend.zip"
               },
               "Handler": "src/app.handler",
               "Runtime": "nodejs20.x",
               "FunctionName": "gst-billing-backend-dev-api",
-              "MemorySize": 1024,
-              "Timeout": 6,
+              "MemorySize": 2048,
+              "Timeout": 30,
               "Environment": {
                 "Variables": {
                   "USERS_TABLE": "GST_USERS",
                   "BUSINESSES_TABLE": "GST_BUSINESSES",
                   "PARTIES_TABLE": "GST_PARTIES",
                   "PRODUCTS_TABLE": "GST_PRODUCTS",
+                  "INVOICES_TABLE": "GST_INVOICES",
                   "JWT_SECRET": "dev-secret-key-change-in-prod",
                   "ADMIN_SECRET_KEY": "dev-admin-secret-key",
                   "UPLOADS_BUCKET": {
@@ -287,14 +297,14 @@
               "ApiLogGroup"
             ]
           },
-          "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg": {
+          "ApiLambdaVersionFbvXArI1p5EmwLTFghxjiwG4XfdcatLWXTPQH51u0RU": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ApiLambdaFunction"
               },
-              "CodeSha256": "6I2odG+Dwtj/ONh69RHHJmvWcXAQckBNdIWTamAsoW4="
+              "CodeSha256": "XYL2KyY8aPzGR5PVCVoc5LbuRtdoixMEUHBFwZAP2B4="
             }
           },
           "ApiGatewayRestApi": {
@@ -425,7 +435,7 @@
               "ApiLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1770279790205": {
+          "ApiGatewayDeployment1770379565809": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -653,6 +663,33 @@
               "BillingMode": "PAY_PER_REQUEST"
             }
           },
+          "InvoicesTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "GST_INVOICES",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "PK",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "SK",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "PK",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "SK",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }
+          },
           "UploadsBucket": {
             "Type": "AWS::S3::Bucket",
             "Properties": {
@@ -735,7 +772,7 @@
           "ApiLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg"
+              "Ref": "ApiLambdaVersionFbvXArI1p5EmwLTFghxjiwG4XfdcatLWXTPQH51u0RU"
             },
             "Export": {
               "Name": "sls-gst-billing-backend-dev-ApiLambdaFunctionQualifiedArn"
@@ -796,11 +833,11 @@
         ],
         "name": "gst-billing-backend-dev-api",
         "package": {},
-        "memory": 1024,
-        "timeout": 6,
+        "memory": 2048,
+        "timeout": 30,
         "runtime": "nodejs20.x",
         "vpc": {},
-        "versionLogicalId": "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg"
+        "versionLogicalId": "ApiLambdaVersionFbvXArI1p5EmwLTFghxjiwG4XfdcatLWXTPQH51u0RU"
       }
     },
     "resources": {
@@ -983,6 +1020,33 @@
             "BillingMode": "PAY_PER_REQUEST"
           }
         },
+        "InvoicesTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "GST_INVOICES",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "PK",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "SK",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "PK",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "SK",
+                "KeyType": "RANGE"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST"
+          }
+        },
         "UploadsBucket": {
           "Type": "AWS::S3::Bucket",
           "Properties": {
@@ -1080,7 +1144,7 @@
     "artifact": "/Users/chiragtankwal/projects/GST_BILLING_BACKEND/.serverless/gst-billing-backend.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/gst-billing-backend/dev/1770279804582-2026-02-05T08:23:24.582Z",
+    "artifactDirectoryName": "serverless/gst-billing-backend/dev/1770379582043-2026-02-06T12:06:22.043Z",
     "artifact": "gst-billing-backend.zip"
   }
 }

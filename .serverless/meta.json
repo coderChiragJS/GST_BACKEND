@@ -9,12 +9,15 @@
         "name": "aws",
         "runtime": "nodejs20.x",
         "region": "eu-north-1",
+        "memorySize": 2048,
+        "timeout": 30,
         "stage": "dev",
         "environment": {
           "USERS_TABLE": "GST_USERS",
           "BUSINESSES_TABLE": "GST_BUSINESSES",
           "PARTIES_TABLE": "GST_PARTIES",
           "PRODUCTS_TABLE": "GST_PRODUCTS",
+          "INVOICES_TABLE": "GST_INVOICES",
           "JWT_SECRET": "<REDACTED>",
           "ADMIN_SECRET_KEY": "<REDACTED>",
           "UPLOADS_BUCKET": {
@@ -126,6 +129,12 @@
                         "index",
                         "GSI1"
                       ]
+                    ]
+                  },
+                  {
+                    "Fn::GetAtt": [
+                      "InvoicesTable",
+                      "Arn"
                     ]
                   }
                 ]
@@ -319,6 +328,12 @@
                                   "GSI1"
                                 ]
                               ]
+                            },
+                            {
+                              "Fn::GetAtt": [
+                                "InvoicesTable",
+                                "Arn"
+                              ]
                             }
                           ]
                         },
@@ -370,19 +385,20 @@
               "Properties": {
                 "Code": {
                   "S3Bucket": "serverless-framework-deployments-eu-north-1-b42b58cd-da17",
-                  "S3Key": "serverless/gst-billing-backend/dev/1770279804582-2026-02-05T08:23:24.582Z/gst-billing-backend.zip"
+                  "S3Key": "serverless/gst-billing-backend/dev/1770379582043-2026-02-06T12:06:22.043Z/gst-billing-backend.zip"
                 },
                 "Handler": "src/app.handler",
                 "Runtime": "nodejs20.x",
                 "FunctionName": "gst-billing-backend-dev-api",
-                "MemorySize": 1024,
-                "Timeout": 6,
+                "MemorySize": 2048,
+                "Timeout": 30,
                 "Environment": {
                   "Variables": {
                     "USERS_TABLE": "GST_USERS",
                     "BUSINESSES_TABLE": "GST_BUSINESSES",
                     "PARTIES_TABLE": "GST_PARTIES",
                     "PRODUCTS_TABLE": "GST_PRODUCTS",
+                    "INVOICES_TABLE": "GST_INVOICES",
                     "JWT_SECRET": "<REDACTED>",
                     "ADMIN_SECRET_KEY": "<REDACTED>",
                     "UPLOADS_BUCKET": {
@@ -402,14 +418,14 @@
                 "ApiLogGroup"
               ]
             },
-            "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg": {
+            "ApiLambdaVersionFbvXArI1p5EmwLTFghxjiwG4XfdcatLWXTPQH51u0RU": {
               "Type": "AWS::Lambda::Version",
               "DeletionPolicy": "Retain",
               "Properties": {
                 "FunctionName": {
                   "Ref": "ApiLambdaFunction"
                 },
-                "CodeSha256": "6I2odG+Dwtj/ONh69RHHJmvWcXAQckBNdIWTamAsoW4="
+                "CodeSha256": "XYL2KyY8aPzGR5PVCVoc5LbuRtdoixMEUHBFwZAP2B4="
               }
             },
             "ApiGatewayRestApi": {
@@ -540,7 +556,7 @@
                 "ApiLambdaPermissionApiGateway"
               ]
             },
-            "ApiGatewayDeployment1770279790205": {
+            "ApiGatewayDeployment1770379565809": {
               "Type": "AWS::ApiGateway::Deployment",
               "Properties": {
                 "RestApiId": {
@@ -768,6 +784,33 @@
                 "BillingMode": "PAY_PER_REQUEST"
               }
             },
+            "InvoicesTable": {
+              "Type": "AWS::DynamoDB::Table",
+              "Properties": {
+                "TableName": "GST_INVOICES",
+                "AttributeDefinitions": [
+                  {
+                    "AttributeName": "PK",
+                    "AttributeType": "S"
+                  },
+                  {
+                    "AttributeName": "SK",
+                    "AttributeType": "S"
+                  }
+                ],
+                "KeySchema": [
+                  {
+                    "AttributeName": "PK",
+                    "KeyType": "HASH"
+                  },
+                  {
+                    "AttributeName": "SK",
+                    "KeyType": "RANGE"
+                  }
+                ],
+                "BillingMode": "PAY_PER_REQUEST"
+              }
+            },
             "UploadsBucket": {
               "Type": "AWS::S3::Bucket",
               "Properties": {
@@ -850,7 +893,7 @@
             "ApiLambdaFunctionQualifiedArn": {
               "Description": "Current Lambda function version",
               "Value": {
-                "Ref": "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg"
+                "Ref": "ApiLambdaVersionFbvXArI1p5EmwLTFghxjiwG4XfdcatLWXTPQH51u0RU"
               },
               "Export": {
                 "Name": "sls-gst-billing-backend-dev-ApiLambdaFunctionQualifiedArn"
@@ -907,11 +950,11 @@
           ],
           "name": "gst-billing-backend-dev-api",
           "package": {},
-          "memory": 1024,
-          "timeout": 6,
+          "memory": 2048,
+          "timeout": 30,
           "runtime": "nodejs20.x",
           "vpc": {},
-          "versionLogicalId": "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg"
+          "versionLogicalId": "ApiLambdaVersionFbvXArI1p5EmwLTFghxjiwG4XfdcatLWXTPQH51u0RU"
         }
       },
       "resources": {
@@ -1094,6 +1137,33 @@
               "BillingMode": "PAY_PER_REQUEST"
             }
           },
+          "InvoicesTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "GST_INVOICES",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "PK",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "SK",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "PK",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "SK",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }
+          },
           "UploadsBucket": {
             "Type": "AWS::S3::Bucket",
             "Properties": {
@@ -1176,12 +1246,15 @@
       "name": "aws",
       "runtime": "nodejs20.x",
       "region": "eu-north-1",
+      "memorySize": 2048,
+      "timeout": 30,
       "stage": "dev",
       "environment": {
         "USERS_TABLE": "GST_USERS",
         "BUSINESSES_TABLE": "GST_BUSINESSES",
         "PARTIES_TABLE": "GST_PARTIES",
         "PRODUCTS_TABLE": "GST_PRODUCTS",
+        "INVOICES_TABLE": "GST_INVOICES",
         "JWT_SECRET": "<REDACTED>",
         "ADMIN_SECRET_KEY": "<REDACTED>",
         "UPLOADS_BUCKET": {
@@ -1293,6 +1366,12 @@
                       "index",
                       "GSI1"
                     ]
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "InvoicesTable",
+                    "Arn"
                   ]
                 }
               ]
@@ -1486,6 +1565,12 @@
                                 "GSI1"
                               ]
                             ]
+                          },
+                          {
+                            "Fn::GetAtt": [
+                              "InvoicesTable",
+                              "Arn"
+                            ]
                           }
                         ]
                       },
@@ -1537,19 +1622,20 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-eu-north-1-b42b58cd-da17",
-                "S3Key": "serverless/gst-billing-backend/dev/1770279804582-2026-02-05T08:23:24.582Z/gst-billing-backend.zip"
+                "S3Key": "serverless/gst-billing-backend/dev/1770379582043-2026-02-06T12:06:22.043Z/gst-billing-backend.zip"
               },
               "Handler": "src/app.handler",
               "Runtime": "nodejs20.x",
               "FunctionName": "gst-billing-backend-dev-api",
-              "MemorySize": 1024,
-              "Timeout": 6,
+              "MemorySize": 2048,
+              "Timeout": 30,
               "Environment": {
                 "Variables": {
                   "USERS_TABLE": "GST_USERS",
                   "BUSINESSES_TABLE": "GST_BUSINESSES",
                   "PARTIES_TABLE": "GST_PARTIES",
                   "PRODUCTS_TABLE": "GST_PRODUCTS",
+                  "INVOICES_TABLE": "GST_INVOICES",
                   "JWT_SECRET": "<REDACTED>",
                   "ADMIN_SECRET_KEY": "<REDACTED>",
                   "UPLOADS_BUCKET": {
@@ -1569,14 +1655,14 @@
               "ApiLogGroup"
             ]
           },
-          "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg": {
+          "ApiLambdaVersionFbvXArI1p5EmwLTFghxjiwG4XfdcatLWXTPQH51u0RU": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ApiLambdaFunction"
               },
-              "CodeSha256": "6I2odG+Dwtj/ONh69RHHJmvWcXAQckBNdIWTamAsoW4="
+              "CodeSha256": "XYL2KyY8aPzGR5PVCVoc5LbuRtdoixMEUHBFwZAP2B4="
             }
           },
           "ApiGatewayRestApi": {
@@ -1707,7 +1793,7 @@
               "ApiLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1770279790205": {
+          "ApiGatewayDeployment1770379565809": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -1935,6 +2021,33 @@
               "BillingMode": "PAY_PER_REQUEST"
             }
           },
+          "InvoicesTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "GST_INVOICES",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "PK",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "SK",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "PK",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "SK",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST"
+            }
+          },
           "UploadsBucket": {
             "Type": "AWS::S3::Bucket",
             "Properties": {
@@ -2017,7 +2130,7 @@
           "ApiLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg"
+              "Ref": "ApiLambdaVersionFbvXArI1p5EmwLTFghxjiwG4XfdcatLWXTPQH51u0RU"
             },
             "Export": {
               "Name": "sls-gst-billing-backend-dev-ApiLambdaFunctionQualifiedArn"
@@ -2062,7 +2175,7 @@
       "serviceProvider": null,
       "instanceParameters": null
     },
-    "serviceRawFile": "service: gst-billing-backend\n\nprovider:\n  name: aws\n  runtime: nodejs20.x\n  region: eu-north-1\n  stage: dev\n  environment:\n    USERS_TABLE: GST_USERS\n    BUSINESSES_TABLE: GST_BUSINESSES\n    PARTIES_TABLE: GST_PARTIES\n    PRODUCTS_TABLE: GST_PRODUCTS\n    JWT_SECRET: ${env:JWT_SECRET, 'dev-secret-key-change-in-prod'}\n    ADMIN_SECRET_KEY: ${env:ADMIN_SECRET_KEY, 'dev-admin-secret-key'}\n    UPLOADS_BUCKET: !Ref UploadsBucket\n    REGION: ${self:provider.region}\n  apiGateway:\n    binaryMediaTypes:\n      - 'multipart/form-data'\n      - 'image/png'\n      - 'image/jpeg'\n      - 'image/jpg'\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - dynamodb:Query\n            - dynamodb:Scan\n            - dynamodb:GetItem\n            - dynamodb:PutItem\n            - dynamodb:UpdateItem\n            - dynamodb:DeleteItem\n          Resource:\n            - Fn::GetAtt: [UsersTable, Arn]\n            - Fn::Join: [ '/', [ Fn::GetAtt: [UsersTable, Arn], 'index', 'EmailIndex' ] ]\n            - Fn::Join: [ '/', [ Fn::GetAtt: [UsersTable, Arn], 'index', 'ApprovalStatusIndex' ] ]\n            - Fn::GetAtt: [BusinessesTable, Arn]\n            - Fn::Join: [ '/', [ Fn::GetAtt: [BusinessesTable, Arn], 'index', 'ApprovalStatusIndex' ] ]\n            - Fn::GetAtt: [PartiesTable, Arn]\n            - Fn::GetAtt: [ProductsTable, Arn]\n            - Fn::Join: [ '/', [ Fn::GetAtt: [ProductsTable, Arn], 'index', 'GSI1' ] ]\n        - Effect: Allow\n          Action:\n            - s3:PutObject\n            - s3:PutObjectAcl\n          Resource:\n            - Fn::Join: ['', [Fn::GetAtt: [UploadsBucket, Arn], '/*']]\n\nfunctions:\n  api:\n    handler: src/app.handler\n    events:\n      - http:\n          path: /\n          method: ANY\n      - http:\n          path: /{proxy+}\n          method: ANY\n\nresources:\n  Resources:\n    # 1. Users Table (GST_USERS) - The only active table for Phase 1\n    UsersTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        TableName: ${self:provider.environment.USERS_TABLE}\n        AttributeDefinitions:\n          - AttributeName: userId\n            AttributeType: S\n          - AttributeName: email\n            AttributeType: S\n          - AttributeName: approvalStatus\n            AttributeType: S\n        KeySchema:\n          - AttributeName: userId\n            KeyType: HASH\n        GlobalSecondaryIndexes:\n          - IndexName: EmailIndex\n            KeySchema:\n              - AttributeName: email\n                KeyType: HASH\n            Projection:\n              ProjectionType: ALL\n          - IndexName: ApprovalStatusIndex\n            KeySchema:\n              - AttributeName: approvalStatus\n                KeyType: HASH\n            Projection:\n              ProjectionType: ALL\n        BillingMode: PAY_PER_REQUEST\n\n    # 2. Businesses Table\n    BusinessesTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        TableName: ${self:provider.environment.BUSINESSES_TABLE}\n        AttributeDefinitions:\n          - AttributeName: userId\n            AttributeType: S\n          - AttributeName: businessId\n            AttributeType: S\n          - AttributeName: approvalStatus\n            AttributeType: S\n        KeySchema:\n          - AttributeName: userId\n            KeyType: HASH\n          - AttributeName: businessId\n            KeyType: RANGE\n        GlobalSecondaryIndexes:\n          - IndexName: ApprovalStatusIndex\n            KeySchema:\n              - AttributeName: approvalStatus\n                KeyType: HASH\n            Projection:\n              ProjectionType: ALL\n        BillingMode: PAY_PER_REQUEST\n\n    # 3. Parties Table\n    PartiesTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        TableName: ${self:provider.environment.PARTIES_TABLE}\n        AttributeDefinitions:\n          - AttributeName: PK\n            AttributeType: S\n          - AttributeName: SK\n            AttributeType: S\n        KeySchema:\n          - AttributeName: PK\n            KeyType: HASH\n          - AttributeName: SK\n            KeyType: RANGE\n        BillingMode: PAY_PER_REQUEST\n    \n    # 4. Products Table\n    ProductsTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        TableName: ${self:provider.environment.PRODUCTS_TABLE}\n        AttributeDefinitions:\n          - AttributeName: PK\n            AttributeType: S\n          - AttributeName: SK\n            AttributeType: S\n          - AttributeName: GSI1-PK\n            AttributeType: S\n          - AttributeName: GSI1-SK\n            AttributeType: S\n        KeySchema:\n          - AttributeName: PK\n            KeyType: HASH\n          - AttributeName: SK\n            KeyType: RANGE\n        GlobalSecondaryIndexes:\n          - IndexName: GSI1\n            KeySchema:\n              - AttributeName: GSI1-PK\n                KeyType: HASH\n              - AttributeName: GSI1-SK\n                KeyType: RANGE\n            Projection:\n              ProjectionType: ALL\n        BillingMode: PAY_PER_REQUEST\n\n    # 5. Uploads S3 Bucket\n    UploadsBucket:\n      Type: AWS::S3::Bucket\n      Properties:\n        BucketName: ${self:service}-${self:provider.stage}-uploads\n        PublicAccessBlockConfiguration:\n          BlockPublicAcls: false\n          BlockPublicPolicy: false\n          IgnorePublicAcls: false\n          RestrictPublicBuckets: false\n        OwnershipControls:\n          Rules:\n            - ObjectOwnership: BucketOwnerPreferred\n        CorsConfiguration:\n          CorsRules:\n            - AllowedHeaders: ['*']\n              AllowedMethods: [GET, PUT, POST, DELETE, HEAD]\n              AllowedOrigins: ['*']\n              MaxAge: 3000\n\n    # Bucket Policy for Public Read Access (Optional/Recommended for public URLs)\n    UploadsBucketPolicy:\n      Type: AWS::S3::BucketPolicy\n      Properties:\n        Bucket: !Ref UploadsBucket\n        PolicyDocument:\n          Version: '2012-10-17'\n          Statement:\n            - Effect: Allow\n              Principal: '*'\n              Action: s3:GetObject\n              Resource: !Join ['', [!GetAtt UploadsBucket.Arn, '/*']]\n\nplugins:\n  - serverless-offline\n",
+    "serviceRawFile": "service: gst-billing-backend\n\nprovider:\n  name: aws\n  runtime: nodejs20.x\n  region: eu-north-1\n  memorySize: 2048\n  timeout: 30\n  stage: dev\n  environment:\n    USERS_TABLE: GST_USERS\n    BUSINESSES_TABLE: GST_BUSINESSES\n    PARTIES_TABLE: GST_PARTIES\n    PRODUCTS_TABLE: GST_PRODUCTS\n    INVOICES_TABLE: GST_INVOICES\n    JWT_SECRET: ${env:JWT_SECRET, 'dev-secret-key-change-in-prod'}\n    ADMIN_SECRET_KEY: ${env:ADMIN_SECRET_KEY, 'dev-admin-secret-key'}\n    UPLOADS_BUCKET: !Ref UploadsBucket\n    REGION: ${self:provider.region}\n  apiGateway:\n    binaryMediaTypes:\n      - 'multipart/form-data'\n      - 'image/png'\n      - 'image/jpeg'\n      - 'image/jpg'\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - dynamodb:Query\n            - dynamodb:Scan\n            - dynamodb:GetItem\n            - dynamodb:PutItem\n            - dynamodb:UpdateItem\n            - dynamodb:DeleteItem\n          Resource:\n            - Fn::GetAtt: [UsersTable, Arn]\n            - Fn::Join: [ '/', [ Fn::GetAtt: [UsersTable, Arn], 'index', 'EmailIndex' ] ]\n            - Fn::Join: [ '/', [ Fn::GetAtt: [UsersTable, Arn], 'index', 'ApprovalStatusIndex' ] ]\n            - Fn::GetAtt: [BusinessesTable, Arn]\n            - Fn::Join: [ '/', [ Fn::GetAtt: [BusinessesTable, Arn], 'index', 'ApprovalStatusIndex' ] ]\n            - Fn::GetAtt: [PartiesTable, Arn]\n            - Fn::GetAtt: [ProductsTable, Arn]\n            - Fn::Join: [ '/', [ Fn::GetAtt: [ProductsTable, Arn], 'index', 'GSI1' ] ]\n            - Fn::GetAtt: [InvoicesTable, Arn]\n        - Effect: Allow\n          Action:\n            - s3:PutObject\n            - s3:PutObjectAcl\n          Resource:\n            - Fn::Join: ['', [Fn::GetAtt: [UploadsBucket, Arn], '/*']]\n\nfunctions:\n  api:\n    handler: src/app.handler\n    events:\n      - http:\n          path: /\n          method: ANY\n      - http:\n          path: /{proxy+}\n          method: ANY\n\nresources:\n  Resources:\n    # 1. Users Table (GST_USERS) - The only active table for Phase 1\n    UsersTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        TableName: ${self:provider.environment.USERS_TABLE}\n        AttributeDefinitions:\n          - AttributeName: userId\n            AttributeType: S\n          - AttributeName: email\n            AttributeType: S\n          - AttributeName: approvalStatus\n            AttributeType: S\n        KeySchema:\n          - AttributeName: userId\n            KeyType: HASH\n        GlobalSecondaryIndexes:\n          - IndexName: EmailIndex\n            KeySchema:\n              - AttributeName: email\n                KeyType: HASH\n            Projection:\n              ProjectionType: ALL\n          - IndexName: ApprovalStatusIndex\n            KeySchema:\n              - AttributeName: approvalStatus\n                KeyType: HASH\n            Projection:\n              ProjectionType: ALL\n        BillingMode: PAY_PER_REQUEST\n\n    # 2. Businesses Table\n    BusinessesTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        TableName: ${self:provider.environment.BUSINESSES_TABLE}\n        AttributeDefinitions:\n          - AttributeName: userId\n            AttributeType: S\n          - AttributeName: businessId\n            AttributeType: S\n          - AttributeName: approvalStatus\n            AttributeType: S\n        KeySchema:\n          - AttributeName: userId\n            KeyType: HASH\n          - AttributeName: businessId\n            KeyType: RANGE\n        GlobalSecondaryIndexes:\n          - IndexName: ApprovalStatusIndex\n            KeySchema:\n              - AttributeName: approvalStatus\n                KeyType: HASH\n            Projection:\n              ProjectionType: ALL\n        BillingMode: PAY_PER_REQUEST\n\n    # 3. Parties Table\n    PartiesTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        TableName: ${self:provider.environment.PARTIES_TABLE}\n        AttributeDefinitions:\n          - AttributeName: PK\n            AttributeType: S\n          - AttributeName: SK\n            AttributeType: S\n        KeySchema:\n          - AttributeName: PK\n            KeyType: HASH\n          - AttributeName: SK\n            KeyType: RANGE\n        BillingMode: PAY_PER_REQUEST\n    \n    # 4. Products Table\n    ProductsTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        TableName: ${self:provider.environment.PRODUCTS_TABLE}\n        AttributeDefinitions:\n          - AttributeName: PK\n            AttributeType: S\n          - AttributeName: SK\n            AttributeType: S\n          - AttributeName: GSI1-PK\n            AttributeType: S\n          - AttributeName: GSI1-SK\n            AttributeType: S\n        KeySchema:\n          - AttributeName: PK\n            KeyType: HASH\n          - AttributeName: SK\n            KeyType: RANGE\n        GlobalSecondaryIndexes:\n          - IndexName: GSI1\n            KeySchema:\n              - AttributeName: GSI1-PK\n                KeyType: HASH\n              - AttributeName: GSI1-SK\n                KeyType: RANGE\n            Projection:\n              ProjectionType: ALL\n        BillingMode: PAY_PER_REQUEST\n\n    # 5. Invoices Table\n    InvoicesTable:\n      Type: AWS::DynamoDB::Table\n      Properties:\n        TableName: ${self:provider.environment.INVOICES_TABLE}\n        AttributeDefinitions:\n          - AttributeName: PK\n            AttributeType: S\n          - AttributeName: SK\n            AttributeType: S\n        KeySchema:\n          - AttributeName: PK\n            KeyType: HASH\n          - AttributeName: SK\n            KeyType: RANGE\n        BillingMode: PAY_PER_REQUEST\n\n    # 6. Uploads S3 Bucket\n    UploadsBucket:\n      Type: AWS::S3::Bucket\n      Properties:\n        BucketName: ${self:service}-${self:provider.stage}-uploads\n        PublicAccessBlockConfiguration:\n          BlockPublicAcls: false\n          BlockPublicPolicy: false\n          IgnorePublicAcls: false\n          RestrictPublicBuckets: false\n        OwnershipControls:\n          Rules:\n            - ObjectOwnership: BucketOwnerPreferred\n        CorsConfiguration:\n          CorsRules:\n            - AllowedHeaders: ['*']\n              AllowedMethods: [GET, PUT, POST, DELETE, HEAD]\n              AllowedOrigins: ['*']\n              MaxAge: 3000\n\n    # Bucket Policy for Public Read Access (Optional/Recommended for public URLs)\n    UploadsBucketPolicy:\n      Type: AWS::S3::BucketPolicy\n      Properties:\n        Bucket: !Ref UploadsBucket\n        PolicyDocument:\n          Version: '2012-10-17'\n          Statement:\n            - Effect: Allow\n              Principal: '*'\n              Action: s3:GetObject\n              Resource: !Join ['', [!GetAtt UploadsBucket.Arn, '/*']]\n\nplugins:\n  - serverless-offline\n",
     "command": [
       "deploy"
     ],
@@ -2075,12 +2188,12 @@
     "serviceProviderAwsCfStackName": "gst-billing-backend-dev",
     "serviceProviderAwsCfStackId": "arn:aws:cloudformation:eu-north-1:021891594883:stack/gst-billing-backend-dev/8f56dab0-0000-11f1-abfa-06773204ef33",
     "serviceProviderAwsCfStackCreated": "2026-02-02T06:29:43.109Z",
-    "serviceProviderAwsCfStackUpdated": "2026-02-05T07:38:48.822Z",
+    "serviceProviderAwsCfStackUpdated": "2026-02-06T12:01:10.862Z",
     "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
     "serviceProviderAwsCfStackOutputs": [
       {
         "OutputKey": "ApiLambdaFunctionQualifiedArn",
-        "OutputValue": "arn:aws:lambda:eu-north-1:021891594883:function:gst-billing-backend-dev-api:53",
+        "OutputValue": "arn:aws:lambda:eu-north-1:021891594883:function:gst-billing-backend-dev-api:73",
         "Description": "Current Lambda function version",
         "ExportName": "sls-gst-billing-backend-dev-ApiLambdaFunctionQualifiedArn"
       },
@@ -2258,6 +2371,12 @@
                               "GSI1"
                             ]
                           ]
+                        },
+                        {
+                          "Fn::GetAtt": [
+                            "InvoicesTable",
+                            "Arn"
+                          ]
                         }
                       ]
                     },
@@ -2309,19 +2428,20 @@
           "Properties": {
             "Code": {
               "S3Bucket": "serverless-framework-deployments-eu-north-1-b42b58cd-da17",
-              "S3Key": "serverless/gst-billing-backend/dev/1770279804582-2026-02-05T08:23:24.582Z/gst-billing-backend.zip"
+              "S3Key": "serverless/gst-billing-backend/dev/1770379582043-2026-02-06T12:06:22.043Z/gst-billing-backend.zip"
             },
             "Handler": "src/app.handler",
             "Runtime": "nodejs20.x",
             "FunctionName": "gst-billing-backend-dev-api",
-            "MemorySize": 1024,
-            "Timeout": 6,
+            "MemorySize": 2048,
+            "Timeout": 30,
             "Environment": {
               "Variables": {
                 "USERS_TABLE": "GST_USERS",
                 "BUSINESSES_TABLE": "GST_BUSINESSES",
                 "PARTIES_TABLE": "GST_PARTIES",
                 "PRODUCTS_TABLE": "GST_PRODUCTS",
+                "INVOICES_TABLE": "GST_INVOICES",
                 "JWT_SECRET": "<REDACTED>",
                 "ADMIN_SECRET_KEY": "<REDACTED>",
                 "UPLOADS_BUCKET": {
@@ -2341,14 +2461,14 @@
             "ApiLogGroup"
           ]
         },
-        "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg": {
+        "ApiLambdaVersionFbvXArI1p5EmwLTFghxjiwG4XfdcatLWXTPQH51u0RU": {
           "Type": "AWS::Lambda::Version",
           "DeletionPolicy": "Retain",
           "Properties": {
             "FunctionName": {
               "Ref": "ApiLambdaFunction"
             },
-            "CodeSha256": "6I2odG+Dwtj/ONh69RHHJmvWcXAQckBNdIWTamAsoW4="
+            "CodeSha256": "XYL2KyY8aPzGR5PVCVoc5LbuRtdoixMEUHBFwZAP2B4="
           }
         },
         "ApiGatewayRestApi": {
@@ -2479,7 +2599,7 @@
             "ApiLambdaPermissionApiGateway"
           ]
         },
-        "ApiGatewayDeployment1770279790205": {
+        "ApiGatewayDeployment1770379565809": {
           "Type": "AWS::ApiGateway::Deployment",
           "Properties": {
             "RestApiId": {
@@ -2707,6 +2827,33 @@
             "BillingMode": "PAY_PER_REQUEST"
           }
         },
+        "InvoicesTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "GST_INVOICES",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "PK",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "SK",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "PK",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "SK",
+                "KeyType": "RANGE"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST"
+          }
+        },
         "UploadsBucket": {
           "Type": "AWS::S3::Bucket",
           "Properties": {
@@ -2789,7 +2936,7 @@
         "ApiLambdaFunctionQualifiedArn": {
           "Description": "Current Lambda function version",
           "Value": {
-            "Ref": "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg"
+            "Ref": "ApiLambdaVersionFbvXArI1p5EmwLTFghxjiwG4XfdcatLWXTPQH51u0RU"
           },
           "Export": {
             "Name": "sls-gst-billing-backend-dev-ApiLambdaFunctionQualifiedArn"

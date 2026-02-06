@@ -1,321 +1,347 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Invoice {{invoice.invoiceNumber}}</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            font-size: 11px;
-            color: #111827;
-            margin: 0;
-            padding: 0;
-        }
-        .page {
-            padding: 12px 16px;
-        }
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 2px solid #111827;
-            padding-bottom: 6px;
-            margin-bottom: 8px;
-        }
-        .brand {
-            max-width: 60%;
-        }
-        .brand-title {
-            font-size: 18px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-        .brand-sub {
-            font-size: 10px;
-            margin-top: 2px;
-        }
-        .invoice-meta {
-            text-align: right;
-            font-size: 10px;
-        }
-        .invoice-meta-label {
-            font-weight: 600;
-        }
-        .section-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-top: 8px;
-        }
-        .section-box {
-            flex: 1;
-            border: 1px solid #d1d5db;
-            padding: 6px 6px 4px 6px;
-        }
-        .section-title {
-            font-weight: 600;
-            font-size: 10px;
-            margin-bottom: 4px;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 2px;
-            text-transform: uppercase;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-        }
-        th, td {
-            border: 1px solid #e5e7eb;
-            padding: 4px 3px;
-            text-align: left;
-        }
-        th {
-            background: #f9fafb;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .right {
-            text-align: right;
-        }
-        .totals {
-            margin-top: 8px;
-            width: 45%;
-            margin-left: auto;
-        }
-        .small {
-            font-size: 10px;
-        }
-        .muted {
-            color: #6b7280;
-        }
-        .footer-row {
-            margin-top: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            font-size: 9px;
-            border-top: 1px solid #e5e7eb;
-            padding-top: 6px;
-        }
-        .signature-block {
-            text-align: right;
-        }
-        .amount-in-words {
-            margin-top: 6px;
-            font-size: 9px;
-        }
-        .thank-you {
-            margin-top: 4px;
-            font-size: 9px;
-            text-align: center;
-            color: #4b5563;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>TAX INVOICE</title>
+
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      margin: 10px;
+      color: #000;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    td, th {
+      border: 1px solid #000;
+      padding: 6px;
+      vertical-align: top;
+    }
+
+    .no-border td {
+      border: none;
+    }
+
+    .bold { font-weight: bold; }
+    .center { text-align: center; }
+    .right { text-align: right; }
+
+    .header-note {
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+      margin: 4px 0;
+    }
+
+    .blue {
+      background: #d4e8fd;
+    }
+
+    .bank-title {
+      color: #1C6FBD;
+      font-weight: bold;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      margin-top: 6px;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="page">
-        <!-- Top bar: Seller + Invoice meta -->
-        <div class="top-bar">
-            <div class="brand">
-                <div class="brand-title">{{seller.firmName}}</div>
-                <div class="brand-sub">
-                    GSTIN: {{seller.gstNumber}}<br/>
-                    {{#if seller.address}}{{seller.address}}<br/>{{/if}}
-                    {{#if seller.phone}}Phone: {{seller.phone}} {{/if}}
-                    {{#if seller.email}}<span class="muted"> | {{seller.email}}</span>{{/if}}
-                </div>
-            </div>
-            <div class="invoice-meta">
-                <div class="invoice-meta-label">TAX INVOICE</div>
-                <div>Invoice No: {{invoice.invoiceNumber}}</div>
-                <div>Invoice Date: {{invoice.invoiceDate}}</div>
-                {{#if invoice.dueDate}}<div>Due Date: {{invoice.dueDate}}</div>{{/if}}
-                {{#if transportInfo.placeOfSupply}}<div>Place of Supply: {{transportInfo.placeOfSupply}}</div>{{/if}}
-            </div>
-        </div>
 
-        <!-- Parties / Dispatch sections -->
-        <div class="section-row">
-            <div class="section-box">
-                <div class="section-title">Details of Receiver | Billed To</div>
-                <div><strong>{{invoice.buyerName}}</strong></div>
-                {{#if invoice.buyerGstin}}<div>GSTIN: {{invoice.buyerGstin}}</div>{{/if}}
-                {{#if buyerAddress}}<div>{{buyerAddress}}</div>{{/if}}
-            </div>
-            {{#if showShippingAddress}}
-            <div class="section-box">
-                <div class="section-title">Details of Consignee | Shipped To</div>
-                <div><strong>{{invoice.buyerName}}</strong></div>
-                {{#if invoice.buyerGstin}}<div>GSTIN: {{invoice.buyerGstin}}</div>{{/if}}
-                <div>{{shippingAddress}}</div>
-            </div>
-            {{/if}}
-        </div>
+<!-- TOP LINE -->
+<div class="header-note">
+  Thank-you for doing business with us
+  <span style="float:right;">Original For Recipient</span>
+</div>
 
-        {{#if hasTransportInfo}}
-        <div class="section-row">
-            <div class="section-box">
-                <div class="section-title">Dispatch / Transport Details</div>
-                {{#if transportInfo.vehicleNumber}}<div>Vehicle Number: {{transportInfo.vehicleNumber}}</div>{{/if}}
-                {{#if transportInfo.mode}}<div>Mode: {{transportInfo.mode}}</div>{{/if}}
-                {{#if transportInfo.transporterName}}<div>Transporter: {{transportInfo.transporterName}}</div>{{/if}}
-                {{#if transportInfo.transporterId}}<div>Transporter ID: {{transportInfo.transporterId}}</div>{{/if}}
-                {{#if transportInfo.docNo}}<div>LR / Doc No: {{transportInfo.docNo}}</div>{{/if}}
-                {{#if transportInfo.docDate}}<div>LR Date: {{transportInfo.docDate}}</div>{{/if}}
-                {{#if transportInfo.placeOfSupply}}<div>Place of Supply: {{transportInfo.placeOfSupply}}</div>{{/if}}
-            </div>
-        </div>
+<div class="title">TAX INVOICE</div>
+
+<!-- SELLER + META -->
+<table>
+  <tr>
+    <td rowspan="4" style="width:55%;">
+      <div class="bold" style="font-size:14px;">{{seller.firmName}}</div>
+      {{#if seller.address}}
+        {{seller.address.street}}<br>
+        {{seller.address.city}}, {{seller.address.state}} – {{seller.address.pincode}}<br><br>
+      {{/if}}
+      {{#if seller.mobile}}
+        📞 {{seller.mobile}}<br><br>
+      {{/if}}
+      GSTIN : <b>{{seller.gstNumber}}</b>
+      &nbsp;&nbsp;
+      {{#if seller.stateCode}}
+      <span style="border:1px solid #000; padding:2px 6px;">
+        State Code : {{seller.stateCode}}
+      </span>
+      {{/if}}
+    </td>
+
+    <td class="center">
+      Invoice Number<br><b style="white-space: nowrap;">{{invoice.invoiceNumber}}</b>
+    </td>
+    <td class="center">
+      Invoice Date<br><b style="white-space: nowrap;">{{invoice.invoiceDate}}</b>
+    </td>
+    <td class="center">
+      {{#if transportInfo.placeOfSupply}}
+      Place of Supply<br><b>{{transportInfo.placeOfSupply}}</b>
+      {{/if}}
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+      {{#if invoice.dateOfSupply}}
+      Date Of Supply<br><b>{{invoice.dateOfSupply}}</b>
+      {{/if}}
+    </td>
+    <td class="center">
+      {{#if invoice.reverseCharge}}
+      Reverse Charge<br><b>{{invoice.reverseCharge}}</b>
+      {{/if}}
+    </td>
+    <td class="center">
+      {{#if transportInfo.vehicleNumber}}
+      Vehicle Number<br><b>{{transportInfo.vehicleNumber}}</b>
+      {{/if}}
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+      {{#if transportInfo.transporterId}}
+      Transporter ID<br><b>{{transportInfo.transporterId}}</b>
+      {{/if}}
+    </td>
+    <td class="center">
+      {{#if transportInfo.transporterName}}
+      Transporter Name<br><b>{{transportInfo.transporterName}}</b>
+      {{/if}}
+    </td>
+    <td class="center">
+      {{#if transportInfo.mode}}
+      Transportation Mode<br><b>{{transportInfo.mode}}</b>
+      {{/if}}
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+      {{#if transportInfo.docNo}}
+      LR Number<br><b>{{transportInfo.docNo}}</b>
+      {{/if}}
+    </td>
+    <td class="center">
+      {{#if transportInfo.docDate}}
+      LR Date<br><b style="white-space: nowrap;">{{transportInfo.docDate}}</b>
+      {{/if}}
+    </td>
+    <td></td>
+  </tr>
+</table>
+
+<!-- DISPATCH -->
+<table>
+  <tr>
+    <td>
+      <b>Dispatch From (Consignor)</b><br>
+      {{seller.firmName}}<br>
+      {{#if seller.address}}
+        {{seller.address.street}}<br>
+        {{seller.address.city}}, {{seller.address.state}} – {{seller.address.pincode}}<br>
+      {{/if}}
+      GSTIN: {{seller.gstNumber}}
+      {{#if seller.stateCode}}
+        &nbsp; State Code : <b>{{seller.stateCode}}</b>
+      {{/if}}
+    </td>
+  </tr>
+</table>
+
+<!-- BILL TO / SHIP TO -->
+<table>
+  <tr>
+    <td class="bold">Details of Receiver | Billed to</td>
+    <td class="bold">Details of Consignee | Shipped to</td>
+  </tr>
+  <tr>
+    <td>
+      Name: <b>{{invoice.buyerName}}</b><br>
+      {{#if buyerAddress}}
+        Address: {{buyerAddress}}<br>
+      {{/if}}
+      {{#if invoice.buyerGstin}}
+        GSTIN: {{invoice.buyerGstin}}
+      {{/if}}
+    </td>
+    <td>
+      Name: <b>{{invoice.buyerName}}</b><br>
+      {{#if showShippingAddress}}
+        {{#if shippingAddress}}
+          Address: {{shippingAddress}}<br>
         {{/if}}
+      {{/if}}
+      {{#unless showShippingAddress}}
+        {{#if buyerAddress}}
+          Address: {{buyerAddress}}<br>
+        {{/if}}
+      {{/unless}}
+      {{#if invoice.buyerGstin}}
+        GSTIN: {{invoice.buyerGstin}}
+      {{/if}}
+    </td>
+  </tr>
+</table>
 
-        <!-- Items table -->
-        <table>
-        <thead>
-        <tr>
-            <th>#</th>
-                <th>Name of Product / Service</th>
-                <th class="right">HSN/SAC</th>
-                <th class="right">Qty</th>
-                <th class="right">Unit</th>
-                <th class="right">Rate</th>
-                <th class="right">Discount</th>
-                <th class="right">Taxable Value</th>
-                <th class="right">GST %</th>
-                <th class="right">GST Amount</th>
-                <th class="right">Total</th>
-        </tr>
-        </thead>
-        <tbody>
-        {{#each totals.items}}
-            <tr>
-                <td>{{inc @index}}</td>
-                <td>{{this.itemName}}</td>
-                <td class="right">{{this.hsnSac}}</td>
-                <td class="right">{{this.quantity}}</td>
-                <td class="right">{{this.unit}}</td>
-                <td class="right">{{formatCurrency this.unitPrice}}</td>
-                <td class="right">{{formatCurrency this.totals.discountAmount}}</td>
-                <td class="right">{{formatCurrency this.totals.taxableAmount}}</td>
-                <td class="right">{{this.totals.gstPercent}}</td>
-                <td class="right">{{formatCurrency this.totals.gstAmount}}</td>
-                <td class="right">{{formatCurrency this.totals.lineTotal}}</td>
-            </tr>
-        {{/each}}
-        </tbody>
-    </table>
+<!-- ITEMS -->
+<table>
+  <thead>
+    <tr class="blue">
+      <th rowspan="2">Sr. No.</th>
+      <th rowspan="2">Name of Product</th>
+      <th rowspan="2">HSN/SAC</th>
+      <th rowspan="2">QTY</th>
+      <th rowspan="2">Unit</th>
+      <th rowspan="2">Rate</th>
+      <th rowspan="2">Taxable Value</th>
+      <th colspan="2">IGST</th>
+      <th rowspan="2">CESS</th>
+      <th rowspan="2">Total</th>
+    </tr>
+    <tr class="blue">
+      <th>Rate</th>
+      <th>Amount</th>
+    </tr>
+  </thead>
 
-    {{#if totals.additionalCharges.length}}
-    <table>
-        <thead>
-        <tr>
-            <th>Additional Charges</th>
-            <th class="right">Taxable</th>
-            <th class="right">GST %</th>
-            <th class="right">GST Amt</th>
-            <th class="right">Amount</th>
-        </tr>
-        </thead>
-        <tbody>
-        {{#each totals.additionalCharges}}
-            <tr>
-                <td>{{this.name}}</td>
-                <td class="right">{{formatCurrency this.totals.taxableAmount}}</td>
-                <td class="right">{{this.totals.gstPercent}}</td>
-                <td class="right">{{formatCurrency this.totals.gstAmount}}</td>
-                <td class="right">{{formatCurrency this.totals.total}}</td>
-            </tr>
-        {{/each}}
-        </tbody>
-    </table>
+  <tbody>
+    {{#each totals.items}}
+    <tr>
+      <td class="center">{{inc @index}}</td>
+      <td class="bold">{{this.itemName}}</td>
+      <td>{{this.hsnSac}}</td>
+      <td class="right">{{this.quantity}}</td>
+      <td>{{this.unit}}</td>
+      <td class="right">{{formatCurrency this.unitPrice}}</td>
+      <td class="right blue">{{formatCurrency this.totals.taxableAmount}}</td>
+      <td class="center">{{this.totals.gstPercent}}%</td>
+      <td class="right">{{formatCurrency this.totals.gstAmount}}</td>
+      <td class="right">
+        {{formatCurrency this.totals.cessAmount}}<br>
+        ({{this.cessValue}}%)
+      </td>
+      <td class="right bold">{{formatCurrency this.totals.lineTotal}}</td>
+    </tr>
+    {{/each}}
+
+    {{#each totals.additionalCharges}}
+    <tr>
+      <td></td>
+      <td class="right">{{this.name}}</td>
+      <td>{{this.hsnSac}}</td>
+      <td colspan="3"></td>
+      <td class="center blue">{{formatCurrency this.totals.taxableAmount}}</td>
+      <td class="center">{{this.totals.gstPercent}}%</td>
+      <td class="right">{{formatCurrency this.totals.gstAmount}}</td>
+      <td></td>
+      <td class="right bold">{{formatCurrency this.totals.total}}</td>
+    </tr>
+    {{/each}}
+
+    <tr>
+      <td colspan="10" class="right">Taxable Amount</td>
+      <td class="right bold">{{formatCurrency totals.summary.taxableAmount}}</td>
+    </tr>
+    <tr>
+      <td colspan="10" class="right">Add : IGST</td>
+      <td class="right bold">{{formatCurrency totals.summary.taxAmount}}</td>
+    </tr>
+    {{#if totals.summary.tcsAmount}}
+    <tr>
+      <td colspan="10" class="right">Add : TCS</td>
+      <td class="right bold">{{formatCurrency totals.summary.tcsAmount}}</td>
+    </tr>
     {{/if}}
+    <tr>
+      <td colspan="10" class="right bold">TOTAL</td>
+      <td class="right bold">{{formatCurrency totals.summary.grandTotal}}</td>
+    </tr>
+  </tbody>
+</table>
 
-        <!-- Summary + bank / notes -->
-        <table class="totals">
-            <tr>
-                <td>Taxable Amount</td>
-                <td class="right">{{formatCurrency totals.summary.taxableAmount}}</td>
-            </tr>
-            <tr>
-                <td>Total GST</td>
-                <td class="right">{{formatCurrency totals.summary.taxAmount}}</td>
-            </tr>
-            {{#if totals.summary.tcsAmount}}
-            <tr>
-                <td>TCS</td>
-                <td class="right">{{formatCurrency totals.summary.tcsAmount}}</td>
-            </tr>
-            {{/if}}
-            <tr>
-                <td><strong>Grand Total</strong></td>
-                <td class="right"><strong>{{formatCurrency totals.summary.grandTotal}}</strong></td>
-            </tr>
-        </table>
+<!-- AMOUNT IN WORDS -->
+<table>
+  <tr>
+    <td class="bold">
+      <!-- Replace the static text below with a dynamic amount-in-words field if you add one to the context -->
+      Total Amount in words :- {{!-- e.g. {{amountInWords}} --}} Eight Thousand Eight Hundred Ten Rupees Only
+    </td>
+    <td class="right bold">Total</td>
+    <td class="right bold">{{formatCurrency totals.summary.grandTotal}}</td>
+  </tr>
+</table>
 
-        {{#if hasBankDetails}}
-        <div style="margin-top:6px;">
-            <div class="section-title">Bank and Payment Details</div>
-            {{#if bankDetails.bankName}}<div>Bank Name: {{bankDetails.bankName}}</div>{{/if}}
-            {{#if bankDetails.accountNumber}}<div>Account No.: {{bankDetails.accountNumber}}</div>{{/if}}
-            {{#if bankDetails.ifscCode}}<div>IFSC Code: {{bankDetails.ifscCode}}</div>{{/if}}
-            {{#if bankDetails.branch}}<div>Branch Name: {{bankDetails.branch}}</div>{{/if}}
-            {{#if bankDetails.upiId}}<div>UPI ID: {{bankDetails.upiId}}</div>{{/if}}
-        </div>
-        {{/if}}
+<!-- BANK + SIGN -->
+<table>
+  <tr>
+    <td style="width:50%;">
+      {{#if hasBankDetails}}
+      <div class="bank-title">🏦 Bank and Payment Details</div><br>
+      {{#if bankDetails.bankName}}Bank Name : <b>{{bankDetails.bankName}}</b><br>{{/if}}
+      {{#if bankDetails.accountHolderName}}Account Holder : <b>{{bankDetails.accountHolderName}}</b><br>{{/if}}
+      {{#if bankDetails.accountNumber}}Account No. : <b>{{bankDetails.accountNumber}}</b><br>{{/if}}
+      {{#if bankDetails.ifscCode}}IFSC Code : <b>{{bankDetails.ifscCode}}</b><br>{{/if}}
+      {{#if bankDetails.upiId}}UPI ID : <b>{{bankDetails.upiId}}</b><br>{{/if}}
+      {{else}}
+      <div class="bank-title">🏦 Bank and Payment Details</div><br>
+      Account No. : <b>8602378087</b><br>
+      IFSC Code : <b>ICIC0005769</b><br>
+      Bank Name : <b>ICICI Bank</b><br>
+      Branch Name : <b>NARSINGI II</b>
+      {{/if}}
+    </td>
+    <td class="right" style="width:50%;">
+      Certified that the particular given above are true and correct<br><br>
+      <b>For, {{seller.firmName}}</b><br><br><br>
+      Authorised Signatory
+    </td>
+  </tr>
+</table>
 
-        {{#if termsAndConditions.length}}
-        <div style="margin-top:6px;">
-            <div class="section-title">Terms and Conditions</div>
-            <ul class="small">
-            {{#each termsAndConditions}}
-                <li>{{this}}</li>
-            {{/each}}
-            </ul>
-        </div>
-        {{/if}}
+<!-- TERMS -->
+<table>
+  <tr>
+    <td>
+      <b>Terms And Conditions</b><br>
+      {{#if termsAndConditions.length}}
+        {{#each termsAndConditions}}
+          {{inc @index}}. {{this}}<br>
+        {{/each}}
+      {{else}}
+        1. This is an electronically generated document.<br>
+        2. All disputes are subject to seller city jurisdiction.
+      {{/if}}
+    </td>
+  </tr>
+</table>
 
-        {{#if customFields.length}}
-        <div style="margin-top:6px;">
-            <div class="section-title">Additional Information</div>
-            <table class="small">
-                <tbody>
-                {{#each customFields}}
-                    <tr>
-                        <td>{{this.name}}</td>
-                        <td>{{this.value}}</td>
-                    </tr>
-                {{/each}}
-                </tbody>
-            </table>
-        </div>
-        {{/if}}
+<div class="footer">Thankyou for your business</div>
+<div class="footer">Document Made From <b>GimBooks</b></div>
 
-        <div class="amount-in-words">
-            <!-- Frontend can later send precomputed words; for now we just label -->
-            <span class="muted">Total Amount:</span>
-            <strong>{{formatCurrency totals.summary.grandTotal}}</strong>
-        </div>
-
-        <div class="footer-row">
-            <div>
-                {{#if invoice.notes}}
-                    <div><strong>Notes:</strong> {{invoice.notes}}</div>
-                {{/if}}
-                <div style="margin-top:6px;">Certified that the particulars given above are true and correct.</div>
-            </div>
-            <div class="signature-block">
-                <div>For, {{seller.firmName}}</div>
-                {{#if invoice.signatureUrl}}
-                    <div style="margin-top:18px;">Authorised Signatory</div>
-                {{/if}}
-            </div>
-        </div>
-
-        <div class="thank-you">
-            Thank you for your business.
-        </div>
-    </div>
 </body>
 </html>
-

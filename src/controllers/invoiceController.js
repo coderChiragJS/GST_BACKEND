@@ -84,6 +84,7 @@ const baseInvoiceSchema = z.object({
     buyerName: z.string().min(1, 'buyerName is required'),
     buyerGstin: z.string().optional().default(''),
     buyerAddress: z.string().optional().default(''),
+    shippingAddress: z.string().optional().default(''),
     items: z.array(invoiceLineItemSchema).min(1, 'At least one line item is required'),
     additionalCharges: z.array(additionalChargeSchema).optional().default([]),
     globalDiscountType: z.enum(['percentage', 'flat']),
