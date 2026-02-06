@@ -17,7 +17,7 @@ const basePartySchema = z.object({
     email: z.string().email("Invalid email format").optional(),
     billingAddress: addressSchema,
     sameAsBilling: z.boolean().default(false),
-    shippingAddress: addressSchema.optional(),
+    shippingAddress: addressSchema.optional().nullable(),
     paymentTerms: z.number().int().min(0).default(0),
     openingBalance: z.number().default(0),
     openingBalanceType: z.enum(['TO_RECEIVE', 'TO_PAY']).default('TO_RECEIVE'),

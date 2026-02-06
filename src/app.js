@@ -3,6 +3,7 @@ const serverless = require('serverless-http');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const apiRoutes = require('./routes/api');
+const gstApiRoutes = require('./routes/gstApi');
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.get('/', (req, res) => {
 
 // API Routes
 app.use('/', apiRoutes);
+app.use('/', gstApiRoutes);
 
 // Error Handler
 app.use((err, req, res, next) => {

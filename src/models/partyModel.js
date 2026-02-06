@@ -94,13 +94,15 @@ const Party = {
         const now = new Date().toISOString();
         const sameAsBilling = updateData.sameAsBilling || false;
 
-        // Handle shipping address if sameAsBilling is true
-        if (sameAsBilling && updateData.billingAddress) {
+        // Handle shipping address: explicit null means "clear" (do not overwrite with billing)
+        if (updateData.shippingAddress === null) {
+            // Keep null so DB stores cleared shipping address
+        } else if (sameAsBilling && updateData.billingAddress) {
             updateData.shippingAddress = {
                 ...updateData.billingAddress,
                 sameAsBilling: true
             };
-        } else if (updateData.shippingAddress) {
+        } else if (updateData.shippingAddress && typeof updateData.shippingAddress === 'object') {
             updateData.shippingAddress.sameAsBilling = false;
         }
 

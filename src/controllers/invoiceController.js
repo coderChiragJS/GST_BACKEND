@@ -41,7 +41,10 @@ const transportInfoSchema = z.object({
     docDate: z.string().nullable().optional(),
     approxDistance: z.number().nonnegative().optional(),
     placeOfSupply: z.string().nullable().optional(),
-    dateOfSupply: z.string().nullable().optional()
+    dateOfSupply: z.string().nullable().optional(),
+    placeOfSupplyStateCode: z.string().nullable().optional(),
+    placeOfSupplyStateName: z.string().nullable().optional(),
+    supplyTypeDisplay: z.enum(['intrastate', 'interstate']).nullable().optional()
 });
 
 const bankDetailsSnapshotSchema = z.object({
@@ -83,8 +86,8 @@ const baseInvoiceSchema = z.object({
     buyerId: z.string().nullable().optional(),
     buyerName: z.string().min(1, 'buyerName is required'),
     buyerGstin: z.string().optional().default(''),
-    buyerAddress: z.string().optional().default(''),
-    shippingAddress: z.string().optional().default(''),
+    buyerAddress: z.preprocess((val) => (val == null ? '' : val), z.string().optional().default('')),
+    shippingAddress: z.preprocess((val) => (val == null ? '' : val), z.string().optional().default('')),
     items: z.array(invoiceLineItemSchema).min(1, 'At least one line item is required'),
     additionalCharges: z.array(additionalChargeSchema).optional().default([]),
     globalDiscountType: z.enum(['percentage', 'flat']),
@@ -146,7 +149,8 @@ const invoiceController = {
                 return res.status(400).json({
                     message: 'Validation failed',
                     error: validation.error.errors[0].message,
-                    details: validation.error.errors
+                    details: validation.error.errors,
+                    code: 'VALIDATION_FAILED'
                 });
             }
 
@@ -241,7 +245,8 @@ const invoiceController = {
                 return res.status(400).json({
                     message: 'Validation failed',
                     error: validation.error.errors[0].message,
-                    details: validation.error.errors
+                    details: validation.error.errors,
+                    code: 'VALIDATION_FAILED'
                 });
             }
 

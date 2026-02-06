@@ -19,7 +19,7 @@ const businessSchema = z.object({
         city: z.string().optional(),
         state: z.string().optional(),
         pincode: z.string().optional()
-    }).optional(),
+    }).optional().nullable(),
     companyLogoUrl: z.string().url("Invalid URL format").optional(),
     customFields: z.record(z.any()).optional(),
 
