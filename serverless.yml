@@ -9,8 +9,17 @@ provider:
     USERS_TABLE: GST_USERS
     BUSINESSES_TABLE: GST_BUSINESSES
     PARTIES_TABLE: GST_PARTIES
+    PRODUCTS_TABLE: GST_PRODUCTS
     JWT_SECRET: ${env:JWT_SECRET, 'dev-secret-key-change-in-prod'}
     ADMIN_SECRET_KEY: ${env:ADMIN_SECRET_KEY, 'dev-admin-secret-key'}
+    UPLOADS_BUCKET: !Ref UploadsBucket
+    REGION: ${self:provider.region}
+  apiGateway:
+    binaryMediaTypes:
+      - 'multipart/form-data'
+      - 'image/png'
+      - 'image/jpeg'
+      - 'image/jpg'
   iam:
     role:
       statements:
@@ -29,6 +38,14 @@ provider:
             - Fn::GetAtt: [BusinessesTable, Arn]
             - Fn::Join: [ '/', [ Fn::GetAtt: [BusinessesTable, Arn], 'index', 'ApprovalStatusIndex' ] ]
             - Fn::GetAtt: [PartiesTable, Arn]
+            - Fn::GetAtt: [ProductsTable, Arn]
+            - Fn::Join: [ '/', [ Fn::GetAtt: [ProductsTable, Arn], 'index', 'GSI1' ] ]
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:PutObjectAcl
+          Resource:
+            - Fn::Join: ['', [Fn::GetAtt: [UploadsBucket, Arn], '/*']]
 
 functions:
   api:
@@ -115,6 +132,69 @@ resources:
           - AttributeName: SK
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
+    
+    # 4. Products Table
+    ProductsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.PRODUCTS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: GSI1-PK
+            AttributeType: S
+          - AttributeName: GSI1-SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1-PK
+                KeyType: HASH
+              - AttributeName: GSI1-SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+    # 5. Uploads S3 Bucket
+    UploadsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-${self:provider.stage}-uploads
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: false
+          BlockPublicPolicy: false
+          IgnorePublicAcls: false
+          RestrictPublicBuckets: false
+        OwnershipControls:
+          Rules:
+            - ObjectOwnership: BucketOwnerPreferred
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders: ['*']
+              AllowedMethods: [GET, PUT, POST, DELETE, HEAD]
+              AllowedOrigins: ['*']
+              MaxAge: 3000
+
+    # Bucket Policy for Public Read Access (Optional/Recommended for public URLs)
+    UploadsBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref UploadsBucket
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal: '*'
+              Action: s3:GetObject
+              Resource: !Join ['', [!GetAtt UploadsBucket.Arn, '/*']]
 
 plugins:
   - serverless-offline

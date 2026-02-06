@@ -22,6 +22,14 @@ const Business = {
             dispatchAddress: businessData.dispatchAddress, // Map
             companyLogoUrl: businessData.companyLogoUrl,
             customFields: businessData.customFields,
+
+            // Master Settings (Optional)
+            bankAccounts: businessData.bankAccounts || [],
+            transporters: businessData.transporters || [],
+            termsTemplates: businessData.termsTemplates || [],
+            defaultSignatureUrl: businessData.defaultSignatureUrl || null,
+            defaultStampUrl: businessData.defaultStampUrl || null,
+
             approvalStatus: 'PENDING', // Default status for new business
             isActive: false, // Default inactive until approved
             createdAt: now,
@@ -75,7 +83,14 @@ const Business = {
         let expAttrNames = {};
 
         // List of allowed fields to update
-        const allowedFields = ['firmName', 'gstNumber', 'pan', 'mobile', 'email', 'address', 'dispatchAddress', 'companyLogoUrl', 'customFields', 'isActive'];
+        const allowedFields = [
+            'firmName', 'gstNumber', 'pan', 'mobile', 'email',
+            'address', 'dispatchAddress', 'companyLogoUrl', 'customFields',
+            'isActive',
+            // Master Settings
+            'bankAccounts', 'transporters', 'termsTemplates',
+            'defaultSignatureUrl', 'defaultStampUrl'
+        ];
 
         allowedFields.forEach(field => {
             if (updateData[field] !== undefined) {

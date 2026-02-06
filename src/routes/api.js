@@ -21,6 +21,10 @@ router.get('/admin/pending', authMiddleware, adminMiddleware, adminController.ge
 router.post('/admin/approve', authMiddleware, adminMiddleware, adminController.approveUser);
 router.post('/admin/approve-business', authMiddleware, adminMiddleware, adminController.approveBusiness);
 
+// Upload Routes
+const uploadController = require('../controllers/uploadController');
+router.post('/upload', authMiddleware, uploadController.uploadImage);
+
 // Business Routes (Protected)
 const businessController = require('../controllers/businessController');
 router.post('/business', authMiddleware, businessController.createBusiness);
@@ -34,6 +38,14 @@ router.get('/parties', authMiddleware, partyController.listParties);
 router.get('/parties/:partyId', authMiddleware, partyController.getParty);
 router.put('/parties/:partyId', authMiddleware, partyController.updateParty);
 router.delete('/parties/:partyId', authMiddleware, partyController.deleteParty);
+
+// Product Routes (Protected)
+const productController = require('../controllers/productController');
+router.post('/business/:businessId/products', authMiddleware, productController.createProduct);
+router.get('/business/:businessId/products', authMiddleware, productController.listProducts);
+router.get('/business/:businessId/products/:productId', authMiddleware, productController.getProduct);
+router.put('/business/:businessId/products/:productId', authMiddleware, productController.updateProduct);
+router.delete('/business/:businessId/products/:productId', authMiddleware, productController.deleteProduct);
 
 // Health Check
 router.get('/health', (req, res) => {

@@ -1,0 +1,1 @@
+{"error":"Invalid IFSC code format","details":[{"validation":"regex","code":"invalid_string","message":"Invalid IFSC code format","path":["bankAccounts",0,"ifscCode"]}]}

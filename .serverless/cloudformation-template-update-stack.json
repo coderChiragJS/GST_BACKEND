@@ -139,6 +139,50 @@
                         "PartiesTable",
                         "Arn"
                       ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "ProductsTable",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::Join": [
+                        "/",
+                        [
+                          {
+                            "Fn::GetAtt": [
+                              "ProductsTable",
+                              "Arn"
+                            ]
+                          },
+                          "index",
+                          "GSI1"
+                        ]
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:PutObjectAcl"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          {
+                            "Fn::GetAtt": [
+                              "UploadsBucket",
+                              "Arn"
+                            ]
+                          },
+                          "/*"
+                        ]
+                      ]
                     }
                   ]
                 }
@@ -167,7 +211,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-eu-north-1-b42b58cd-da17",
-          "S3Key": "serverless/gst-billing-backend/dev/1770194990047-2026-02-04T08:49:50.047Z/gst-billing-backend.zip"
+          "S3Key": "serverless/gst-billing-backend/dev/1770279804582-2026-02-05T08:23:24.582Z/gst-billing-backend.zip"
         },
         "Handler": "src/app.handler",
         "Runtime": "nodejs20.x",
@@ -179,8 +223,13 @@
             "USERS_TABLE": "GST_USERS",
             "BUSINESSES_TABLE": "GST_BUSINESSES",
             "PARTIES_TABLE": "GST_PARTIES",
+            "PRODUCTS_TABLE": "GST_PRODUCTS",
             "JWT_SECRET": "dev-secret-key-change-in-prod",
-            "ADMIN_SECRET_KEY": "dev-admin-secret-key"
+            "ADMIN_SECRET_KEY": "dev-admin-secret-key",
+            "UPLOADS_BUCKET": {
+              "Ref": "UploadsBucket"
+            },
+            "REGION": "eu-north-1"
           }
         },
         "Role": {
@@ -194,20 +243,26 @@
         "ApiLogGroup"
       ]
     },
-    "ApiLambdaVersionnBR1UmO4jN2Hm6jHboUz07T8ZMfKBr05QNAOqYb4": {
+    "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ApiLambdaFunction"
         },
-        "CodeSha256": "mgqk8m10SJ8R5L7f9DVaqeKFU1O+acODOXGEvPA2yEw="
+        "CodeSha256": "6I2odG+Dwtj/ONh69RHHJmvWcXAQckBNdIWTamAsoW4="
       }
     },
     "ApiGatewayRestApi": {
       "Type": "AWS::ApiGateway::RestApi",
       "Properties": {
         "Name": "dev-gst-billing-backend",
+        "BinaryMediaTypes": [
+          "multipart/form-data",
+          "image/png",
+          "image/jpeg",
+          "image/jpg"
+        ],
         "EndpointConfiguration": {
           "Types": [
             "EDGE"
@@ -326,7 +381,7 @@
         "ApiLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1770194977124": {
+    "ApiGatewayDeployment1770279790205": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -500,6 +555,130 @@
         ],
         "BillingMode": "PAY_PER_REQUEST"
       }
+    },
+    "ProductsTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "GST_PRODUCTS",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "GSI1-PK",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "GSI1-SK",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE"
+          }
+        ],
+        "GlobalSecondaryIndexes": [
+          {
+            "IndexName": "GSI1",
+            "KeySchema": [
+              {
+                "AttributeName": "GSI1-PK",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "GSI1-SK",
+                "KeyType": "RANGE"
+              }
+            ],
+            "Projection": {
+              "ProjectionType": "ALL"
+            }
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST"
+      }
+    },
+    "UploadsBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "gst-billing-backend-dev-uploads",
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": false,
+          "BlockPublicPolicy": false,
+          "IgnorePublicAcls": false,
+          "RestrictPublicBuckets": false
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerPreferred"
+            }
+          ]
+        },
+        "CorsConfiguration": {
+          "CorsRules": [
+            {
+              "AllowedHeaders": [
+                "*"
+              ],
+              "AllowedMethods": [
+                "GET",
+                "PUT",
+                "POST",
+                "DELETE",
+                "HEAD"
+              ],
+              "AllowedOrigins": [
+                "*"
+              ],
+              "MaxAge": 3000
+            }
+          ]
+        }
+      }
+    },
+    "UploadsBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "UploadsBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": "s3:GetObject",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    {
+                      "Fn::GetAtt": [
+                        "UploadsBucket",
+                        "Arn"
+                      ]
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      }
     }
   },
   "Outputs": {
@@ -512,7 +691,7 @@
     "ApiLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ApiLambdaVersionnBR1UmO4jN2Hm6jHboUz07T8ZMfKBr05QNAOqYb4"
+        "Ref": "ApiLambdaVersion4arVdRfENY7qAzem34wpBfpkNpwBbtSWdT7vuM2qxg"
       },
       "Export": {
         "Name": "sls-gst-billing-backend-dev-ApiLambdaFunctionQualifiedArn"
