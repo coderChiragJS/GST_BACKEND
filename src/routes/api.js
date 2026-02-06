@@ -47,6 +47,19 @@ router.get('/business/:businessId/products/:productId', authMiddleware, productC
 router.put('/business/:businessId/products/:productId', authMiddleware, productController.updateProduct);
 router.delete('/business/:businessId/products/:productId', authMiddleware, productController.deleteProduct);
 
+// Invoice Routes (Protected)
+const invoiceController = require('../controllers/invoiceController');
+const invoicePdfController = require('../controllers/invoicePdfController');
+router.post('/business/:businessId/invoices', authMiddleware, invoiceController.createInvoice);
+router.get('/business/:businessId/invoices', authMiddleware, invoiceController.listInvoices);
+router.get('/business/:businessId/invoices/:invoiceId', authMiddleware, invoiceController.getInvoice);
+router.put('/business/:businessId/invoices/:invoiceId', authMiddleware, invoiceController.updateInvoice);
+router.delete('/business/:businessId/invoices/:invoiceId', authMiddleware, invoiceController.deleteInvoice);
+router.post('/business/:businessId/invoices/:invoiceId/pdf', authMiddleware, invoicePdfController.generatePdf);
+
+// Optional: public list of available invoice templates
+router.get('/invoice-templates', invoicePdfController.listTemplates);
+
 // Health Check
 router.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Invoice {{invoice.invoiceNumber}}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 11px;
+            color: #111;
+        }
+        .header-bar {
+            background: #111827;
+            color: #f9fafb;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .header-meta {
+            text-align: right;
+            font-size: 10px;
+        }
+        .grid {
+            display: flex;
+            padding: 12px 14px;
+            gap: 16px;
+        }
+        .col {
+            flex: 1;
+        }
+        .label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6b7280;
+        }
+        .value {
+            font-size: 11px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        th, td {
+            padding: 5px 4px;
+            text-align: left;
+        }
+        th {
+            font-size: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6b7280;
+        }
+        tbody tr:nth-child(odd) {
+            background: #f9fafb;
+        }
+        .right {
+            text-align: right;
+        }
+        .summary-row {
+            font-size: 11px;
+        }
+        .summary-row strong {
+            font-weight: 600;
+        }
+        .footer {
+            display: flex;
+            padding: 10px 14px;
+            margin-top: 10px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 9px;
+            color: #6b7280;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <div>
+            <div class="header-title">Tax Invoice</div>
+            <div class="value">{{seller.firmName}}</div>
+            <div class="label">GSTIN</div>
+            <div class="value">{{seller.gstNumber}}</div>
+        </div>
+        <div class="header-meta">
+            <div class="label">Invoice No</div>
+            <div class="value">{{invoice.invoiceNumber}}</div>
+            <div class="label">Invoice Date</div>
+            <div class="value">{{invoice.invoiceDate}}</div>
+            {{#if invoice.dueDate}}
+            <div class="label">Due Date</div>
+            <div class="value">{{invoice.dueDate}}</div>
+            {{/if}}
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="col">
+            <div class="label">Bill To</div>
+            <div class="value"><strong>{{invoice.buyerName}}</strong></div>
+            {{#if invoice.buyerGstin}}
+            <div class="label" style="margin-top:2px;">GSTIN</div>
+            <div class="value">{{invoice.buyerGstin}}</div>
+            {{/if}}
+            {{#if buyerAddress}}
+            <div class="label" style="margin-top:2px;">Address</div>
+            <div class="value">{{buyerAddress}}</div>
+            {{/if}}
+        </div>
+        {{#if showShippingAddress}}
+        <div class="col">
+            <div class="label">Ship To</div>
+            <div class="value">{{shippingAddress}}</div>
+        </div>
+        {{/if}}
+        {{#if hasTransportInfo}}
+        <div class="col">
+            <div class="label">Shipping Details</div>
+            {{#if transportInfo.vehicleNumber}}<div class="value">Vehicle: {{transportInfo.vehicleNumber}}</div>{{/if}}
+            {{#if transportInfo.mode}}<div class="value">Mode: {{transportInfo.mode}}</div>{{/if}}
+            {{#if transportInfo.placeOfSupply}}<div class="value">Place of Supply: {{transportInfo.placeOfSupply}}</div>{{/if}}
+        </div>
+        {{/if}}
+    </div>
+
+    <div style="padding:0 14px;">
+        <table>
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th class="right">Qty</th>
+                <th class="right">Rate</th>
+                <th class="right">Discount</th>
+                <th class="right">Taxable</th>
+                <th class="right">GST</th>
+                <th class="right">Amount</th>
+            </tr>
+            </thead>
+            <tbody>
+            {{#each totals.items}}
+                <tr>
+                    <td>{{inc @index}}</td>
+                    <td>
+                        {{this.itemName}}
+                        {{#if this.hsnSac}}
+                        <div style="font-size:9px;color:#6b7280;">HSN/SAC: {{this.hsnSac}}</div>
+                        {{/if}}
+                    </td>
+                    <td class="right">{{this.quantity}} {{this.unit}}</td>
+                    <td class="right">{{formatCurrency this.unitPrice}}</td>
+                    <td class="right">{{formatCurrency this.totals.discountAmount}}</td>
+                    <td class="right">{{formatCurrency this.totals.taxableAmount}}</td>
+                    <td class="right">{{this.totals.gstPercent}}%</td>
+                    <td class="right">{{formatCurrency this.totals.lineTotal}}</td>
+                </tr>
+            {{/each}}
+            </tbody>
+        </table>
+
+        <table style="margin-top:8px;">
+            <tbody>
+                <tr class="summary-row">
+                    <td style="width:70%;"></td>
+                    <td>Taxable</td>
+                    <td class="right">{{formatCurrency totals.summary.taxableAmount}}</td>
+                </tr>
+                <tr class="summary-row">
+                    <td></td>
+                    <td>GST</td>
+                    <td class="right">{{formatCurrency totals.summary.taxAmount}}</td>
+                </tr>
+                {{#if totals.summary.tcsAmount}}
+                <tr class="summary-row">
+                    <td></td>
+                    <td>TCS</td>
+                    <td class="right">{{formatCurrency totals.summary.tcsAmount}}</td>
+                </tr>
+                {{/if}}
+                <tr class="summary-row">
+                    <td></td>
+                    <td><strong>Grand Total</strong></td>
+                    <td class="right"><strong>{{formatCurrency totals.summary.grandTotal}}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        {{#if hasBankDetails}}
+        <div style="margin-top:8px; display:flex; gap:16px;">
+            <div>
+                <div class="label">Bank Details</div>
+                {{#if bankDetails.bankName}}<div class="value">{{bankDetails.bankName}}</div>{{/if}}
+                {{#if bankDetails.accountHolderName}}<div class="value">{{bankDetails.accountHolderName}}</div>{{/if}}
+                {{#if bankDetails.accountNumber}}<div class="value">A/C: {{bankDetails.accountNumber}}</div>{{/if}}
+                {{#if bankDetails.ifscCode}}<div class="value">IFSC: {{bankDetails.ifscCode}}</div>{{/if}}
+                {{#if bankDetails.upiId}}<div class="value">UPI: {{bankDetails.upiId}}</div>{{/if}}
+            </div>
+        </div>
+        {{/if}}
+
+        {{#if termsAndConditions.length}}
+        <div style="margin-top:8px;">
+            <div class="label">Terms &amp; Conditions</div>
+            <ul style="margin:4px 0 0 14px; padding:0; font-size:9px;">
+            {{#each termsAndConditions}}
+                <li>{{this}}</li>
+            {{/each}}
+            </ul>
+        </div>
+        {{/if}}
+    </div>
+
+    <div class="footer">
+        <div>
+            {{#if invoice.notes}}
+                <div><strong>Notes:</strong> {{invoice.notes}}</div>
+            {{/if}}
+        </div>
+        <div style="text-align:right;">
+            <div>For {{seller.firmName}}</div>
+            {{#if invoice.signatureUrl}}
+                <div style="margin-top:12px;">Authorised Signatory</div>
+            {{/if}}
+        </div>
+    </div>
+</body>
+</html>
+

@@ -4,12 +4,15 @@ provider:
   name: aws
   runtime: nodejs20.x
   region: eu-north-1
+  memorySize: 2048
+  timeout: 30
   stage: dev
   environment:
     USERS_TABLE: GST_USERS
     BUSINESSES_TABLE: GST_BUSINESSES
     PARTIES_TABLE: GST_PARTIES
     PRODUCTS_TABLE: GST_PRODUCTS
+    INVOICES_TABLE: GST_INVOICES
     JWT_SECRET: ${env:JWT_SECRET, 'dev-secret-key-change-in-prod'}
     ADMIN_SECRET_KEY: ${env:ADMIN_SECRET_KEY, 'dev-admin-secret-key'}
     UPLOADS_BUCKET: !Ref UploadsBucket
@@ -40,6 +43,7 @@ provider:
             - Fn::GetAtt: [PartiesTable, Arn]
             - Fn::GetAtt: [ProductsTable, Arn]
             - Fn::Join: [ '/', [ Fn::GetAtt: [ProductsTable, Arn], 'index', 'GSI1' ] ]
+            - Fn::GetAtt: [InvoicesTable, Arn]
         - Effect: Allow
           Action:
             - s3:PutObject
@@ -163,7 +167,24 @@ resources:
               ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
 
-    # 5. Uploads S3 Bucket
+    # 5. Invoices Table
+    InvoicesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.INVOICES_TABLE}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    # 6. Uploads S3 Bucket
     UploadsBucket:
       Type: AWS::S3::Bucket
       Properties:

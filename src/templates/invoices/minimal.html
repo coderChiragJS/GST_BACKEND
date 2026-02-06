@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Invoice {{invoice.invoiceNumber}}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 11px;
+            color: #111827;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .title {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 4px 2px;
+            text-align: left;
+        }
+        th {
+            font-size: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-transform: uppercase;
+        }
+        .right {
+            text-align: right;
+        }
+        .small {
+            font-size: 9px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <div class="title">{{seller.firmName}}</div>
+            <div class="small">GSTIN: {{seller.gstNumber}}</div>
+        </div>
+        <div class="small" style="text-align:right;">
+            <div>Invoice #: {{invoice.invoiceNumber}}</div>
+            <div>Date: {{invoice.invoiceDate}}</div>
+        </div>
+    </div>
+
+    <div class="small" style="margin-bottom:6px;">
+        <div><strong>Bill To:</strong> {{invoice.buyerName}}</div>
+        {{#if buyerAddress}}<div>{{buyerAddress}}</div>{{/if}}
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Description</th>
+            <th class="right">Qty</th>
+            <th class="right">Rate</th>
+            <th class="right">GST</th>
+            <th class="right">Amount</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{#each totals.items}}
+            <tr>
+                <td>{{this.itemName}}</td>
+                <td class="right">{{this.quantity}}</td>
+                <td class="right">{{formatCurrency this.unitPrice}}</td>
+                <td class="right">{{this.totals.gstPercent}}%</td>
+                <td class="right">{{formatCurrency this.totals.lineTotal}}</td>
+            </tr>
+        {{/each}}
+        </tbody>
+    </table>
+
+    <table style="margin-top:6px;">
+        <tbody>
+            <tr>
+                <td style="width:70%;"></td>
+                <td class="small">Taxable</td>
+                <td class="right small">{{formatCurrency totals.summary.taxableAmount}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="small">GST</td>
+                <td class="right small">{{formatCurrency totals.summary.taxAmount}}</td>
+            </tr>
+            {{#if totals.summary.tcsAmount}}
+            <tr>
+                <td></td>
+                <td class="small">TCS</td>
+                <td class="right small">{{formatCurrency totals.summary.tcsAmount}}</td>
+            </tr>
+            {{/if}}
+            <tr>
+                <td></td>
+                <td><strong>Total</strong></td>
+                <td class="right"><strong>{{formatCurrency totals.summary.grandTotal}}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
+
