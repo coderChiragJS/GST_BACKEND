@@ -95,7 +95,7 @@
       Invoice Number<br><b style="white-space: nowrap;">{{invoice.invoiceNumber}}</b>
     </td>
     <td class="center">
-      Invoice Date<br><b style="white-space: nowrap;">{{invoice.invoiceDate}}</b>
+      Invoice Date<br><b style="white-space: nowrap;">{{formatDate invoice.invoiceDate}}</b>
     </td>
     <td class="center">
       {{#if transportInfo.placeOfSupply}}
@@ -107,7 +107,7 @@
   <tr>
     <td class="center">
       {{#if invoice.dateOfSupply}}
-      Date Of Supply<br><b>{{invoice.dateOfSupply}}</b>
+      Date Of Supply<br><b style="white-space: nowrap;">{{formatDate invoice.dateOfSupply}}</b>
       {{/if}}
     </td>
     <td class="center">
@@ -148,7 +148,7 @@
     </td>
     <td class="center">
       {{#if transportInfo.docDate}}
-      LR Date<br><b style="white-space: nowrap;">{{transportInfo.docDate}}</b>
+      LR Date<br><b style="white-space: nowrap;">{{formatDate transportInfo.docDate}}</b>
       {{/if}}
     </td>
     <td></td>

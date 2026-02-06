@@ -40,6 +40,18 @@ function loadTemplatesOnce() {
         // eslint-disable-next-line eqeqeq
         return a == b ? options.fn(this) : options.inverse(this);
     });
+
+    Handlebars.registerHelper('formatDate', function (value) {
+        if (!value) return '';
+        const str = String(value);
+        const datePart = str.split('T')[0];
+        const parts = datePart.split('-');
+        if (parts.length !== 3) {
+            return str;
+        }
+        const [year, month, day] = parts;
+        return `${day}/${month}/${year}`;
+    });
 }
 
 async function renderInvoiceHtml(invoice, templateId) {
