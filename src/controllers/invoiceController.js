@@ -102,10 +102,31 @@ const baseInvoiceSchema = z.object({
     updatedAt: z.string().nullable().optional()
 });
 
-// For creation we want required fields enforced
-const createInvoiceSchema = baseInvoiceSchema;
+// For creation we want different rules for saved vs draft
+const savedInvoiceSchema = baseInvoiceSchema.extend({
+    status: z.literal('saved')
+});
 
-// For updates / cancel we allow partial payloads
+const draftInvoiceSchema = baseInvoiceSchema.extend({
+    status: z.literal('draft'),
+    // Drafts can be partially filled
+    buyerName: z.string().optional().default(''),
+    items: z.array(invoiceLineItemSchema).optional().default([]),
+    globalDiscountType: z.enum(['percentage', 'flat']).optional().default('percentage'),
+    globalDiscountValue: z.number().nonnegative().optional().default(0)
+});
+
+const cancelledInvoiceSchema = baseInvoiceSchema.extend({
+    status: z.literal('cancelled')
+});
+
+const createInvoiceSchema = z.discriminatedUnion('status', [
+    savedInvoiceSchema,
+    draftInvoiceSchema,
+    cancelledInvoiceSchema
+]);
+
+// For updates / cancel we allow partial payloads (including status-only)
 const updateInvoiceSchema = baseInvoiceSchema.partial();
 
 // --- Controller implementation ---
