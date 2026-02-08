@@ -60,14 +60,17 @@ const Party = {
         return newParty;
     },
 
-    // List all parties for a user
+    // List all parties for a user (excludes soft-deleted)
     async listByUser(userId) {
         const params = {
             TableName: TABLE_NAME,
             KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+            FilterExpression: 'attribute_not_exists(#status) OR #status <> :deleted',
+            ExpressionAttributeNames: { '#status': 'status' },
             ExpressionAttributeValues: {
                 ':pk': `USER#${userId}`,
-                ':sk': 'PARTY#'
+                ':sk': 'PARTY#',
+                ':deleted': 'DELETED'
             }
         };
 
@@ -158,6 +161,7 @@ const Party = {
                 SK: `PARTY#${partyId}`
             },
             UpdateExpression: 'SET #status = :status, updatedAt = :updatedAt',
+            ConditionExpression: 'attribute_exists(PK)',
             ExpressionAttributeNames: {
                 '#status': 'status'
             },

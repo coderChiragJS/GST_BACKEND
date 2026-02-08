@@ -51,6 +51,7 @@ provider:
           Resource:
             - Fn::Join: ['', [Fn::GetAtt: [UploadsBucket, Arn], '/*']]
 
+# Note: PDF generation uses Chromium; if timeouts occur, increase timeout for the api function (e.g. 60) or split PDF into a separate Lambda with higher memory/timeout.
 functions:
   api:
     handler: src/app.handler

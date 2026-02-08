@@ -155,56 +155,51 @@
   </tr>
 </table>
 
-<!-- DISPATCH -->
+<!-- DISPATCH (only when seller.dispatchAddress is set) -->
+{{#if hasDispatchAddress}}
 <table>
   <tr>
     <td>
       <b>Dispatch From (Consignor)</b><br>
-      {{seller.firmName}}<br>
-      {{#if seller.address}}
-        {{seller.address.street}}<br>
-        {{seller.address.city}}, {{seller.address.state}} – {{seller.address.pincode}}<br>
-      {{/if}}
-      GSTIN: {{seller.gstNumber}}
-      {{#if seller.stateCode}}
-        &nbsp; State Code : <b>{{seller.stateCode}}</b>
-      {{/if}}
+      {{#if seller.firmName}}{{seller.firmName}}<br>{{/if}}
+      {{#if seller.dispatchAddress.street}}{{seller.dispatchAddress.street}}<br>{{/if}}
+      {{#if seller.dispatchAddress.city}}{{seller.dispatchAddress.city}}{{/if}}{{#if seller.dispatchAddress.state}}, {{seller.dispatchAddress.state}}{{/if}}{{#if seller.dispatchAddress.pincode}} – {{seller.dispatchAddress.pincode}}{{/if}}
+      {{#if seller.gstNumber}}<br>GSTIN: {{seller.gstNumber}}{{/if}}
+      {{#if seller.stateCode}} &nbsp; State Code : <b>{{seller.stateCode}}</b>{{/if}}
     </td>
   </tr>
 </table>
+{{/if}}
 
-<!-- BILL TO / SHIP TO -->
+<!-- BILL TO / SHIP TO (hide Shipped to when no distinct shipping address) -->
 <table>
   <tr>
+    {{#if showShippingAddress}}
     <td class="bold">Details of Receiver | Billed to</td>
     <td class="bold">Details of Consignee | Shipped to</td>
+    {{else}}
+    <td class="bold">Details of Receiver | Billed to</td>
+    {{/if}}
   </tr>
   <tr>
+    {{#if showShippingAddress}}
     <td>
       Name: <b>{{invoice.buyerName}}</b><br>
-      {{#if buyerAddress}}
-        Address: {{buyerAddress}}<br>
-      {{/if}}
-      {{#if invoice.buyerGstin}}
-        GSTIN: {{invoice.buyerGstin}}
-      {{/if}}
+      {{#if buyerAddress}}Address: {{buyerAddress}}<br>{{/if}}
+      {{#if invoice.buyerGstin}}GSTIN: {{invoice.buyerGstin}}{{/if}}
     </td>
     <td>
       Name: <b>{{invoice.buyerName}}</b><br>
-      {{#if showShippingAddress}}
-        {{#if shippingAddress}}
-          Address: {{shippingAddress}}<br>
-        {{/if}}
-      {{/if}}
-      {{#unless showShippingAddress}}
-        {{#if buyerAddress}}
-          Address: {{buyerAddress}}<br>
-        {{/if}}
-      {{/unless}}
-      {{#if invoice.buyerGstin}}
-        GSTIN: {{invoice.buyerGstin}}
-      {{/if}}
+      {{#if shippingAddress}}Address: {{shippingAddress}}<br>{{/if}}
+      {{#if invoice.buyerGstin}}GSTIN: {{invoice.buyerGstin}}{{/if}}
     </td>
+    {{else}}
+    <td>
+      Name: <b>{{invoice.buyerName}}</b><br>
+      {{#if buyerAddress}}Address: {{buyerAddress}}<br>{{/if}}
+      {{#if invoice.buyerGstin}}GSTIN: {{invoice.buyerGstin}}{{/if}}
+    </td>
+    {{/if}}
   </tr>
 </table>
 

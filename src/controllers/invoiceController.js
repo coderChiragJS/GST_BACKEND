@@ -176,25 +176,36 @@ const invoiceController = {
                 return res.status(400).json({ message: 'Business ID is required in URL' });
             }
 
-            const { status, fromDate, toDate, search } = req.query;
+            const { status, fromDate, toDate, search, limit, nextToken } = req.query;
+            const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 100, 1), 100);
+            let exclusiveStartKey = null;
+            if (nextToken) {
+                try {
+                    exclusiveStartKey = JSON.parse(Buffer.from(nextToken, 'base64url').toString('utf8'));
+                } catch (_) {
+                    return res.status(400).json({ message: 'Invalid nextToken' });
+                }
+            }
 
-            let invoices = await Invoice.listByBusiness(userId, businessId);
+            const { items, lastEvaluatedKey } = await Invoice.listByBusiness(userId, businessId, {
+                limit: parsedLimit,
+                exclusiveStartKey
+            });
 
-            // Optional filters in-memory (good enough for now)
+            let invoices = items;
+
+            // Optional filters in-memory on current page
             if (status) {
                 invoices = invoices.filter((inv) => inv.status === status);
             }
-
             if (fromDate) {
                 const from = new Date(fromDate);
                 invoices = invoices.filter((inv) => inv.invoiceDate && new Date(inv.invoiceDate) >= from);
             }
-
             if (toDate) {
                 const to = new Date(toDate);
                 invoices = invoices.filter((inv) => inv.invoiceDate && new Date(inv.invoiceDate) <= to);
             }
-
             if (search) {
                 const s = String(search).toLowerCase();
                 invoices = invoices.filter((inv) => {
@@ -204,10 +215,14 @@ const invoiceController = {
                 });
             }
 
-            // Compatible with client: can handle array or { invoices }
+            const nextTokenOut = lastEvaluatedKey
+                ? Buffer.from(JSON.stringify(lastEvaluatedKey), 'utf8').toString('base64url')
+                : null;
+
             return res.json({
                 invoices,
-                count: invoices.length
+                count: invoices.length,
+                ...(nextTokenOut && { nextToken: nextTokenOut })
             });
         } catch (error) {
             console.error('List Invoices Error:', error);

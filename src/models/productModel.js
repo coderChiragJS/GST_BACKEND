@@ -118,18 +118,23 @@ const Product = {
             }
         });
 
-        // Special handling for GSI1 update if name or category changes
-        if (updateData.name || updateData.categoryId) {
-            if (updateData.categoryId) {
-                updateExp += ', #gsi1pk = :gsi1pk';
-                expAttrValues[':gsi1pk'] = `USER#${userId}#CATEGORY#${updateData.categoryId}`;
-                expAttrNames['#gsi1pk'] = 'GSI1-PK';
+        // GSI1 needs both name and categoryId; fetch existing if only one is being updated
+        const needsGsi1Update = updateData.name !== undefined || updateData.categoryId !== undefined;
+        let nameForGsi1 = updateData.name;
+        let categoryIdForGsi1 = updateData.categoryId;
+        if (needsGsi1Update && (nameForGsi1 === undefined || categoryIdForGsi1 === undefined)) {
+            const existing = await this.getById(userId, businessId, productId);
+            if (existing) {
+                nameForGsi1 = nameForGsi1 !== undefined ? nameForGsi1 : existing.name;
+                categoryIdForGsi1 = categoryIdForGsi1 !== undefined ? categoryIdForGsi1 : (existing.categoryId || 'default');
             }
-            if (updateData.name) {
-                updateExp += ', #gsi1sk = :gsi1sk';
-                expAttrValues[':gsi1sk'] = `NAME#${updateData.name.toUpperCase()}`;
-                expAttrNames['#gsi1sk'] = 'GSI1-SK';
-            }
+        }
+        if (needsGsi1Update && nameForGsi1 != null && categoryIdForGsi1 != null) {
+            updateExp += ', #gsi1pk = :gsi1pk, #gsi1sk = :gsi1sk';
+            expAttrValues[':gsi1pk'] = `USER#${userId}#CATEGORY#${categoryIdForGsi1}`;
+            expAttrValues[':gsi1sk'] = `NAME#${String(nameForGsi1).toUpperCase()}`;
+            expAttrNames['#gsi1pk'] = 'GSI1-PK';
+            expAttrNames['#gsi1sk'] = 'GSI1-SK';
         }
 
         const params = {
@@ -157,6 +162,7 @@ const Product = {
                 SK: `PRODUCT#${productId}`
             },
             UpdateExpression: 'SET #status = :status, updatedAt = :updatedAt',
+            ConditionExpression: 'attribute_exists(PK)',
             ExpressionAttributeNames: { '#status': 'status' },
             ExpressionAttributeValues: {
                 ':status': 'DELETED',

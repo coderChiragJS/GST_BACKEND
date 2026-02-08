@@ -1,13 +1,15 @@
 const Party = require('../models/partyModel');
 const { z } = require('zod');
 
-// Validation Schemas
+// Validation Schemas (address allows optional gst/companyName for Flutter compatibility)
 const addressSchema = z.object({
     street: z.string().min(1, "Street address is required"),
     city: z.string().min(1, "City is required"),
     state: z.string().min(1, "State is required"),
     pincode: z.string().min(6, "Pincode must be at least 6 digits").max(6, "Pincode must be at most 6 digits"),
-    country: z.string().default('India')
+    country: z.string().default('India'),
+    gst: z.string().optional(),
+    companyName: z.string().optional()
 }).strict();
 
 const basePartySchema = z.object({
@@ -49,9 +51,14 @@ const partyController = {
             const validation = createPartySchema.safeParse(req.body);
 
             if (!validation.success) {
+                const errors = validation.error.errors.map(e => ({
+                    field: e.path.length ? e.path.join('.') : 'body',
+                    message: e.message
+                }));
                 return res.status(400).json({
                     error: 'Validation failed',
-                    details: validation.error.errors
+                    code: 'VALIDATION_FAILED',
+                    errors
                 });
             }
 
@@ -124,9 +131,14 @@ const partyController = {
 
             const validation = updatePartySchema.safeParse(req.body);
             if (!validation.success) {
+                const errors = validation.error.errors.map(e => ({
+                    field: e.path.length ? e.path.join('.') : 'body',
+                    message: e.message
+                }));
                 return res.status(400).json({
                     error: 'Validation failed',
-                    details: validation.error.errors
+                    code: 'VALIDATION_FAILED',
+                    errors
                 });
             }
 
@@ -171,6 +183,9 @@ const partyController = {
             res.json({ message: 'Party deleted successfully' });
 
         } catch (error) {
+            if (error.name === 'ConditionalCheckFailedException') {
+                return res.status(404).json({ error: 'Party not found' });
+            }
             console.error('Delete Party Error:', error);
             res.status(500).json({
                 error: 'Failed to delete party',

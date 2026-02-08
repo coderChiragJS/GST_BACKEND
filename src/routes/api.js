@@ -5,6 +5,7 @@ const adminAuthController = require('../controllers/adminAuthController');
 
 const authMiddleware = require('../middleware/auth');
 const adminMiddleware = require('../middleware/admin');
+const requireBusiness = require('../middleware/requireBusiness');
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ router.post('/upload', authMiddleware, uploadController.uploadImage);
 const businessController = require('../controllers/businessController');
 router.post('/business', authMiddleware, businessController.createBusiness);
 router.get('/business', authMiddleware, businessController.getMyBusinesses);
-router.put('/business/:businessId', authMiddleware, businessController.updateBusiness);
+router.put('/business/:businessId', authMiddleware, requireBusiness, businessController.updateBusiness);
 
 // Party (Buyer/Customer) Routes (Protected)
 const partyController = require('../controllers/partyController');
@@ -39,23 +40,33 @@ router.get('/parties/:partyId', authMiddleware, partyController.getParty);
 router.put('/parties/:partyId', authMiddleware, partyController.updateParty);
 router.delete('/parties/:partyId', authMiddleware, partyController.deleteParty);
 
-// Product Routes (Protected)
+// Product Routes (Protected; requireBusiness ensures businessId belongs to user)
 const productController = require('../controllers/productController');
-router.post('/business/:businessId/products', authMiddleware, productController.createProduct);
-router.get('/business/:businessId/products', authMiddleware, productController.listProducts);
-router.get('/business/:businessId/products/:productId', authMiddleware, productController.getProduct);
-router.put('/business/:businessId/products/:productId', authMiddleware, productController.updateProduct);
-router.delete('/business/:businessId/products/:productId', authMiddleware, productController.deleteProduct);
+router.post('/business/:businessId/products', authMiddleware, requireBusiness, productController.createProduct);
+router.get('/business/:businessId/products', authMiddleware, requireBusiness, productController.listProducts);
+router.get('/business/:businessId/products/:productId', authMiddleware, requireBusiness, productController.getProduct);
+router.put('/business/:businessId/products/:productId', authMiddleware, requireBusiness, productController.updateProduct);
+router.delete('/business/:businessId/products/:productId', authMiddleware, requireBusiness, productController.deleteProduct);
 
-// Invoice Routes (Protected)
+// Invoice Routes (Protected; requireBusiness ensures businessId belongs to user)
 const invoiceController = require('../controllers/invoiceController');
 const invoicePdfController = require('../controllers/invoicePdfController');
-router.post('/business/:businessId/invoices', authMiddleware, invoiceController.createInvoice);
-router.get('/business/:businessId/invoices', authMiddleware, invoiceController.listInvoices);
-router.get('/business/:businessId/invoices/:invoiceId', authMiddleware, invoiceController.getInvoice);
-router.put('/business/:businessId/invoices/:invoiceId', authMiddleware, invoiceController.updateInvoice);
-router.delete('/business/:businessId/invoices/:invoiceId', authMiddleware, invoiceController.deleteInvoice);
-router.post('/business/:businessId/invoices/:invoiceId/pdf', authMiddleware, invoicePdfController.generatePdf);
+router.post('/business/:businessId/invoices', authMiddleware, requireBusiness, invoiceController.createInvoice);
+router.get('/business/:businessId/invoices', authMiddleware, requireBusiness, invoiceController.listInvoices);
+router.get('/business/:businessId/invoices/:invoiceId', authMiddleware, requireBusiness, invoiceController.getInvoice);
+router.put('/business/:businessId/invoices/:invoiceId', authMiddleware, requireBusiness, invoiceController.updateInvoice);
+router.delete('/business/:businessId/invoices/:invoiceId', authMiddleware, requireBusiness, invoiceController.deleteInvoice);
+router.post('/business/:businessId/invoices/:invoiceId/pdf', authMiddleware, requireBusiness, invoicePdfController.generatePdf);
+
+// Quotation Routes (Protected; requireBusiness ensures businessId belongs to user)
+const quotationController = require('../controllers/quotationController');
+const quotationPdfController = require('../controllers/quotationPdfController');
+router.post('/business/:businessId/quotations', authMiddleware, requireBusiness, quotationController.createQuotation);
+router.get('/business/:businessId/quotations', authMiddleware, requireBusiness, quotationController.listQuotations);
+router.get('/business/:businessId/quotations/:quotationId', authMiddleware, requireBusiness, quotationController.getQuotation);
+router.put('/business/:businessId/quotations/:quotationId', authMiddleware, requireBusiness, quotationController.updateQuotation);
+router.delete('/business/:businessId/quotations/:quotationId', authMiddleware, requireBusiness, quotationController.deleteQuotation);
+router.post('/business/:businessId/quotations/:quotationId/pdf', authMiddleware, requireBusiness, quotationPdfController.generatePdf);
 
 // Optional: public list of available invoice templates
 router.get('/invoice-templates', invoicePdfController.listTemplates);

@@ -61,7 +61,7 @@ Call these with the same base URL and `Authorization: Bearer <token>`.
 ## Invoice APIs (all require auth)
 
 - **Create:** `POST /business/<businessId>/invoices`
-- **List:** `GET /business/<businessId>/invoices` with optional query: `?status=saved`, `?status=cancelled`, `?status=draft`, `?search=<string>`, `?fromDate=`, `?toDate=`
+- **List:** `GET /business/<businessId>/invoices` with optional query: `?status=saved`, `?status=cancelled`, `?status=draft`, `?search=<string>`, `?fromDate=`, `?toDate=`, `?limit=100` (default 100, max 100), `?nextToken=<opaque>` (for pagination; use the `nextToken` from the previous response when present to fetch the next page).
 - **Get one:** `GET /business/<businessId>/invoices/<invoiceId>`
 - **Update:** `PUT /business/<businessId>/invoices/<invoiceId>`
 - **Delete:** `DELETE /business/<businessId>/invoices/<invoiceId>`
@@ -81,7 +81,7 @@ Call these with the same base URL and `Authorization: Bearer <token>`.
 
 ### Validation errors
 
-- On 400, the body is: `{ "message": "Validation failed", "error": "<first error message>", "details": [ { "code", "path", "message" }, ... ], "code": "VALIDATION_FAILED" }`. Use `code` for programmatic handling; log or show `details` so the user knows which field failed.
+- On 400, the body includes `"code": "VALIDATION_FAILED"` and an array of field errors. **Party** create/update returns `errors: [ { "field": "shippingAddress.pincode", "message": "Pincode must be at least 6 digits" }, ... ]` (dot path in `field`). **Invoice** create/update returns `details` with Zod shape (`path`, `message`). Use `code` for programmatic handling; show `errors` or `details` so the user knows which field failed.
 
 ### Status-only update
 
@@ -103,4 +103,5 @@ Call these with the same base URL and `Authorization: Bearer <token>`.
 3. For invoice create: always send `globalDiscountType` and `globalDiscountValue` when status is `saved`. You may send `shippingAddress` and `buyerAddress` as `""` or `null`; both are accepted.
 4. Call `POST /gst/place-of-supply` when building an invoice to get intrastate/interstate; store and send `placeOfSupplyStateCode`, `placeOfSupplyStateName`, `supplyTypeDisplay` in `transportInfo` when saving the invoice.
 5. Use `GET /master/states` for state dropdowns; use `GET /gst/state-from-gstin` or `GET /gst/validate-gstin` when user enters GSTIN.
-6. On 400 from invoice create/update, read `response.body` and show or log `details` for validation errors.
+6. On 400 from invoice create/update, read `response.body` and show or log `details` for validation errors. For party create/update, use `response.body.errors` (array of `{ field, message }`) to show which field failed.
+7. For **Create Quotation** flow: use **[FLUTTER_QUOTATION_COMPLETE_GUIDE.md](FLUTTER_QUOTATION_COMPLETE_GUIDE.md)** (one file with everything for quotation). For **Create Invoice** flow: use this doc and invoice endpoints only.

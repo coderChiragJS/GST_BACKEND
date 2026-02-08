@@ -114,6 +114,11 @@ const productController = {
                 return res.status(400).json({ error: validation.error.errors[0].message });
             }
 
+            const existing = await Product.getById(userId, businessId, productId);
+            if (!existing) {
+                return res.status(404).json({ error: 'Product not found' });
+            }
+
             const product = await Product.update(userId, businessId, productId, validation.data);
             res.json({ message: 'Product updated successfully', product });
         } catch (error) {
@@ -127,9 +132,17 @@ const productController = {
             const userId = req.user.userId;
             const { businessId, productId } = req.params;
 
+            const existing = await Product.getById(userId, businessId, productId);
+            if (!existing) {
+                return res.status(404).json({ error: 'Product not found' });
+            }
+
             await Product.delete(userId, businessId, productId);
             res.json({ message: 'Product deleted successfully' });
         } catch (error) {
+            if (error.name === 'ConditionalCheckFailedException') {
+                return res.status(404).json({ error: 'Product not found' });
+            }
             console.error('Delete Product Error:', error);
             res.status(500).json({ error: 'Internal Server Error' });
         }

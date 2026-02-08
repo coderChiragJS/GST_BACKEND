@@ -37,18 +37,31 @@ const Invoice = {
         return newInvoice;
     },
 
-    async listByBusiness(userId, businessId) {
+    /**
+     * List invoices by business with pagination to avoid 1MB DynamoDB limit truncation.
+     * @param {object} options - { limit = 100, exclusiveStartKey }
+     * @returns { items, lastEvaluatedKey } lastEvaluatedKey is set when more results exist.
+     */
+    async listByBusiness(userId, businessId, options = {}) {
+        const limit = Math.min(Math.max(Number(options.limit) || 100, 1), 100);
         const params = {
             TableName: TABLE_NAME,
             KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
             ExpressionAttributeValues: {
                 ':pk': `USER#${userId}#BUSINESS#${businessId}`,
                 ':sk': 'INVOICE#'
-            }
+            },
+            Limit: limit
         };
+        if (options.exclusiveStartKey) {
+            params.ExclusiveStartKey = options.exclusiveStartKey;
+        }
 
         const result = await dynamoDb.send(new QueryCommand(params));
-        return result.Items || [];
+        return {
+            items: result.Items || [],
+            lastEvaluatedKey: result.LastEvaluatedKey || null
+        };
     },
 
     async getById(userId, businessId, invoiceId) {
