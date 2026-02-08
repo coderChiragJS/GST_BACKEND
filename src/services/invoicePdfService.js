@@ -124,6 +124,7 @@ async function renderInvoiceHtml(invoice, templateId) {
 
 function loadQuotationTemplatesOnce() {
     if (Object.keys(compiledQuotationTemplates).length > 0) return;
+    loadTemplatesOnce();
     QUOTATION_TEMPLATE_IDS.forEach((id) => {
         const filePath = path.join(__dirname, '..', 'templates', 'quotations', `${id}.html`);
         try {
@@ -135,9 +136,12 @@ function loadQuotationTemplatesOnce() {
     });
 }
 
+const QUOTATION_TEMPLATE_ALIAS = { compact: 'classic', modern: 'classic' };
+
 async function renderQuotationHtml(quotation, templateId) {
     loadQuotationTemplatesOnce();
-    const template = compiledQuotationTemplates[templateId];
+    const resolvedId = QUOTATION_TEMPLATE_ALIAS[templateId] || templateId;
+    const template = compiledQuotationTemplates[resolvedId];
     if (!template) {
         throw new Error(`Quotation template not found: ${templateId}`);
     }

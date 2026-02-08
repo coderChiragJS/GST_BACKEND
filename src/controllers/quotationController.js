@@ -54,7 +54,8 @@ const contactPersonSchema = z.object({
 
 const sellerSchema = z.object({
     firmName: z.string().min(1, 'Seller firmName is required'),
-    gstNumber: z.string().min(1, 'Seller GST number is required')
+    gstNumber: z.string().min(1, 'Seller GST number is required'),
+    dispatchAddress: z.object({ street: z.string().optional() }).passthrough().nullable().optional()
 }).passthrough();
 
 const quotationStatusEnum = z.enum(['draft', 'sent', 'accepted', 'rejected', 'expired']);
