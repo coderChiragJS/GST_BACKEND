@@ -6,6 +6,7 @@ const adminAuthController = require('../controllers/adminAuthController');
 const authMiddleware = require('../middleware/auth');
 const adminMiddleware = require('../middleware/admin');
 const requireBusiness = require('../middleware/requireBusiness');
+const canCreateDocument = require('../middleware/canCreateDocument');
 
 const router = express.Router();
 
@@ -18,9 +19,23 @@ router.post('/admin/auth/register', adminAuthController.registerAdmin);
 router.post('/admin/auth/login', adminAuthController.loginAdmin);
 
 // Admin Routes (Protected + Role Check)
+router.get('/admin/settings/trial-days', authMiddleware, adminMiddleware, adminController.getTrialDays);
+router.put('/admin/settings/trial-days', authMiddleware, adminMiddleware, adminController.setTrialDays);
+router.get('/admin/users/expired-trial', authMiddleware, adminMiddleware, adminController.getExpiredTrialUsers);
 router.get('/admin/pending', authMiddleware, adminMiddleware, adminController.getPendingReviews);
 router.post('/admin/approve', authMiddleware, adminMiddleware, adminController.approveUser);
 router.post('/admin/approve-business', authMiddleware, adminMiddleware, adminController.approveBusiness);
+
+const adminPackageController = require('../controllers/adminPackageController');
+router.get('/admin/packages', authMiddleware, adminMiddleware, adminPackageController.listPackages);
+router.post('/admin/packages', authMiddleware, adminMiddleware, adminPackageController.createPackage);
+router.put('/admin/packages/:packageId', authMiddleware, adminMiddleware, adminPackageController.updatePackage);
+
+// Packages (user-facing: list active, purchase, my subscription)
+const userPackageController = require('../controllers/userPackageController');
+router.get('/packages', authMiddleware, userPackageController.listPackages);
+router.post('/user/subscriptions', authMiddleware, userPackageController.purchasePackage);
+router.get('/user/subscription', authMiddleware, userPackageController.getMySubscription);
 
 // Upload Routes
 const uploadController = require('../controllers/uploadController');
@@ -51,7 +66,7 @@ router.delete('/business/:businessId/products/:productId', authMiddleware, requi
 // Invoice Routes (Protected; requireBusiness ensures businessId belongs to user)
 const invoiceController = require('../controllers/invoiceController');
 const invoicePdfController = require('../controllers/invoicePdfController');
-router.post('/business/:businessId/invoices', authMiddleware, requireBusiness, invoiceController.createInvoice);
+router.post('/business/:businessId/invoices', authMiddleware, requireBusiness, canCreateDocument, invoiceController.createInvoice);
 router.get('/business/:businessId/invoices', authMiddleware, requireBusiness, invoiceController.listInvoices);
 router.get('/business/:businessId/invoices/:invoiceId', authMiddleware, requireBusiness, invoiceController.getInvoice);
 router.put('/business/:businessId/invoices/:invoiceId', authMiddleware, requireBusiness, invoiceController.updateInvoice);
@@ -61,7 +76,7 @@ router.post('/business/:businessId/invoices/:invoiceId/pdf', authMiddleware, req
 // Quotation Routes (Protected; requireBusiness ensures businessId belongs to user)
 const quotationController = require('../controllers/quotationController');
 const quotationPdfController = require('../controllers/quotationPdfController');
-router.post('/business/:businessId/quotations', authMiddleware, requireBusiness, quotationController.createQuotation);
+router.post('/business/:businessId/quotations', authMiddleware, requireBusiness, canCreateDocument, quotationController.createQuotation);
 router.get('/business/:businessId/quotations', authMiddleware, requireBusiness, quotationController.listQuotations);
 router.get('/business/:businessId/quotations/:quotationId', authMiddleware, requireBusiness, quotationController.getQuotation);
 router.put('/business/:businessId/quotations/:quotationId', authMiddleware, requireBusiness, quotationController.updateQuotation);

@@ -1,28 +1,39 @@
 const { dynamoDb } = require('../config/db');
-const { PutCommand, QueryCommand, GetCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+const { PutCommand, QueryCommand, GetCommand, UpdateCommand, ScanCommand } = require("@aws-sdk/lib-dynamodb");
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
+const { Settings } = require('./settingsModel');
 
 const USERS_TABLE = process.env.USERS_TABLE;
 
 const User = {
-    // Create a new User
+    // Create a new User (trial duration from global settings)
     async create({ name, email, password }, options = {}) {
         const passwordHash = await bcrypt.hash(password, 10);
         const userId = uuidv4();
-        const now = new Date().toISOString();
+        const now = new Date();
+
+        let trialDays = 14;
+        try {
+            trialDays = await Settings.getTrialDays();
+        } catch (err) {
+            // Table may not exist yet; use default
+        }
+
+        const trialEndDate = new Date(now);
+        trialEndDate.setDate(trialEndDate.getDate() + trialDays);
 
         const newUser = {
             userId,
             email,
             name,
             passwordHash,
-            role: options.role || 'USER', // Default role
+            role: options.role || 'USER',
             subscriptionActive: false,
-            trialDays: 14, // Default trial period
-            trialStartDate: now,
-            trialEndDate: new Date(new Date().setDate(new Date().getDate() + 14)).toISOString(),
-            createdAt: now,
+            trialDays,
+            trialStartDate: now.toISOString(),
+            trialEndDate: trialEndDate.toISOString(),
+            createdAt: now.toISOString(),
         };
 
         const params = {
@@ -99,6 +110,27 @@ const User = {
 
         const result = await dynamoDb.send(new QueryCommand(params));
         return result.Items;
+    },
+
+    // List users whose trial has expired (trialEndDate < now). Paginated via limit/nextToken.
+    async listExpiredTrial(limit = 50, nextToken = null) {
+        const now = new Date().toISOString();
+        const params = {
+            TableName: USERS_TABLE,
+            FilterExpression: 'trialEndDate < :now',
+            ExpressionAttributeValues: { ':now': now },
+            Limit: Math.min(Math.max(limit || 50, 1), 100)
+        };
+        if (nextToken) {
+            try {
+                params.ExclusiveStartKey = JSON.parse(Buffer.from(nextToken, 'base64').toString());
+            } catch (_) {}
+        }
+        const result = await dynamoDb.send(new ScanCommand(params));
+        const next = result.LastEvaluatedKey
+            ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
+            : null;
+        return { users: result.Items || [], nextToken: next };
     },
 
     // Update User Status

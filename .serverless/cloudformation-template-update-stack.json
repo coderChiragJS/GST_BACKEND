@@ -166,6 +166,12 @@
                         "InvoicesTable",
                         "Arn"
                       ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "AppDataTable",
+                        "Arn"
+                      ]
                     }
                   ]
                 },
@@ -217,7 +223,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-eu-north-1-b42b58cd-da17",
-          "S3Key": "serverless/gst-billing-backend/dev/1770577420790-2026-02-08T19:03:40.790Z/gst-billing-backend.zip"
+          "S3Key": "serverless/gst-billing-backend/dev/1770578552096-2026-02-08T19:22:32.096Z/gst-billing-backend.zip"
         },
         "Handler": "src/app.handler",
         "Runtime": "nodejs20.x",
@@ -231,6 +237,7 @@
             "PARTIES_TABLE": "GST_PARTIES",
             "PRODUCTS_TABLE": "GST_PRODUCTS",
             "INVOICES_TABLE": "GST_INVOICES",
+            "APP_DATA_TABLE": "GST_APP_DATA",
             "JWT_SECRET": "dev-secret-key-change-in-prod",
             "ADMIN_SECRET_KEY": "dev-admin-secret-key",
             "UPLOADS_BUCKET": {
@@ -250,14 +257,14 @@
         "ApiLogGroup"
       ]
     },
-    "ApiLambdaVersionEeWK2GrF3SWNBc9k44BZ2gdomg3s2ChmgVg8CY": {
+    "ApiLambdaVersionSvTMwAciOD3xUxq1mGMYixSXLRGGScxMd61KdyLb2Y": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ApiLambdaFunction"
         },
-        "CodeSha256": "BRx8hmeBEqKFTrMnyWyC1+d9D6joYpu2MDrfLF04JHA="
+        "CodeSha256": "inwby5XeG7wyCXc0YzjLpEzHWxDrOkJEEbG/7Azz370="
       }
     },
     "ApiGatewayRestApi": {
@@ -388,7 +395,7 @@
         "ApiLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1770577405186": {
+    "ApiGatewayDeployment1770578538981": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -643,6 +650,33 @@
         "BillingMode": "PAY_PER_REQUEST"
       }
     },
+    "AppDataTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "GST_APP_DATA",
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "PK",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "SK",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "PK",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "SK",
+            "KeyType": "RANGE"
+          }
+        ],
+        "BillingMode": "PAY_PER_REQUEST"
+      }
+    },
     "UploadsBucket": {
       "Type": "AWS::S3::Bucket",
       "Properties": {
@@ -725,7 +759,7 @@
     "ApiLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ApiLambdaVersionEeWK2GrF3SWNBc9k44BZ2gdomg3s2ChmgVg8CY"
+        "Ref": "ApiLambdaVersionSvTMwAciOD3xUxq1mGMYixSXLRGGScxMd61KdyLb2Y"
       },
       "Export": {
         "Name": "sls-gst-billing-backend-dev-ApiLambdaFunctionQualifiedArn"

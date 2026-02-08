@@ -1,4 +1,5 @@
 const Invoice = require('../models/invoiceModel');
+const UserSubscription = require('../models/userSubscriptionModel');
 const { z } = require('zod');
 
 // --- Zod Schemas matching the shared Invoice JSON spec ---
@@ -156,7 +157,10 @@ const invoiceController = {
 
             const invoice = await Invoice.create(userId, businessId, validation.data);
 
-            // Respond in a way compatible with Flutter client: data['invoice'] ?? data
+            if (!req.onTrial && req.subscription) {
+                await UserSubscription.incrementInvoicesUsed(userId, req.subscription.subscriptionId);
+            }
+
             return res.status(201).json({ invoice });
         } catch (error) {
             console.error('Create Invoice Error:', error);

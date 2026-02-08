@@ -105,3 +105,4 @@ Call these with the same base URL and `Authorization: Bearer <token>`.
 5. Use `GET /master/states` for state dropdowns; use `GET /gst/state-from-gstin` or `GET /gst/validate-gstin` when user enters GSTIN.
 6. On 400 from invoice create/update, read `response.body` and show or log `details` for validation errors. For party create/update, use `response.body.errors` (array of `{ field, message }`) to show which field failed.
 7. For **Create Quotation** flow: use **[FLUTTER_QUOTATION_COMPLETE_GUIDE.md](FLUTTER_QUOTATION_COMPLETE_GUIDE.md)** (one file with everything for quotation). For **Create Invoice** flow: use this doc and invoice endpoints only.
+8. For **trial and packages** (new feature): use **[FLUTTER_NEW_FEATURE_PACKAGE_AND_TRIAL.md](FLUTTER_NEW_FEATURE_PACKAGE_AND_TRIAL.md)** for app-side changes only.

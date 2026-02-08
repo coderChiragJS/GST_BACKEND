@@ -13,6 +13,7 @@ provider:
     PARTIES_TABLE: GST_PARTIES
     PRODUCTS_TABLE: GST_PRODUCTS
     INVOICES_TABLE: GST_INVOICES
+    APP_DATA_TABLE: GST_APP_DATA
     JWT_SECRET: ${env:JWT_SECRET, 'dev-secret-key-change-in-prod'}
     ADMIN_SECRET_KEY: ${env:ADMIN_SECRET_KEY, 'dev-admin-secret-key'}
     UPLOADS_BUCKET: !Ref UploadsBucket
@@ -44,6 +45,7 @@ provider:
             - Fn::GetAtt: [ProductsTable, Arn]
             - Fn::Join: [ '/', [ Fn::GetAtt: [ProductsTable, Arn], 'index', 'GSI1' ] ]
             - Fn::GetAtt: [InvoicesTable, Arn]
+            - Fn::GetAtt: [AppDataTable, Arn]
         - Effect: Allow
           Action:
             - s3:PutObject
@@ -185,7 +187,24 @@ resources:
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
 
-    # 6. Uploads S3 Bucket
+    # 6. App Data Table (single table: settings, packages, user subscriptions)
+    AppDataTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.APP_DATA_TABLE}
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+    # 7. Uploads S3 Bucket
     UploadsBucket:
       Type: AWS::S3::Bucket
       Properties:

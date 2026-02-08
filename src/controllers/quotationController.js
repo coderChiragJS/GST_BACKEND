@@ -1,4 +1,5 @@
 const Quotation = require('../models/quotationModel');
+const UserSubscription = require('../models/userSubscriptionModel');
 const { z } = require('zod');
 
 // --- Zod Schemas for Quotation (aligned with Gimbook; shared shapes mirror invoice where applicable) ---
@@ -131,6 +132,11 @@ const quotationController = {
             }
 
             const quotation = await Quotation.create(userId, businessId, validation.data);
+
+            if (!req.onTrial && req.subscription) {
+                await UserSubscription.incrementQuotationsUsed(userId, req.subscription.subscriptionId);
+            }
+
             return res.status(201).json({ quotation });
         } catch (error) {
             console.error('Create Quotation Error:', error);
