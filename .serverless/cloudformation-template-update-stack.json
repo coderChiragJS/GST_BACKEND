@@ -222,8 +222,8 @@
       "Type": "AWS::Lambda::Function",
       "Properties": {
         "Code": {
-          "S3Bucket": "serverless-framework-deployments-eu-north-1-b42b58cd-da17",
-          "S3Key": "serverless/gst-billing-backend/dev/1770578552096-2026-02-08T19:22:32.096Z/gst-billing-backend.zip"
+          "S3Bucket": "serverless-framework-deployments-us-east-1-280b993e-594e",
+          "S3Key": "serverless/gst-billing-backend/dev/1770638317671-2026-02-09T11:58:37.671Z/gst-billing-backend.zip"
         },
         "Handler": "src/app.handler",
         "Runtime": "nodejs20.x",
@@ -238,12 +238,19 @@
             "PRODUCTS_TABLE": "GST_PRODUCTS",
             "INVOICES_TABLE": "GST_INVOICES",
             "APP_DATA_TABLE": "GST_APP_DATA",
-            "JWT_SECRET": "dev-secret-key-change-in-prod",
-            "ADMIN_SECRET_KEY": "dev-admin-secret-key",
+            "JWT_SECRET": "change_this_in_prod",
+            "ADMIN_SECRET_KEY": "change_this_admin_key",
             "UPLOADS_BUCKET": {
               "Ref": "UploadsBucket"
             },
-            "REGION": "eu-north-1"
+            "REGION": "us-east-1",
+            "PHONEPE_CLIENT_ID": "SU2505291905253661005455",
+            "PHONEPE_CLIENT_SECRET": "8ef0a322-81d0-49e9-b53b-7a1922747b97",
+            "PHONEPE_CLIENT_VERSION": "1",
+            "PHONEPE_ENV": "PRODUCTION",
+            "PHONEPE_REDIRECT_URL": "https://qn83jg9dc5.execute-api.us-east-1.amazonaws.com/dev/payment/complete",
+            "PHONEPE_WEBHOOK_USERNAME": "DevAdmin",
+            "PHONEPE_WEBHOOK_PASSWORD": "olivia123"
           }
         },
         "Role": {
@@ -257,14 +264,14 @@
         "ApiLogGroup"
       ]
     },
-    "ApiLambdaVersionSvTMwAciOD3xUxq1mGMYixSXLRGGScxMd61KdyLb2Y": {
+    "ApiLambdaVersionGpNwPA4W4jAc52kKiyyRg0lOfSJLRqOd1XSdW70CNtY": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ApiLambdaFunction"
         },
-        "CodeSha256": "inwby5XeG7wyCXc0YzjLpEzHWxDrOkJEEbG/7Azz370="
+        "CodeSha256": "oyID/FyUC4rIVm5X5yxtxrRp96mw3ZSdSQ7ULMCWXcc="
       }
     },
     "ApiGatewayRestApi": {
@@ -395,7 +402,7 @@
         "ApiLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1770578538981": {
+    "ApiGatewayDeployment1770638296901": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -680,7 +687,7 @@
     "UploadsBucket": {
       "Type": "AWS::S3::Bucket",
       "Properties": {
-        "BucketName": "gst-billing-backend-dev-uploads",
+        "BucketName": "gst-billing-backend-dev-us-east-1-chirag-uploads",
         "PublicAccessBlockConfiguration": {
           "BlockPublicAcls": false,
           "BlockPublicPolicy": false,
@@ -751,7 +758,7 @@
   },
   "Outputs": {
     "ServerlessDeploymentBucketName": {
-      "Value": "serverless-framework-deployments-eu-north-1-b42b58cd-da17",
+      "Value": "serverless-framework-deployments-us-east-1-280b993e-594e",
       "Export": {
         "Name": "sls-gst-billing-backend-dev-ServerlessDeploymentBucketName"
       }
@@ -759,7 +766,7 @@
     "ApiLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ApiLambdaVersionSvTMwAciOD3xUxq1mGMYixSXLRGGScxMd61KdyLb2Y"
+        "Ref": "ApiLambdaVersionGpNwPA4W4jAc52kKiyyRg0lOfSJLRqOd1XSdW70CNtY"
       },
       "Export": {
         "Name": "sls-gst-billing-backend-dev-ApiLambdaFunctionQualifiedArn"
