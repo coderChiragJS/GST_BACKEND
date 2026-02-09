@@ -37,6 +37,11 @@ router.get('/packages', authMiddleware, userPackageController.listPackages);
 router.post('/user/subscriptions', authMiddleware, userPackageController.purchasePackage);
 router.get('/user/subscription', authMiddleware, userPackageController.getMySubscription);
 
+// Payments – PhonePe Standard Checkout
+const paymentController = require('../controllers/paymentController');
+router.post('/payments/phonepe/create', authMiddleware, paymentController.createPhonePePayment);
+router.post('/payments/phonepe/callback', paymentController.phonePeCallback);
+
 // Upload Routes
 const uploadController = require('../controllers/uploadController');
 router.post('/upload', authMiddleware, uploadController.uploadImage);

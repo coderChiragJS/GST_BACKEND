@@ -6,6 +6,8 @@ const createPackageSchema = z.object({
     price: z.number().nonnegative(),
     invoiceLimit: z.number().int().nonnegative(),
     quotationLimit: z.number().int().nonnegative(),
+    // validityDays is optional and deprecated - packages have no time-based validity
+    // Subscriptions only expire when usage limits (invoices/quotations) are exhausted
     validityDays: z.number().int().nonnegative().nullable().optional(),
     isActive: z.boolean().optional().default(true)
 });

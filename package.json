@@ -22,6 +22,7 @@
     "handlebars": "^4.7.8",
     "jsonwebtoken": "^9.0.3",
     "lambda-multipart-parser": "^1.0.1",
+    "pg-sdk-node": "^2.0.2",
     "puppeteer-core": "^24.37.1",
     "serverless-http": "^4.0.0",
     "uuid": "^9.0.1",

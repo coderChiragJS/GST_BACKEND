@@ -5,6 +5,7 @@ const UserSubscription = require('../models/userSubscriptionModel');
  * Ensures the user can create an invoice or quotation:
  * - Trial active (today <= trialEndDate), or
  * - Active subscription with remaining usage (invoices or quotations).
+ * Note: Packages have no time-based validity - subscriptions only expire when usage limits are exhausted.
  * Sets req.onTrial and req.subscription for use in create handlers.
  * Must be used after authMiddleware and requireBusiness.
  */

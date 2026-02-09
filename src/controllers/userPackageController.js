@@ -32,15 +32,28 @@ module.exports = {
                 return res.status(404).json({ error: 'Package not found or inactive' });
             }
 
+            // Packages have no time-based validity - subscriptions only expire when usage limits are exhausted
+            // If user has an active subscription, limits will be added cumulatively
             const subscription = await UserSubscription.create(userId, {
                 packageId: pkg.packageId,
                 name: pkg.name,
                 invoiceLimit: pkg.invoiceLimit,
-                quotationLimit: pkg.quotationLimit,
-                validityDays: pkg.validityDays ?? null
+                quotationLimit: pkg.quotationLimit
+                // validityDays is ignored - packages have unlimited time validity
             });
 
-            return res.status(201).json({ subscription });
+            // Calculate remaining limits for response
+            const remainingInvoices = Math.max(0, (subscription.invoiceLimit || 0) - (subscription.invoicesUsed || 0));
+            const remainingQuotations = Math.max(0, (subscription.quotationLimit || 0) - (subscription.quotationsUsed || 0));
+
+            return res.status(201).json({ 
+                subscription,
+                message: subscription.updatedAt ? 
+                    'Package limits added to your existing subscription' : 
+                    'Package purchased successfully',
+                remainingInvoices,
+                remainingQuotations
+            });
         } catch (error) {
             console.error('Purchase Package Error:', error);
             return res.status(500).json({ error: 'Internal Server Error', details: error.message });
