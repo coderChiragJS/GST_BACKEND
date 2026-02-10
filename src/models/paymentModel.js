@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { dynamoDb } = require('../config/db');
-const { PutCommand, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { PutCommand, GetCommand, UpdateCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
 
 const TABLE_NAME = process.env.APP_DATA_TABLE;
 const PK_PAYMENT = 'PAYMENT';
@@ -92,6 +92,26 @@ const Payment = {
             extra.failureReason = failureReason;
         }
         return this.updateStatus(orderId, PaymentStatus.FAILED, extra);
+    },
+
+    // List all payments (for admin). Paginated. Each item includes userId.
+    async listAll(limit = 50, nextToken = null) {
+        const params = {
+            TableName: TABLE_NAME,
+            KeyConditionExpression: 'PK = :pk',
+            ExpressionAttributeValues: { ':pk': PK_PAYMENT },
+            Limit: Math.min(Math.max(limit || 50, 1), 100)
+        };
+        if (nextToken) {
+            try {
+                params.ExclusiveStartKey = JSON.parse(Buffer.from(nextToken, 'base64').toString());
+            } catch (_) {}
+        }
+        const result = await dynamoDb.send(new QueryCommand(params));
+        const next = result.LastEvaluatedKey
+            ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
+            : null;
+        return { payments: result.Items || [], nextToken: next };
     }
 };
 

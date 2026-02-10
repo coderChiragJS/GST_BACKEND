@@ -147,6 +147,72 @@ const User = {
 
         const result = await dynamoDb.send(new UpdateCommand(params));
         return result.Attributes;
+    },
+
+    // List all users (for admin). Paginated via limit/nextToken.
+    async listAll(limit = 50, nextToken = null) {
+        const params = {
+            TableName: USERS_TABLE,
+            Limit: Math.min(Math.max(limit || 50, 1), 100)
+        };
+        if (nextToken) {
+            try {
+                params.ExclusiveStartKey = JSON.parse(Buffer.from(nextToken, 'base64').toString());
+            } catch (_) {}
+        }
+        const result = await dynamoDb.send(new ScanCommand(params));
+        const next = result.LastEvaluatedKey
+            ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
+            : null;
+        return { users: result.Items || [], nextToken: next };
+    },
+
+    // Update profile (name, email). Email must be unique if changed.
+    async updateProfile(userId, { name, email }) {
+        const updates = [];
+        const expAttrNames = {};
+        const expAttrValues = {};
+
+        if (name !== undefined) {
+            updates.push('#name = :name');
+            expAttrNames['#name'] = 'name';
+            expAttrValues[':name'] = name;
+        }
+        if (email !== undefined) {
+            updates.push('#email = :email');
+            expAttrNames['#email'] = 'email';
+            expAttrValues[':email'] = email;
+        }
+        if (updates.length === 0) return (await this.findById(userId));
+
+        expAttrNames['#updatedAt'] = 'updatedAt';
+        expAttrValues[':updatedAt'] = new Date().toISOString();
+        updates.push('#updatedAt = :updatedAt');
+
+        const params = {
+            TableName: USERS_TABLE,
+            Key: { userId },
+            UpdateExpression: 'set ' + updates.join(', '),
+            ExpressionAttributeNames: expAttrNames,
+            ExpressionAttributeValues: expAttrValues,
+            ReturnValues: 'ALL_NEW',
+        };
+
+        const result = await dynamoDb.send(new UpdateCommand(params));
+        return result.Attributes;
+    },
+
+    // Update password (used after reset-password verification).
+    async updatePassword(userId, passwordHash) {
+        const params = {
+            TableName: USERS_TABLE,
+            Key: { userId },
+            UpdateExpression: 'set passwordHash = :hash',
+            ExpressionAttributeValues: { ':hash': passwordHash },
+            ReturnValues: 'ALL_NEW',
+        };
+        const result = await dynamoDb.send(new UpdateCommand(params));
+        return result.Attributes;
     }
 };
 

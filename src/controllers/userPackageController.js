@@ -1,5 +1,7 @@
 const Package = require('../models/packageModel');
 const UserSubscription = require('../models/userSubscriptionModel');
+const { Payment, PaymentStatus } = require('../models/paymentModel');
+const { getDocumentAccess } = require('../services/documentAccessService');
 
 module.exports = {
     // GET /packages – list active packages (for purchase)
@@ -41,6 +43,24 @@ module.exports = {
                 quotationLimit: pkg.quotationLimit
                 // validityDays is ignored - packages have unlimited time validity
             });
+
+            // For non-PhonePe purchases, also record a successful payment so that
+            // the admin payment list reflects this transaction.
+            try {
+                const amountPaise = Math.max(0, Math.round((Number(pkg.price) || 0) * 100));
+                if (amountPaise > 0) {
+                    const payment = await Payment.create({
+                        userId,
+                        packageId: pkg.packageId,
+                        amountPaise
+                    });
+                    // Mark as successful with a manual/source reference
+                    await Payment.markSuccess(payment.orderId, 'MANUAL_SUBSCRIPTION');
+                }
+            } catch (paymentError) {
+                // Do not block subscription creation if payment logging fails; just log it.
+                console.error('Failed to record payment for manual subscription purchase:', paymentError);
+            }
 
             // Calculate remaining limits for response
             const remainingInvoices = Math.max(0, (subscription.invoiceLimit || 0) - (subscription.invoicesUsed || 0));
@@ -99,6 +119,25 @@ module.exports = {
             });
         } catch (error) {
             console.error('Get My Subscription Error:', error);
+            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+        }
+    },
+
+    /**
+     * GET /user/document-access – whether the user can create invoices/quotations.
+     * Use this to show/hide or enable/disable the "Create Invoice" and "Create Quotation" screens.
+     * When canCreateDocuments is false, do not allow the user to open creation screens.
+     */
+    async getDocumentAccess(req, res) {
+        try {
+            const userId = req.user?.userId;
+            if (!userId) {
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
+            const access = await getDocumentAccess(userId);
+            return res.json(access);
+        } catch (error) {
+            console.error('Get Document Access Error:', error);
             return res.status(500).json({ error: 'Internal Server Error', details: error.message });
         }
     }

@@ -1,5 +1,7 @@
 const User = require('../models/userModel');
 const Business = require('../models/businessModel');
+const UserSubscription = require('../models/userSubscriptionModel');
+const { Payment } = require('../models/paymentModel');
 const { Settings } = require('../models/settingsModel');
 
 module.exports = {
@@ -84,14 +86,26 @@ module.exports = {
             const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
             const nextToken = req.query.nextToken || null;
             const { users: raw, nextToken: next } = await User.listExpiredTrial(limit, nextToken);
-            const users = raw.map((u) => ({
-                userId: u.userId,
-                name: u.name,
-                email: u.email,
-                trialStartDate: u.trialStartDate,
-                trialEndDate: u.trialEndDate,
-                createdAt: u.createdAt
+
+            // Filter out users who already have an active subscription.
+            const enriched = await Promise.all(raw.map(async (u) => {
+                const activeSubscription = await UserSubscription.getActiveSubscription(u.userId);
+                return {
+                    user: u,
+                    hasActiveSubscription: !!activeSubscription
+                };
             }));
+
+            const users = enriched
+                .filter((entry) => !entry.hasActiveSubscription)
+                .map(({ user: u }) => ({
+                    userId: u.userId,
+                    name: u.name,
+                    email: u.email,
+                    trialStartDate: u.trialStartDate,
+                    trialEndDate: u.trialEndDate,
+                    createdAt: u.createdAt
+                }));
             return res.json({ users, nextToken: next });
         } catch (error) {
             console.error('Get Expired Trial Users Error:', error);
@@ -128,6 +142,71 @@ module.exports = {
         } catch (error) {
             console.error('Get Pending Reviews Error:', error);
             res.status(500).json({ error: 'Internal Server Error', details: error.message });
+        }
+    },
+
+    // GET /admin/users – complete user list with business details and subscription details
+    async getUsersList(req, res) {
+        try {
+            const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
+            const nextToken = req.query.nextToken || null;
+            const { users: rawUsers, nextToken: next } = await User.listAll(limit, nextToken);
+
+            const users = await Promise.all(rawUsers.map(async (u) => {
+                const businesses = await Business.getByUserId(u.userId);
+                const activeSubscription = await UserSubscription.getActiveSubscription(u.userId);
+                const hasPackage = !!activeSubscription;
+                const remainingInvoices = activeSubscription
+                    ? Math.max(0, (activeSubscription.invoiceLimit || 0) - (activeSubscription.invoicesUsed || 0))
+                    : 0;
+                const remainingQuotations = activeSubscription
+                    ? Math.max(0, (activeSubscription.quotationLimit || 0) - (activeSubscription.quotationsUsed || 0))
+                    : 0;
+
+                return {
+                    userId: u.userId,
+                    name: u.name,
+                    email: u.email,
+                    role: u.role || 'USER',
+                    approvalStatus: u.approvalStatus,
+                    subscriptionActive: u.subscriptionActive,
+                    trialStartDate: u.trialStartDate,
+                    trialEndDate: u.trialEndDate,
+                    createdAt: u.createdAt,
+                    businesses: businesses || [],
+                    subscription: hasPackage ? {
+                        subscriptionId: activeSubscription.subscriptionId,
+                        packageId: activeSubscription.packageId,
+                        packageName: activeSubscription.packageName,
+                        invoiceLimit: activeSubscription.invoiceLimit,
+                        quotationLimit: activeSubscription.quotationLimit,
+                        invoicesUsed: activeSubscription.invoicesUsed || 0,
+                        quotationsUsed: activeSubscription.quotationsUsed || 0,
+                        startDate: activeSubscription.startDate,
+                    } : null,
+                    hasPurchasedPackage: hasPackage,
+                    remainingInvoices,
+                    remainingQuotations,
+                };
+            }));
+
+            return res.json({ users, nextToken: next });
+        } catch (error) {
+            console.error('Get Users List Error:', error);
+            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+        }
+    },
+
+    // GET /admin/payments – all payments mapped with user IDs
+    async getPaymentsList(req, res) {
+        try {
+            const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
+            const nextToken = req.query.nextToken || null;
+            const { payments, nextToken: next } = await Payment.listAll(limit, nextToken);
+            return res.json({ payments, nextToken: next });
+        } catch (error) {
+            console.error('Get Payments List Error:', error);
+            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
         }
     }
 };

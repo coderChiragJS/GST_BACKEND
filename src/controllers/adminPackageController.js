@@ -32,6 +32,20 @@ module.exports = {
         }
     },
 
+    async getPackage(req, res) {
+        try {
+            const { packageId } = req.params;
+            const pkg = await Package.getById(packageId);
+            if (!pkg) {
+                return res.status(404).json({ error: 'Package not found' });
+            }
+            return res.json({ package: pkg });
+        } catch (error) {
+            console.error('Admin Get Package Error:', error);
+            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+        }
+    },
+
     async createPackage(req, res) {
         try {
             const body = req.body || {};
@@ -87,6 +101,21 @@ module.exports = {
             return res.json({ package: pkg });
         } catch (error) {
             console.error('Admin Update Package Error:', error);
+            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+        }
+    },
+
+    async deletePackage(req, res) {
+        try {
+            const { packageId } = req.params;
+            const existing = await Package.getById(packageId);
+            if (!existing) {
+                return res.status(404).json({ error: 'Package not found' });
+            }
+            await Package.delete(packageId);
+            return res.json({ message: 'Package deleted successfully', packageId });
+        } catch (error) {
+            console.error('Admin Delete Package Error:', error);
             return res.status(500).json({ error: 'Internal Server Error', details: error.message });
         }
     }

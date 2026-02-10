@@ -13,6 +13,12 @@ const router = express.Router();
 // Auth Routes
 router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
+router.post('/auth/forgot-password', authController.forgotPassword);
+router.post('/auth/reset-password', authController.resetPassword);
+
+// User profile (authenticated)
+router.get('/user/profile', authMiddleware, authController.getProfile);
+router.put('/user/profile', authMiddleware, authController.updateProfile);
 
 // Admin Auth Routes
 router.post('/admin/auth/register', adminAuthController.registerAdmin);
@@ -25,17 +31,22 @@ router.get('/admin/users/expired-trial', authMiddleware, adminMiddleware, adminC
 router.get('/admin/pending', authMiddleware, adminMiddleware, adminController.getPendingReviews);
 router.post('/admin/approve', authMiddleware, adminMiddleware, adminController.approveUser);
 router.post('/admin/approve-business', authMiddleware, adminMiddleware, adminController.approveBusiness);
+router.get('/admin/users', authMiddleware, adminMiddleware, adminController.getUsersList);
+router.get('/admin/payments', authMiddleware, adminMiddleware, adminController.getPaymentsList);
 
 const adminPackageController = require('../controllers/adminPackageController');
 router.get('/admin/packages', authMiddleware, adminMiddleware, adminPackageController.listPackages);
+router.get('/admin/packages/:packageId', authMiddleware, adminMiddleware, adminPackageController.getPackage);
 router.post('/admin/packages', authMiddleware, adminMiddleware, adminPackageController.createPackage);
 router.put('/admin/packages/:packageId', authMiddleware, adminMiddleware, adminPackageController.updatePackage);
+router.delete('/admin/packages/:packageId', authMiddleware, adminMiddleware, adminPackageController.deletePackage);
 
 // Packages (user-facing: list active, purchase, my subscription)
 const userPackageController = require('../controllers/userPackageController');
 router.get('/packages', authMiddleware, userPackageController.listPackages);
 router.post('/user/subscriptions', authMiddleware, userPackageController.purchasePackage);
 router.get('/user/subscription', authMiddleware, userPackageController.getMySubscription);
+router.get('/user/document-access', authMiddleware, userPackageController.getDocumentAccess);
 
 // Payments – PhonePe Standard Checkout
 const paymentController = require('../controllers/paymentController');

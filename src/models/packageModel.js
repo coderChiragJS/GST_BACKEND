@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { dynamoDb } = require('../config/db');
-const { PutCommand, QueryCommand, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { PutCommand, QueryCommand, GetCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 
 const TABLE_NAME = process.env.APP_DATA_TABLE;
 const PK_PACKAGE = 'PACKAGE';
@@ -82,6 +82,14 @@ const Package = {
         }));
 
         return result.Attributes;
+    },
+
+    async delete(packageId) {
+        await dynamoDb.send(new DeleteCommand({
+            TableName: TABLE_NAME,
+            Key: { PK: PK_PACKAGE, SK: packageId }
+        }));
+        return { deleted: true, packageId };
     }
 };
 

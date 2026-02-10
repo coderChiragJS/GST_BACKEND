@@ -1,12 +1,11 @@
-const User = require('../models/userModel');
-const UserSubscription = require('../models/userSubscriptionModel');
+const { getDocumentAccess } = require('../services/documentAccessService');
 
 /**
  * Ensures the user can create an invoice or quotation:
  * - Trial active (today <= trialEndDate), or
  * - Active subscription with remaining usage (invoices or quotations).
- * Note: Packages have no time-based validity - subscriptions only expire when usage limits are exhausted.
- * Sets req.onTrial and req.subscription for use in create handlers.
+ * Uses documentAccessService for a single source of truth.
+ * Sets req.documentAccess, req.onTrial and req.subscription for use in create handlers.
  * Must be used after authMiddleware and requireBusiness.
  */
 async function canCreateDocument(req, res, next) {
@@ -16,42 +15,15 @@ async function canCreateDocument(req, res, next) {
     }
 
     try {
-        const user = await User.findById(userId);
-        if (!user) {
+        const access = await getDocumentAccess(userId);
+        if (!access.canCreateDocuments) {
             return res.status(403).json({
-                error: 'No active trial or package. Please purchase a package to create invoices/quotations.'
+                error: access.message || 'No active trial or package. Please purchase a package to create invoices/quotations.'
             });
         }
-
-        const now = new Date().toISOString().split('T')[0];
-        const trialEnd = user.trialEndDate ? user.trialEndDate.split('T')[0] : null;
-        const trialActive = trialEnd && trialEnd >= now;
-
-        if (trialActive) {
-            req.onTrial = true;
-            req.subscription = null;
-            return next();
-        }
-
-        const subscription = await UserSubscription.getActiveSubscription(userId);
-        if (!subscription) {
-            return res.status(403).json({
-                error: 'No active trial or package. Please purchase a package to create invoices/quotations.'
-            });
-        }
-
-        const invoicesRemaining = (subscription.invoiceLimit || 0) - (subscription.invoicesUsed || 0);
-        const quotationsRemaining = (subscription.quotationLimit || 0) - (subscription.quotationsUsed || 0);
-        const hasRemaining = invoicesRemaining > 0 || quotationsRemaining > 0;
-
-        if (!hasRemaining) {
-            return res.status(403).json({
-                error: 'No active trial or package. Please purchase a package to create invoices/quotations.'
-            });
-        }
-
-        req.onTrial = false;
-        req.subscription = subscription;
+        req.documentAccess = access;
+        req.onTrial = access.onTrial;
+        req.subscription = access.subscription;
         next();
     } catch (err) {
         console.error('canCreateDocument Error:', err);

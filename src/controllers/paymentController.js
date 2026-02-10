@@ -2,6 +2,7 @@ const { createPackagePayment } = require('../services/phonePeService');
 const { Payment, PaymentStatus } = require('../models/paymentModel');
 const Package = require('../models/packageModel');
 const UserSubscription = require('../models/userSubscriptionModel');
+const crypto = require('crypto');
 
 module.exports = {
     // POST /payments/phonepe/create – initiate PhonePe Standard Checkout for a package
@@ -42,27 +43,51 @@ module.exports = {
     // POST /payments/phonepe/callback – PhonePe server-to-server callback
     async phonePeCallback(req, res) {
         try {
-            // Basic Auth verification
-            const authHeader = req.headers.authorization || '';
-            if (!authHeader.startsWith('Basic ')) {
+            // Webhook auth verification (per PhonePe docs):
+            // Authorization: SHA256(username:password)
+            const authHeader = (req.headers.authorization || '').trim();
+            if (!authHeader) {
                 return res.status(401).send('Unauthorized');
             }
 
-            const base64 = authHeader.replace('Basic ', '');
-            const decoded = Buffer.from(base64, 'base64').toString('utf8');
-            const [username, password] = decoded.split(':');
+            const configuredUser = process.env.PHONEPE_WEBHOOK_USERNAME || '';
+            const configuredPass = process.env.PHONEPE_WEBHOOK_PASSWORD || '';
+            const expectedHash = crypto
+                .createHash('sha256')
+                .update(`${configuredUser}:${configuredPass}`)
+                .digest('hex');
 
-            if (
-                username !== process.env.PHONEPE_WEBHOOK_USERNAME ||
-                password !== process.env.PHONEPE_WEBHOOK_PASSWORD
-            ) {
+            if (authHeader !== expectedHash) {
                 return res.status(401).send('Unauthorized');
             }
 
             const body = req.body || {};
-            const merchantOrderId = body.merchantOrderId || body.orderId || body.order_id;
-            const transactionStatus = body.code || body.transactionStatus || body.status;
-            const amountPaise = body.amount;
+            // PhonePe standard checkout webhooks typically send a wrapper with `type` and `payload`.
+            // We support both the wrapped and flat formats:
+            //  {
+            //    "type": "CHECKOUT_ORDER_COMPLETED",
+            //    "payload": {
+            //      "originalMerchantOrderId": "ORD_xxx", // our merchant orderId
+            //      "orderId": "PG_ORDER_ID",
+            //      "amount": 100,
+            //      "state": "COMPLETED"
+            //    }
+            //  }
+            const payload = body.payload || body;
+
+            const merchantOrderId =
+                payload.originalMerchantOrderId ||
+                payload.merchantOrderId ||
+                payload.orderId ||
+                payload.order_id;
+
+            const transactionStatus =
+                payload.code ||
+                payload.transactionStatus ||
+                payload.status ||
+                payload.state; // e.g. "COMPLETED"
+
+            const amountPaise = payload.amount;
 
             if (!merchantOrderId) {
                 return res.status(400).send('Missing merchantOrderId');
@@ -85,7 +110,12 @@ module.exports = {
                 return res.status(400).send('Amount mismatch');
             }
 
-            const isSuccess = String(transactionStatus).toUpperCase() === 'SUCCESS';
+            const normalizedStatus = String(transactionStatus || '').toUpperCase();
+            // Treat both "SUCCESS" and "COMPLETED" (and future similar values) as success.
+            const isSuccess =
+                normalizedStatus === 'SUCCESS' ||
+                normalizedStatus === 'COMPLETED' ||
+                normalizedStatus === 'CHARGED';
 
             if (!isSuccess) {
                 await Payment.markFailed(merchantOrderId, `Payment failed with code: ${transactionStatus}`);
@@ -93,7 +123,10 @@ module.exports = {
             }
 
             // Mark payment success
-            await Payment.markSuccess(merchantOrderId, body.transactionId || body.transaction_id || null);
+            await Payment.markSuccess(
+                merchantOrderId,
+                payload.transactionId || payload.transaction_id || null
+            );
 
             // Credit subscription usage for this package
             const pkg = await Package.getById(payment.packageId);
