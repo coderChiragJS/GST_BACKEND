@@ -12,9 +12,13 @@ function skSub(subscriptionId) {
 }
 
 const UserSubscription = {
-    async addLimitsToActiveSubscription(userId, packageData) {
+    /**
+     * Add new package limits to existing active subscription (cumulative).
+     * If businessId is provided, only subscriptions bound to that businessId are considered.
+     */
+    async addLimitsToActiveSubscription(userId, packageData, businessId = null) {
         // Add new package limits to existing active subscription (cumulative)
-        const activeSub = await this.getActiveSubscription(userId);
+        const activeSub = await this.getActiveSubscription(userId, { businessId });
         if (!activeSub) {
             return null;
         }
@@ -42,12 +46,23 @@ const UserSubscription = {
         return result.Attributes;
     },
 
+    /**
+     * Create a new subscription for a user (and optional business).
+     * If there is an active subscription for the same business (or unbound when businessId is null),
+     * add limits cumulatively instead of creating a new record.
+     *
+     * packageData may optionally include:
+     * - businessId: string | null
+     * - gstNumber: string | null
+     */
     async create(userId, packageData) {
-        // Check if user has an active subscription - if yes, add limits to it (cumulative)
-        const existingActive = await this.getActiveSubscription(userId);
+        const { businessId = null, gstNumber = null } = packageData;
+
+        // Check if user has an active subscription for this business - if yes, add limits to it (cumulative)
+        const existingActive = await this.getActiveSubscription(userId, { businessId });
         if (existingActive) {
             // Add limits to existing subscription instead of creating a new one
-            const updated = await this.addLimitsToActiveSubscription(userId, packageData);
+            const updated = await this.addLimitsToActiveSubscription(userId, packageData, businessId);
             if (updated) {
                 return updated;
             }
@@ -75,6 +90,9 @@ const UserSubscription = {
             quotationLimit: packageData.quotationLimit,
             invoicesUsed: 0,
             quotationsUsed: 0,
+            // Per-business binding fields (nullable for legacy/unbound subscriptions)
+            businessId,
+            gstNumber,
             startDate,
             endDate,
             createdAt: startDate,
@@ -98,18 +116,64 @@ const UserSubscription = {
         return result.Items || [];
     },
 
-    async getActiveSubscription(userId) {
+    /**
+     * Get active subscription for a user.
+     * Options:
+     *  - businessId: if provided, prefer subscriptions bound to that business.
+     *                If none found, and allowUnbound is true, fall back to unbound subs (businessId null).
+     *  - allowUnbound: whether to consider legacy unbound subscriptions.
+     */
+    async getActiveSubscription(userId, options = {}) {
+        const { businessId = null, allowUnbound = true } = options;
         const subscriptions = await this.getByUser(userId);
 
-        // Find the most recent active subscription (no time-based expiration)
-        // A subscription is active if it has remaining usage (invoices or quotations)
-        for (const sub of subscriptions) {
-            // Skip if usage limits are exhausted
-            if (sub.invoicesUsed >= sub.invoiceLimit && sub.quotationsUsed >= sub.quotationLimit) continue;
-            // Skip if explicitly ended (endDate set means manually ended/exhausted)
-            if (sub.endDate) continue;
-            return sub;
+        const hasBusiness = !!businessId;
+
+        // Helper: is subscription active by usage/time rules
+        function isUsageActive(sub) {
+            if (sub.invoicesUsed >= sub.invoiceLimit && sub.quotationsUsed >= sub.quotationLimit) return false;
+            if (sub.endDate) return false;
+            return true;
         }
+
+        let candidate = null;
+
+        // 1. Prefer subscriptions already bound to this businessId (if provided)
+        if (hasBusiness) {
+            for (const sub of subscriptions) {
+                if (!isUsageActive(sub)) continue;
+                if (sub.businessId === businessId) {
+                    candidate = sub;
+                    break;
+                }
+            }
+            if (candidate) {
+                return candidate;
+            }
+        }
+
+        // 2. Fallback: legacy unbound subscriptions (businessId null), if allowed
+        if (allowUnbound) {
+            for (const sub of subscriptions) {
+                if (!isUsageActive(sub)) continue;
+                if (!sub.businessId) {
+                    candidate = sub;
+                    break;
+                }
+            }
+            if (candidate) {
+                return candidate;
+            }
+        }
+
+        // 3. If no business-specific context, fallback to any active subscription (current behavior)
+        if (!hasBusiness) {
+            for (const sub of subscriptions) {
+                if (!isUsageActive(sub)) continue;
+                return sub;
+            }
+        }
+
         return null;
     },
 

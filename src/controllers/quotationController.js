@@ -133,6 +133,7 @@ const quotationController = {
 
             const quotation = await Quotation.create(userId, businessId, validation.data);
 
+            // When not on trial, increment usage on the active subscription bound to this business.
             if (!req.onTrial && req.subscription) {
                 await UserSubscription.incrementQuotationsUsed(userId, req.subscription.subscriptionId);
             }

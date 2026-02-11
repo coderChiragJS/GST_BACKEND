@@ -5,10 +5,16 @@ const UserSubscription = require('../models/userSubscriptionModel');
  * Single source of truth for "can this user create invoices/quotations?".
  * User can create if:
  * - Trial is active (today <= trialEndDate), OR
- * - Has an active subscription with at least one remaining (invoice or quotation) limit.
+ * - Has an active subscription with at least one remaining (invoice or quotation) limit
+ *   for the specific business (per-GST binding).
+ *
+ * When a legacy subscription without business binding is first used, it is
+ * lazily bound to the current business.
+ *
  * Used by canCreateDocument middleware and GET /user/document-access API.
  */
-async function getDocumentAccess(userId) {
+async function getDocumentAccess(userId, businessContext = {}) {
+    const { businessId = null, gstNumber = null } = businessContext;
     const now = new Date();
     const user = await User.findById(userId);
     if (!user) {
@@ -40,7 +46,11 @@ async function getDocumentAccess(userId) {
         };
     }
 
-    const subscription = await UserSubscription.getActiveSubscription(userId);
+    // Subscription path – per-business
+    let subscription = await UserSubscription.getActiveSubscription(userId, {
+        businessId,
+        allowUnbound: true
+    });
     if (!subscription) {
         return {
             canCreateDocuments: false,

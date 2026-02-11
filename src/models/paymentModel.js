@@ -17,7 +17,7 @@ const Payment = {
         return `ORD_${uuidv4().replace(/-/g, '').slice(0, 28)}`;
     },
 
-    async create({ userId, packageId, amountPaise }) {
+    async create({ userId, packageId, amountPaise, businessId = null }) {
         const now = new Date().toISOString();
         const orderId = this.generateOrderId();
 
@@ -28,6 +28,7 @@ const Payment = {
             userId,
             packageId,
             amountPaise,
+            businessId,
             status: PaymentStatus.PENDING,
             createdAt: now,
             updatedAt: now

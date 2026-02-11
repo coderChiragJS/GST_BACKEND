@@ -154,14 +154,43 @@ module.exports = {
 
             const users = await Promise.all(rawUsers.map(async (u) => {
                 const businesses = await Business.getByUserId(u.userId);
-                const activeSubscription = await UserSubscription.getActiveSubscription(u.userId);
-                const hasPackage = !!activeSubscription;
-                const remainingInvoices = activeSubscription
-                    ? Math.max(0, (activeSubscription.invoiceLimit || 0) - (activeSubscription.invoicesUsed || 0))
-                    : 0;
-                const remainingQuotations = activeSubscription
-                    ? Math.max(0, (activeSubscription.quotationLimit || 0) - (activeSubscription.quotationsUsed || 0))
-                    : 0;
+                const allSubs = await UserSubscription.getByUser(u.userId);
+
+                // Filter active subscriptions by usage / endDate
+                const activeSubs = (allSubs || []).filter((sub) => {
+                    const invoicesExhausted = sub.invoicesUsed >= sub.invoiceLimit;
+                    const quotationsExhausted = sub.quotationsUsed >= sub.quotationLimit;
+                    if (invoicesExhausted && quotationsExhausted) return false;
+                    if (sub.endDate) return false;
+                    return true;
+                });
+
+                const hasPackage = activeSubs.length > 0;
+
+                // Aggregate remaining counts across all active subscriptions (per business)
+                let remainingInvoices = 0;
+                let remainingQuotations = 0;
+                activeSubs.forEach((sub) => {
+                    remainingInvoices += Math.max(0, (sub.invoiceLimit || 0) - (sub.invoicesUsed || 0));
+                    remainingQuotations += Math.max(0, (sub.quotationLimit || 0) - (sub.quotationsUsed || 0));
+                });
+
+                // Preserve existing `subscription` field by choosing the first active subscription (for backward compatibility)
+                const primarySub = activeSubs[0] || null;
+
+                // New field: detailed per-business subscriptions (non-breaking addition)
+                const subscriptionsByBusiness = activeSubs.map((sub) => ({
+                    subscriptionId: sub.subscriptionId,
+                    packageId: sub.packageId,
+                    packageName: sub.packageName,
+                    businessId: sub.businessId || null,
+                    gstNumber: sub.gstNumber || null,
+                    invoiceLimit: sub.invoiceLimit,
+                    quotationLimit: sub.quotationLimit,
+                    invoicesUsed: sub.invoicesUsed || 0,
+                    quotationsUsed: sub.quotationsUsed || 0,
+                    startDate: sub.startDate
+                }));
 
                 return {
                     userId: u.userId,
@@ -174,19 +203,20 @@ module.exports = {
                     trialEndDate: u.trialEndDate,
                     createdAt: u.createdAt,
                     businesses: businesses || [],
-                    subscription: hasPackage ? {
-                        subscriptionId: activeSubscription.subscriptionId,
-                        packageId: activeSubscription.packageId,
-                        packageName: activeSubscription.packageName,
-                        invoiceLimit: activeSubscription.invoiceLimit,
-                        quotationLimit: activeSubscription.quotationLimit,
-                        invoicesUsed: activeSubscription.invoicesUsed || 0,
-                        quotationsUsed: activeSubscription.quotationsUsed || 0,
-                        startDate: activeSubscription.startDate,
+                    subscription: primarySub ? {
+                        subscriptionId: primarySub.subscriptionId,
+                        packageId: primarySub.packageId,
+                        packageName: primarySub.packageName,
+                        invoiceLimit: primarySub.invoiceLimit,
+                        quotationLimit: primarySub.quotationLimit,
+                        invoicesUsed: primarySub.invoicesUsed || 0,
+                        quotationsUsed: primarySub.quotationsUsed || 0,
+                        startDate: primarySub.startDate,
                     } : null,
                     hasPurchasedPackage: hasPackage,
                     remainingInvoices,
                     remainingQuotations,
+                    subscriptionsByBusiness,
                 };
             }));
 

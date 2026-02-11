@@ -2,6 +2,7 @@ const Package = require('../models/packageModel');
 const UserSubscription = require('../models/userSubscriptionModel');
 const { Payment, PaymentStatus } = require('../models/paymentModel');
 const { getDocumentAccess } = require('../services/documentAccessService');
+const Business = require('../models/businessModel');
 
 module.exports = {
     // GET /packages – list active packages (for purchase)
@@ -16,7 +17,7 @@ module.exports = {
         }
     },
 
-    // POST /user/subscriptions – purchase a package (body: { packageId })
+    // POST /user/subscriptions – purchase a package (body: { packageId, businessId })
     async purchasePackage(req, res) {
         try {
             const userId = req.user?.userId;
@@ -24,9 +25,19 @@ module.exports = {
                 return res.status(401).json({ error: 'Unauthorized' });
             }
 
-            const { packageId } = req.body || {};
+            const { packageId, businessId } = req.body || {};
             if (!packageId) {
                 return res.status(400).json({ error: 'packageId is required' });
+            }
+
+            if (!businessId) {
+                return res.status(400).json({ error: 'businessId is required' });
+            }
+
+            // Ensure the business belongs to this user
+            const business = await Business.getById(userId, businessId);
+            if (!business) {
+                return res.status(404).json({ error: 'Business not found for this user' });
             }
 
             const pkg = await Package.getById(packageId);
@@ -35,12 +46,15 @@ module.exports = {
             }
 
             // Packages have no time-based validity - subscriptions only expire when usage limits are exhausted
-            // If user has an active subscription, limits will be added cumulatively
+            // If user has an active subscription for this business, limits will be added cumulatively
             const subscription = await UserSubscription.create(userId, {
                 packageId: pkg.packageId,
                 name: pkg.name,
                 invoiceLimit: pkg.invoiceLimit,
-                quotationLimit: pkg.quotationLimit
+                quotationLimit: pkg.quotationLimit,
+                // per-business binding
+                businessId,
+                gstNumber: business.gstNumber || null
                 // validityDays is ignored - packages have unlimited time validity
             });
 
@@ -88,7 +102,32 @@ module.exports = {
                 return res.status(401).json({ error: 'Unauthorized' });
             }
 
-            const subscription = await UserSubscription.getActiveSubscription(userId);
+            const { businessId } = req.query || {};
+
+            let subscription = null;
+
+            if (businessId) {
+                // Optionally validate that the business belongs to the user
+                const business = await Business.getById(userId, String(businessId));
+                if (!business) {
+                    return res.status(404).json({
+                        hasActiveSubscription: false,
+                        subscription: null,
+                        remainingInvoices: 0,
+                        remainingQuotations: 0,
+                        error: 'Business not found for this user'
+                    });
+                }
+
+                subscription = await UserSubscription.getActiveSubscription(userId, {
+                    businessId: String(businessId),
+                    allowUnbound: true
+                });
+            } else {
+                // Backward compatibility for older clients that don't pass businessId
+                subscription = await UserSubscription.getActiveSubscription(userId);
+            }
+
             if (!subscription) {
                 return res.json({
                     hasActiveSubscription: false,

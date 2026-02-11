@@ -17,7 +17,7 @@ const client = StandardCheckoutClient.getInstance(
     PHONEPE_ENV
 );
 
-async function createPackagePayment({ userId, packageId }) {
+async function createPackagePayment({ userId, packageId, businessId }) {
     const pkg = await Package.getById(packageId);
     if (!pkg || !pkg.isActive) {
         const error = new Error('Package not found or inactive');
@@ -36,13 +36,16 @@ async function createPackagePayment({ userId, packageId }) {
     const payment = await Payment.create({
         userId,
         packageId,
-        amountPaise
+        amountPaise,
+        // store businessId so that callback can credit subscription for the right business
+        businessId
     });
 
     // 2. Build meta info (helpful for debugging in PhonePe dashboard)
     const metaInfo = MetaInfo.builder()
         .udf1(String(userId))
         .udf2(String(packageId))
+        .udf3(String(businessId || ''))
         .build();
 
     // 3. Build Standard Checkout pay request using SDK v2 builder API

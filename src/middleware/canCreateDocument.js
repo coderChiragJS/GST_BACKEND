@@ -15,7 +15,11 @@ async function canCreateDocument(req, res, next) {
     }
 
     try {
-        const access = await getDocumentAccess(userId);
+        // requireBusiness middleware guarantees req.business and req.params.businessId
+        const businessId = req.params.businessId || (req.business && req.business.businessId) || null;
+        const gstNumber = req.business && req.business.gstNumber ? req.business.gstNumber : null;
+
+        const access = await getDocumentAccess(userId, { businessId, gstNumber });
         if (!access.canCreateDocuments) {
             return res.status(403).json({
                 error: access.message || 'No active trial or package. Please purchase a package to create invoices/quotations.'

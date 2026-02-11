@@ -157,6 +157,7 @@ const invoiceController = {
 
             const invoice = await Invoice.create(userId, businessId, validation.data);
 
+            // When not on trial, increment usage on the active subscription bound to this business.
             if (!req.onTrial && req.subscription) {
                 await UserSubscription.incrementInvoicesUsed(userId, req.subscription.subscriptionId);
             }

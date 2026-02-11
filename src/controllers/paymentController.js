@@ -2,6 +2,7 @@ const { createPackagePayment } = require('../services/phonePeService');
 const { Payment, PaymentStatus } = require('../models/paymentModel');
 const Package = require('../models/packageModel');
 const UserSubscription = require('../models/userSubscriptionModel');
+const Business = require('../models/businessModel');
 const crypto = require('crypto');
 
 module.exports = {
@@ -13,14 +14,25 @@ module.exports = {
                 return res.status(401).json({ error: 'Unauthorized' });
             }
 
-            const { packageId } = req.body || {};
+            const { packageId, businessId } = req.body || {};
             if (!packageId) {
                 return res.status(400).json({ error: 'packageId is required' });
             }
 
+            if (!businessId) {
+                return res.status(400).json({ error: 'businessId is required' });
+            }
+
+            // Ensure the business belongs to this user before creating payment
+            const business = await Business.getById(userId, businessId);
+            if (!business) {
+                return res.status(404).json({ error: 'Business not found for this user' });
+            }
+
             const { payment, checkoutUrl, phonePeOrderId } = await createPackagePayment({
                 userId,
-                packageId
+                packageId,
+                businessId
             });
 
             return res.status(201).json({
@@ -128,14 +140,27 @@ module.exports = {
                 payload.transactionId || payload.transaction_id || null
             );
 
-            // Credit subscription usage for this package
+            // Credit subscription usage for this package, bound to the original business (if any)
             const pkg = await Package.getById(payment.packageId);
             if (pkg && pkg.isActive) {
+                const businessId = payment.businessId || null;
+                let gstNumber = null;
+                if (businessId) {
+                    try {
+                        const business = await require('../models/businessModel').getById(payment.userId, businessId);
+                        gstNumber = business ? (business.gstNumber || null) : null;
+                    } catch (e) {
+                        // Do not fail subscription crediting if business lookup fails
+                        console.error('Failed to fetch business for subscription crediting:', e);
+                    }
+                }
                 await UserSubscription.create(payment.userId, {
                     packageId: pkg.packageId,
                     name: pkg.name,
                     invoiceLimit: pkg.invoiceLimit,
-                    quotationLimit: pkg.quotationLimit
+                    quotationLimit: pkg.quotationLimit,
+                    businessId,
+                    gstNumber
                 });
             }
 
