@@ -17,6 +17,14 @@ const compiledTemplates = {};
 const QUOTATION_TEMPLATE_IDS = ['classic'];
 const compiledQuotationTemplates = {};
 
+// Sales Debit Note templates (very similar to invoice layout)
+const SALES_DEBIT_NOTE_TEMPLATE_IDS = ['classic'];
+const compiledSalesDebitNoteTemplates = {};
+
+// Delivery Challan templates
+const DELIVERY_CHALLAN_TEMPLATE_IDS = ['classic'];
+const compiledDeliveryChallanTemplates = {};
+
 function loadTemplatesOnce() {
     if (Object.keys(compiledTemplates).length > 0) return;
 
@@ -105,6 +113,95 @@ async function renderInvoiceHtml(invoice, templateId) {
 
     const context = {
         invoice,
+        seller,
+        buyerAddress,
+        shippingAddress,
+        showShippingAddress,
+        hasDispatchAddress,
+        bankDetails,
+        hasBankDetails,
+        transportInfo,
+        hasTransportInfo,
+        termsAndConditions,
+        customFields,
+        totals
+    };
+
+    return template(context);
+}
+
+function loadSalesDebitNoteTemplatesOnce() {
+    if (Object.keys(compiledSalesDebitNoteTemplates).length > 0) return;
+    loadTemplatesOnce();
+    SALES_DEBIT_NOTE_TEMPLATE_IDS.forEach((id) => {
+        const filePath = path.join(
+            __dirname,
+            '..',
+            'templates',
+            'sales-debit-notes',
+            `${id}.html`
+        );
+        try {
+            const source = fs.readFileSync(filePath, 'utf8');
+            compiledSalesDebitNoteTemplates[id] = Handlebars.compile(source);
+        } catch (err) {
+            console.error(
+                `Failed to load sales debit note template "${id}" from ${filePath}:`,
+                err
+            );
+        }
+    });
+}
+
+async function renderSalesDebitNoteHtml(note, templateId) {
+    loadSalesDebitNoteTemplatesOnce();
+    const template = compiledSalesDebitNoteTemplates[templateId];
+    if (!template) {
+        throw new Error(`Sales debit note template not found: ${templateId}`);
+    }
+
+    // Reuse invoice totals logic – payload shape matches invoice.
+    const totals = computeInvoiceTotals(note);
+
+    const seller = note.seller || {};
+    const buyerAddress = note.buyerAddress || '';
+    const shippingAddress = note.shippingAddress || buyerAddress;
+    const showShippingAddress =
+        !!(note.shippingAddress && String(note.shippingAddress).trim()) &&
+        shippingAddress.trim() !== buyerAddress.trim();
+
+    const hasDispatchAddress = (() => {
+        const d = seller.dispatchAddress;
+        if (d == null) return false;
+        if (typeof d === 'string') return d.trim() !== '';
+        if (typeof d === 'object')
+            return !!(d.street || d.city || d.state || d.pincode);
+        return false;
+    })();
+
+    const bankDetails = note.bankDetails || {};
+    const hasBankDetails = !!(
+        bankDetails.bankName ||
+        bankDetails.accountNumber ||
+        bankDetails.ifscCode ||
+        bankDetails.upiId
+    );
+
+    const transportInfo = note.transportInfo || {};
+    const hasTransportInfo = !!(
+        transportInfo.vehicleNumber ||
+        transportInfo.mode ||
+        transportInfo.transporterName ||
+        transportInfo.transporterId ||
+        transportInfo.docNo ||
+        transportInfo.placeOfSupply
+    );
+
+    const termsAndConditions = note.termsAndConditions || [];
+    const customFields = note.customFields || [];
+
+    const context = {
+        invoice: note,
         seller,
         buyerAddress,
         shippingAddress,
@@ -219,6 +316,177 @@ async function generateAndUploadQuotationPdf({ userId, businessId, quotation, te
     return pdfUrl;
 }
 
+async function uploadSalesDebitNotePdfToS3({
+    userId,
+    businessId,
+    salesDebitNoteId,
+    templateId,
+    pdfBuffer
+}) {
+    if (!BUCKET_NAME) {
+        throw new Error('UPLOADS_BUCKET environment variable is not set');
+    }
+    const key = `sales-debit-notes/${userId}/${businessId}/${salesDebitNoteId}/${templateId}.pdf`;
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: pdfBuffer,
+        ContentType: 'application/pdf',
+        ACL: 'public-read'
+    };
+    await s3Client.send(new PutObjectCommand(params));
+    const publicUrl = `https://${BUCKET_NAME}.s3.${process.env.REGION}.amazonaws.com/${key}`;
+    return publicUrl;
+}
+
+async function generateAndUploadSalesDebitNotePdf({
+    userId,
+    businessId,
+    salesDebitNote,
+    templateId
+}) {
+    const html = await renderSalesDebitNoteHtml(salesDebitNote, templateId);
+    const pdfBuffer = await generatePdfBuffer(html);
+    const pdfUrl = await uploadSalesDebitNotePdfToS3({
+        userId,
+        businessId,
+        salesDebitNoteId: salesDebitNote.salesDebitNoteId || salesDebitNote.id,
+        templateId,
+        pdfBuffer
+    });
+    return pdfUrl;
+}
+
+function loadDeliveryChallanTemplatesOnce() {
+    if (Object.keys(compiledDeliveryChallanTemplates).length > 0) return;
+    loadTemplatesOnce();
+    DELIVERY_CHALLAN_TEMPLATE_IDS.forEach((id) => {
+        const filePath = path.join(
+            __dirname,
+            '..',
+            'templates',
+            'delivery-challans',
+            `${id}.html`
+        );
+        try {
+            const source = fs.readFileSync(filePath, 'utf8');
+            compiledDeliveryChallanTemplates[id] = Handlebars.compile(source);
+        } catch (err) {
+            console.error(
+                `Failed to load delivery challan template "${id}" from ${filePath}:`,
+                err
+            );
+        }
+    });
+}
+
+async function renderDeliveryChallanHtml(challan, templateId) {
+    loadDeliveryChallanTemplatesOnce();
+    const template = compiledDeliveryChallanTemplates[templateId];
+    if (!template) {
+        throw new Error(`Delivery challan template not found: ${templateId}`);
+    }
+
+    // Reuse invoice totals logic – payload shape matches invoice.
+    const totals = computeInvoiceTotals(challan);
+
+    const seller = challan.seller || {};
+    const buyerAddress = challan.buyerAddress || '';
+    const shippingAddress = challan.shippingAddress || buyerAddress;
+    const showShippingAddress =
+        !!(challan.shippingAddress && String(challan.shippingAddress).trim()) &&
+        shippingAddress.trim() !== buyerAddress.trim();
+
+    const hasDispatchAddress = (() => {
+        const d = seller.dispatchAddress;
+        if (d == null) return false;
+        if (typeof d === 'string') return d.trim() !== '';
+        if (typeof d === 'object')
+            return !!(d.street || d.city || d.state || d.pincode);
+        return false;
+    })();
+
+    const bankDetails = challan.bankDetails || {};
+    const hasBankDetails = !!(
+        bankDetails.bankName ||
+        bankDetails.accountNumber ||
+        bankDetails.ifscCode ||
+        bankDetails.upiId
+    );
+
+    const transportInfo = challan.transportInfo || {};
+    const hasTransportInfo = !!(
+        transportInfo.vehicleNumber ||
+        transportInfo.mode ||
+        transportInfo.transporterName ||
+        transportInfo.transporterId ||
+        transportInfo.docNo ||
+        transportInfo.placeOfSupply
+    );
+
+    const termsAndConditions = challan.termsAndConditions || [];
+    const customFields = challan.customFields || [];
+
+    const context = {
+        challan,
+        seller,
+        buyerAddress,
+        shippingAddress,
+        showShippingAddress,
+        hasDispatchAddress,
+        bankDetails,
+        hasBankDetails,
+        transportInfo,
+        hasTransportInfo,
+        termsAndConditions,
+        customFields,
+        totals
+    };
+
+    return template(context);
+}
+
+async function uploadDeliveryChallanPdfToS3({
+    userId,
+    businessId,
+    deliveryChallanId,
+    templateId,
+    pdfBuffer
+}) {
+    if (!BUCKET_NAME) {
+        throw new Error('UPLOADS_BUCKET environment variable is not set');
+    }
+    const key = `delivery-challans/${userId}/${businessId}/${deliveryChallanId}/${templateId}.pdf`;
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: pdfBuffer,
+        ContentType: 'application/pdf',
+        ACL: 'public-read'
+    };
+    await s3Client.send(new PutObjectCommand(params));
+    const publicUrl = `https://${BUCKET_NAME}.s3.${process.env.REGION}.amazonaws.com/${key}`;
+    return publicUrl;
+}
+
+async function generateAndUploadDeliveryChallanPdf({
+    userId,
+    businessId,
+    deliveryChallan,
+    templateId
+}) {
+    const html = await renderDeliveryChallanHtml(deliveryChallan, templateId);
+    const pdfBuffer = await generatePdfBuffer(html);
+    const pdfUrl = await uploadDeliveryChallanPdfToS3({
+        userId,
+        businessId,
+        deliveryChallanId: deliveryChallan.deliveryChallanId || deliveryChallan.id,
+        templateId,
+        pdfBuffer
+    });
+    return pdfUrl;
+}
+
 async function generatePdfBuffer(html) {
     const executablePath = await chromium.executablePath();
 
@@ -290,8 +558,14 @@ module.exports = {
     generatePdfBuffer,
     uploadPdfToS3,
     generateAndUploadInvoicePdf,
+    renderSalesDebitNoteHtml,
+    uploadSalesDebitNotePdfToS3,
+    generateAndUploadSalesDebitNotePdf,
     renderQuotationHtml,
     uploadQuotationPdfToS3,
-    generateAndUploadQuotationPdf
+    generateAndUploadQuotationPdf,
+    renderDeliveryChallanHtml,
+    uploadDeliveryChallanPdfToS3,
+    generateAndUploadDeliveryChallanPdf
 };
 

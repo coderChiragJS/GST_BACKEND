@@ -8,15 +8,16 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.740.0",
     "@aws-sdk/client-s3": "^3.983.0",
     "@aws-sdk/lib-dynamodb": "^3.740.0",
     "@sparticuz/chromium": "^143.0.4",
+    "axios": "^1.13.5",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",
     "handlebars": "^4.7.8",
@@ -32,5 +33,14 @@
     "nodemon": "^3.1.11",
     "serverless": "^4.31.2",
     "serverless-offline": "^14.4.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coderChiragJS/GST_BACKEND.git"
+  },
+  "bugs": {
+    "url": "https://github.com/coderChiragJS/GST_BACKEND/issues"
+  },
+  "homepage": "https://github.com/coderChiragJS/GST_BACKEND#readme",
+  "description": ""
 }

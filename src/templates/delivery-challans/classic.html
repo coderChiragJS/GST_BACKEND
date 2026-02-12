@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DELIVERY CHALLAN</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      margin: 10px;
+      color: #000;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    td, th {
+      border: 1px solid #000;
+      padding: 6px;
+      vertical-align: top;
+    }
+    .no-border td {
+      border: none;
+    }
+    .bold { font-weight: bold; }
+    .center { text-align: center; }
+    .right { text-align: right; }
+    .small { font-size: 10px; }
+  </style>
+</head>
+<body>
+
+<!-- OPTIONAL GREETING -->
+{{#if seller.greeting}}
+<div class="center bold">{{seller.greeting}}</div>
+{{/if}}
+
+<!-- SELLER BLOCK -->
+<table>
+  <tr>
+    <td class="center">
+      <div class="bold" style="font-size:14px;">{{seller.firmName}}</div>
+      {{#if seller.address}}
+        {{seller.address.street}}, {{seller.address.city}}, {{seller.address.state}}, {{seller.address.pincode}}<br>
+      {{/if}}
+      GST: {{seller.gstNumber}}
+      {{#if seller.stateCode}}
+        &nbsp; State Code : {{seller.stateCode}}
+      {{/if}}
+    </td>
+  </tr>
+</table>
+
+<!-- META SECTION (2 columns) -->
+<table>
+  <tr>
+    <td style="width: 50%;">
+      Challan Number : {{challan.challanNumber}}<br>
+      Challan Date : {{formatDate challan.challanDate}}<br>
+      Place of Supply : {{challan.transportInfo.placeOfSupplyStateName}}{{#if challan.transportInfo.placeOfSupply}}, {{challan.transportInfo.placeOfSupply}}{{/if}}<br>
+      {{#if challan.transportInfo.dateOfSupply}}
+        Date of Supply : {{challan.transportInfo.dateOfSupply}}
+      {{/if}}
+    </td>
+    <td style="width: 50%;">
+      {{#if challan.transportInfo.docNo}}
+        LR Number : {{challan.transportInfo.docNo}}<br>
+      {{/if}}
+      {{#if challan.transportInfo.transporterName}}
+        Transporter Name : {{challan.transportInfo.transporterName}}<br>
+      {{/if}}
+      {{#if challan.transportInfo.mode}}
+        Transportation Mode : {{challan.transportInfo.mode}}<br>
+      {{/if}}
+      {{#if challan.transportInfo.transporterId}}
+        Transporter ID : {{challan.transportInfo.transporterId}}<br>
+      {{/if}}
+      {{#if challan.transportInfo.vehicleNumber}}
+        Vehicle Number : {{challan.transportInfo.vehicleNumber}}
+      {{/if}}
+    </td>
+  </tr>
+</table>
+
+<!-- CHALLAN FOR / SHIP TO -->
+<table>
+  <tr>
+    <td style="width: 50%;">
+      <div class="bold">Challan For</div>
+      {{challan.buyerName}}<br>
+      {{buyerAddress}}<br>
+      {{#if challan.buyerGstin}}
+        State: {{challan.transportInfo.placeOfSupplyStateName}}<br>
+        GSTIN: {{challan.buyerGstin}}
+      {{/if}}
+    </td>
+    <td style="width: 50%;">
+      <div class="bold">Ship To</div>
+      {{#if showShippingAddress}}
+        {{challan.buyerName}}<br>
+        {{shippingAddress}}
+      {{else}}
+        <span class="small">Same as Challan For</span>
+      {{/if}}
+    </td>
+  </tr>
+</table>
+
+<!-- ITEMS TABLE -->
+<table>
+  <tr class="bold">
+    <th style="width: 8%;">Sr. No.</th>
+    <th>Name of Product</th>
+    <th style="width: 12%;">HSN/SAC</th>
+    <th style="width: 10%;">QTY</th>
+    <th style="width: 10%;">Unit</th>
+    <th style="width: 15%;">Rate</th>
+    <th style="width: 15%;">Total</th>
+  </tr>
+
+  {{#each totals.items as |item index|}}
+    <tr>
+      <td class="center">{{inc index}}</td>
+      <td>{{item.itemName}}</td>
+      <td class="center">{{item.hsnSac}}</td>
+      <td class="right">{{item.quantity}}</td>
+      <td class="center">{{item.unit}}</td>
+      <td class="right">{{formatCurrency item.unitPrice}}</td>
+      <td class="right">{{formatCurrency item.totals.lineTotal}}</td>
+    </tr>
+  {{/each}}
+
+  <!-- TOTAL QUANTITY ROW -->
+  <tr class="bold">
+    <td colspan="3">Total Quantity</td>
+    <td class="right">
+      {{#each totals.items as |item|}}
+        {{#if @first}}{{item.quantity}}{{else}}{{/if}}
+      {{/each}}
+      {{#if totals.items.length}}
+        {{#each totals.items as |item index|}}
+          {{#if index}}+ {{item.quantity}}{{/if}}
+        {{/each}}
+      {{/if}}
+    </td>
+    <td colspan="2"></td>
+    <td class="right">{{formatCurrency totals.summary.grandTotal}}</td>
+  </tr>
+</table>
+
+<!-- TERMS & TOTALS -->
+<table>
+  <tr>
+    <td style="width: 60%;">
+      <div class="bold">Terms And Conditions</div>
+      <div class="small">
+        {{#if termsAndConditions.length}}
+          {{#each termsAndConditions}}
+            {{this}}<br>
+          {{/each}}
+        {{else}}
+          1. This is an electronically generated document.<br>
+          2. All disputes are subject to buyer city jurisdiction.
+        {{/if}}
+      </div>
+    </td>
+    <td style="width: 40%;">
+      Total Amount Before Tax&nbsp;&nbsp; {{formatCurrency totals.summary.taxableAmount}}<br>
+      TOTAL&nbsp;&nbsp; {{formatCurrency totals.summary.grandTotal}}<br>
+      Round Off Value&nbsp;&nbsp; 0.00<br>
+      <div class="bold">Total Amount&nbsp;&nbsp; {{formatCurrency totals.summary.grandTotal}}</div>
+    </td>
+  </tr>
+</table>
+
+<!-- SIGNATURE -->
+<table class="no-border">
+  <tr>
+    <td style="width: 60%;"></td>
+    <td style="width: 40%; text-align: right;">
+      For, {{seller.firmName}}<br><br><br><br>
+      Authorised Signatory
+    </td>
+  </tr>
+</table>
+
+<!-- FOOTER -->
+<table class="no-border">
+  <tr>
+    <td>
+      Document Made From&nbsp;&nbsp; DELIVERY CHALLAN
+    </td>
+  </tr>
+  <tr>
+    <td class="center bold">{{seller.firmName}}</td>
+  </tr>
+</table>
+
+</body>
+</html>

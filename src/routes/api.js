@@ -99,6 +99,88 @@ router.put('/business/:businessId/quotations/:quotationId', authMiddleware, requ
 router.delete('/business/:businessId/quotations/:quotationId', authMiddleware, requireBusiness, quotationController.deleteQuotation);
 router.post('/business/:businessId/quotations/:quotationId/pdf', authMiddleware, requireBusiness, quotationPdfController.generatePdf);
 
+// Sales Debit Note Routes (Protected; mirror invoice structure)
+const salesDebitNoteController = require('../controllers/salesDebitNoteController');
+const salesDebitNotePdfController = require('../controllers/salesDebitNotePdfController');
+router.post(
+    '/business/:businessId/sales-debit-notes',
+    authMiddleware,
+    requireBusiness,
+    canCreateDocument,
+    salesDebitNoteController.createSalesDebitNote
+);
+router.get(
+    '/business/:businessId/sales-debit-notes',
+    authMiddleware,
+    requireBusiness,
+    salesDebitNoteController.listSalesDebitNotes
+);
+router.get(
+    '/business/:businessId/sales-debit-notes/:salesDebitNoteId',
+    authMiddleware,
+    requireBusiness,
+    salesDebitNoteController.getSalesDebitNote
+);
+router.put(
+    '/business/:businessId/sales-debit-notes/:salesDebitNoteId',
+    authMiddleware,
+    requireBusiness,
+    salesDebitNoteController.updateSalesDebitNote
+);
+router.delete(
+    '/business/:businessId/sales-debit-notes/:salesDebitNoteId',
+    authMiddleware,
+    requireBusiness,
+    salesDebitNoteController.deleteSalesDebitNote
+);
+router.post(
+    '/business/:businessId/sales-debit-notes/:salesDebitNoteId/pdf',
+    authMiddleware,
+    requireBusiness,
+    salesDebitNotePdfController.generatePdf
+);
+
+// Delivery Challan Routes (Protected; mirror invoice structure)
+const deliveryChallanController = require('../controllers/deliveryChallanController');
+const deliveryChallanPdfController = require('../controllers/deliveryChallanPdfController');
+router.post(
+    '/business/:businessId/delivery-challans',
+    authMiddleware,
+    requireBusiness,
+    canCreateDocument,
+    deliveryChallanController.createDeliveryChallan
+);
+router.get(
+    '/business/:businessId/delivery-challans',
+    authMiddleware,
+    requireBusiness,
+    deliveryChallanController.listDeliveryChallans
+);
+router.get(
+    '/business/:businessId/delivery-challans/:challanId',
+    authMiddleware,
+    requireBusiness,
+    deliveryChallanController.getDeliveryChallan
+);
+router.put(
+    '/business/:businessId/delivery-challans/:challanId',
+    authMiddleware,
+    requireBusiness,
+    deliveryChallanController.updateDeliveryChallan
+);
+router.delete(
+    '/business/:businessId/delivery-challans/:challanId',
+    authMiddleware,
+    requireBusiness,
+    deliveryChallanController.deleteDeliveryChallan
+);
+router.post(
+    '/business/:businessId/delivery-challans/:challanId/pdf',
+    authMiddleware,
+    requireBusiness,
+    deliveryChallanPdfController.generatePdf
+);
+
 // Optional: public list of available invoice templates
 router.get('/invoice-templates', invoicePdfController.listTemplates);
 
