@@ -409,9 +409,15 @@ async function generateAndUploadSalesDebitNotePdf({
     userId,
     businessId,
     salesDebitNote,
-    templateId
+    templateId,
+    business
 }) {
-    const html = await renderSalesDebitNoteHtml(salesDebitNote, templateId);
+    const noteWithDefaults = {
+        ...salesDebitNote,
+        signatureUrl: salesDebitNote.signatureUrl || business?.defaultSignatureUrl,
+        stampUrl: salesDebitNote.stampUrl || business?.defaultStampUrl
+    };
+    const html = await renderSalesDebitNoteHtml(noteWithDefaults, templateId);
     const pdfBuffer = await generatePdfBuffer(html);
     const pdfUrl = await uploadSalesDebitNotePdfToS3({
         userId,
@@ -539,9 +545,15 @@ async function generateAndUploadDeliveryChallanPdf({
     userId,
     businessId,
     deliveryChallan,
-    templateId
+    templateId,
+    business
 }) {
-    const html = await renderDeliveryChallanHtml(deliveryChallan, templateId);
+    const challanWithDefaults = {
+        ...deliveryChallan,
+        signatureUrl: deliveryChallan.signatureUrl || business?.defaultSignatureUrl,
+        stampUrl: deliveryChallan.stampUrl || business?.defaultStampUrl
+    };
+    const html = await renderDeliveryChallanHtml(challanWithDefaults, templateId);
     const pdfBuffer = await generatePdfBuffer(html);
     const pdfUrl = await uploadDeliveryChallanPdfToS3({
         userId,
@@ -565,8 +577,16 @@ async function generatePdfBuffer(html) {
 
     try {
         const page = await browser.newPage();
-        // Use domcontentloaded for static HTML to avoid slow networkidle0 and reduce PDF generation time
         await page.setContent(html, { waitUntil: 'domcontentloaded' });
+        // Wait for external images (e.g. seal/signature from S3) to load so they appear in the PDF
+        const waitForImages = page.evaluate(() =>
+            Promise.all(
+                Array.from(document.images)
+                    .filter((img) => img.src && !img.complete)
+                    .map((img) => new Promise((res) => { img.onload = img.onerror = res; }))
+            )
+        );
+        await Promise.race([waitForImages, new Promise((r) => setTimeout(r, 5000))]).catch(() => {});
 
         const pdfBuffer = await page.pdf({
             format: 'A4',

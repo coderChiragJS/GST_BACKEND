@@ -1,4 +1,5 @@
 const DeliveryChallan = require('../models/deliveryChallanModel');
+const Business = require('../models/businessModel');
 const invoicePdfService = require('../services/invoicePdfService');
 
 // For now we expose only the "classic" template for Delivery Challan.
@@ -38,12 +39,15 @@ const deliveryChallanPdfController = {
                     .json({ message: 'Delivery Challan not found' });
             }
 
+            const business = await Business.getById(userId, businessId);
+
             const pdfUrl =
                 await invoicePdfService.generateAndUploadDeliveryChallanPdf({
                     userId,
                     businessId,
                     deliveryChallan: challan,
-                    templateId
+                    templateId,
+                    business
                 });
 
             return res.json({

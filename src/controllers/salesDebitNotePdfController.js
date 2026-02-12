@@ -1,4 +1,5 @@
 const SalesDebitNote = require('../models/salesDebitNoteModel');
+const Business = require('../models/businessModel');
 const invoicePdfService = require('../services/invoicePdfService');
 
 // For now we expose only the "classic" template for Sales Debit Note.
@@ -38,12 +39,15 @@ const salesDebitNotePdfController = {
                     .json({ message: 'Sales Debit Note not found' });
             }
 
+            const business = await Business.getById(userId, businessId);
+
             const pdfUrl =
                 await invoicePdfService.generateAndUploadSalesDebitNotePdf({
                     userId,
                     businessId,
                     salesDebitNote: note,
-                    templateId
+                    templateId,
+                    business
                 });
 
             return res.json({
