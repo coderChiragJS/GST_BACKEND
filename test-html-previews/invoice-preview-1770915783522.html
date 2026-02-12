@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TAX INVOICE</title>
+
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      margin: 10px;
+      color: #000;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    td, th {
+      border: 1px solid #000;
+      padding: 6px;
+      vertical-align: top;
+    }
+
+    .no-border td {
+      border: none;
+    }
+
+    .bold { font-weight: bold; }
+    .center { text-align: center; }
+    .right { text-align: right; }
+
+    .header-note {
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+      margin: 4px 0;
+    }
+
+    .blue {
+      background: #d4e8fd;
+    }
+
+    .bank-title {
+      color: #1C6FBD;
+      font-weight: bold;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- TOP LINE -->
+<div class="header-note">
+  Thank-you for doing business with us
+  <span style="float:right;">Original For Recipient</span>
+</div>
+
+<div class="title">TAX INVOICE</div>
+
+<!-- SELLER + META -->
+<table>
+  <tr>
+    <td rowspan="4" style="width:55%;">
+      <div class="bold" style="font-size:14px;">SATGURU ELECTRONICS AND FURNITURE</div>
+        2505 INFRONT OF GOVT.HOSPITAL,MAIN ROAD KALAPIPAL MANDI DIST.SHAJAPUR<br>
+        Shajapur, Madhya Pradesh – 465337<br><br>
+        📞 9876543210<br><br>
+      GSTIN : <b>23ALFPM7215H1ZA</b>
+      &nbsp;&nbsp;
+      <span style="border:1px solid #000; padding:2px 6px;">
+        State Code : 23
+      </span>
+    </td>
+
+    <td class="center">
+      Invoice Number<br><b style="white-space: nowrap;">new1</b>
+    </td>
+    <td class="center">
+      Invoice Date<br><b style="white-space: nowrap;">12-02-2026</b>
+    </td>
+    <td class="center">
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+    </td>
+    <td class="center">
+    </td>
+    <td class="center">
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+    </td>
+    <td class="center">
+    </td>
+    <td class="center">
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+    </td>
+    <td class="center">
+    </td>
+    <td></td>
+  </tr>
+</table>
+
+<!-- DISPATCH (only when seller.dispatchAddress is set) -->
+
+<!-- BILL TO / SHIP TO (hide Shipped to when no distinct shipping address) -->
+<table>
+  <tr>
+    <td class="bold">Details of Receiver | Billed to</td>
+  </tr>
+  <tr>
+    <td>
+      Name: <b>DEMO GST Register Party</b><br>
+      Address: Second Floor 106/3 Ava nti Vihar Road Raipur Raipur Chhattisgarh 492004, Raipur, Chhattisgarh, 492004<br>
+      GSTIN: 22AAICG8226H1ZO
+    </td>
+  </tr>
+</table>
+
+<!-- ITEMS -->
+<table>
+  <thead>
+    <tr class="blue">
+      <th rowspan="2">Sr. No.</th>
+      <th rowspan="2">Name of Product</th>
+      <th rowspan="2">HSN/SAC</th>
+      <th rowspan="2">QTY</th>
+      <th rowspan="2">Unit</th>
+      <th rowspan="2">Rate</th>
+      <th rowspan="2">Taxable Value</th>
+      <th colspan="2">IGST</th>
+      <th rowspan="2">CESS</th>
+      <th rowspan="2">Total</th>
+    </tr>
+    <tr class="blue">
+      <th>Rate</th>
+      <th>Amount</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <td class="center">1</td>
+      <td class="bold">Demo Product</td>
+      <td>0402</td>
+      <td class="right">10</td>
+      <td>Nos</td>
+      <td class="right">100.00</td>
+      <td class="right blue">1000.00</td>
+      <td class="center">18%</td>
+      <td class="right">180.00</td>
+      <td class="right">
+        0.00<br>
+        (%)
+      </td>
+      <td class="right bold">1180.00</td>
+    </tr>
+
+    <tr>
+      <td></td>
+      <td class="right">handling charge</td>
+      <td></td>
+      <td colspan="3"></td>
+      <td class="center blue">10.00</td>
+      <td class="center">0%</td>
+      <td class="right">0.00</td>
+      <td></td>
+      <td class="right bold">10.00</td>
+    </tr>
+
+    <tr>
+      <td colspan="10" class="right">Taxable Amount</td>
+      <td class="right bold">1010.00</td>
+    </tr>
+    <tr>
+      <td colspan="10" class="right">Add : IGST</td>
+      <td class="right bold">180.00</td>
+    </tr>
+    <tr>
+      <td colspan="10" class="right bold">TOTAL</td>
+      <td class="right bold">1010.00</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- AMOUNT IN WORDS -->
+<table>
+  <tr>
+    <td class="bold">
+      <!-- Replace the static text below with a dynamic amount-in-words field if you add one to the context -->
+      Total Amount in words :-  Eight Thousand Eight Hundred Ten Rupees Only
+    </td>
+    <td class="right bold">Total</td>
+    <td class="right bold">1010.00</td>
+  </tr>
+</table>
+
+<!-- BANK + SIGN -->
+<table>
+  <tr>
+    <td style="width:50%;">
+      <div class="bank-title">🏦 Bank and Payment Details</div><br>
+      Bank Name : <b>ICICI Bank</b><br>
+      Account Holder : <b>CHIRAG</b><br>
+      Account No. : <b>67583245608</b><br>
+      IFSC Code : <b>ICIC0008578</b><br>
+      
+    </td>
+    <td class="right" style="width:50%;">
+      Certified that the particular given above are true and correct<br><br>
+      <b>For, SATGURU ELECTRONICS AND FURNITURE</b><br><br><br>
+      Authorised Signatory
+    </td>
+  </tr>
+</table>
+
+<!-- TERMS -->
+<table>
+  <tr>
+    <td>
+      <b>Terms And Conditions</b><br>
+          1. This is an electronically generated document.<br>
+          2. All disputes are subject to seller city jurisdiction.<br>
+    </td>
+  </tr>
+</table>
+
+<div class="footer">Thankyou for your business</div>
+<div class="footer">Document Made From <b>GimBooks</b></div>
+
+</body>
+</html>

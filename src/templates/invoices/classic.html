@@ -189,9 +189,9 @@
       {{#if invoice.buyerGstin}}GSTIN: {{invoice.buyerGstin}}{{/if}}
     </td>
     <td>
-      Name: <b>{{invoice.buyerName}}</b><br>
+      Name: <b>{{shippingName}}</b><br>
       {{#if shippingAddress}}Address: {{shippingAddress}}<br>{{/if}}
-      {{#if invoice.buyerGstin}}GSTIN: {{invoice.buyerGstin}}{{/if}}
+      {{#if shippingGstin}}GSTIN: {{shippingGstin}}{{/if}}
     </td>
     {{else}}
     <td>
@@ -284,7 +284,8 @@
   <tr>
     <td class="bold">
       <!-- Replace the static text below with a dynamic amount-in-words field if you add one to the context -->
-      Total Amount in words :- {{!-- e.g. {{amountInWords}} --}} Eight Thousand Eight Hundred Ten Rupees Only
+      Total Invoice Amount in words<br>
+      {{numberToWords totals.summary.grandTotal}} /-
     </td>
     <td class="right bold">Total</td>
     <td class="right bold">{{formatCurrency totals.summary.grandTotal}}</td>

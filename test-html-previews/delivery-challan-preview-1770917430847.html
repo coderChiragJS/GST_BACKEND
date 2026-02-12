@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DELIVERY CHALLAN</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      margin: 10px;
+      color: #000;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    td, th {
+      border: 1px solid #000;
+      padding: 6px;
+      vertical-align: top;
+    }
+    .no-border td {
+      border: none;
+    }
+    .bold { font-weight: bold; }
+    .center { text-align: center; }
+    .right { text-align: right; }
+    .small { font-size: 10px; }
+    .header-row {
+      font-size: 11px;
+    }
+    .blue-header {
+      background-color: #d4e8fd;
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP HEADER -->
+<table class="no-border header-row">
+  <tr>
+    <td style="width: 100%;">Thank-you for doing business with us</td>
+  </tr>
+</table>
+
+<!-- SELLER BLOCK -->
+<table>
+  <tr>
+    <td class="center">
+      <div class="bold" style="font-size:14px;">SATGURU ELECTRONICS AND FURNITURE</div>
+        2505 INFRONT OF GOVT.HOSPITAL,MAIN ROAD KALAPIPAL MANDI DIST.SHAJAPUR, Shajapur, Madhya Pradesh, 465337<br>
+      GSTIN : 23ALFPM7215H1ZA
+        &nbsp;&nbsp; State Code : 23
+    </td>
+  </tr>
+</table>
+
+<!-- TITLE HEADER -->
+<table>
+  <tr>
+    <td class="center blue-header bold" style="font-size:16px; position: relative;">
+      DELIVERY CHALLAN
+      <span style="position: absolute; right: 10px; font-size: 11px; font-style: italic; font-weight: normal;">Original For Recipient</span>
+    </td>
+  </tr>
+</table>
+
+<!-- CHALLAN / TRANSPORT META (3 columns) -->
+<table>
+  <tr>
+    <td style="width: 30%;">
+      Challan Number<br><b>new1</b>
+    </td>
+    <td style="width: 40%;">
+      Date Of Supply<br><b>12-02-2026</b>
+    </td>
+    <td style="width: 30%;">
+      Vehicle Number<br><b>4343434</b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Challan Date<br><b>12-02-2026</b>
+    </td>
+    <td>
+      Place of Supply<br><b>Andhra Pradesh</b>
+    </td>
+    <td>
+      Transporter ID<br><b>545454</b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      State<br><b>Madhya Pradesh</b>
+    </td>
+    <td></td>
+    <td>
+      Transporter Name<br><b>vcvvc</b>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Reverse Charge<br><b>Yes</b>
+    </td>
+    <td></td>
+    <td>
+      Transportation Mode<br><b>Road</b>
+    </td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td>
+      LR Number<br><b>4345</b>
+    </td>
+  </tr>
+  <tr>
+    <td></td>
+    <td></td>
+    <td>
+      LR Date<br><b>12-02-2026</b>
+    </td>
+  </tr>
+</table>
+
+<!-- RECEIVER / CONSIGNEE -->
+<table>
+  <tr>
+    <td class="bold blue-header" style="width: 50%;">Details of Receiver | Billed to</td>
+    <td class="bold blue-header" style="width: 50%;">Details of Consignee | Shipped to</td>
+  </tr>
+  <tr>
+    <td style="width: 50%;">
+      Name:&nbsp;&nbsp; <b>DEMO GST Register Party</b><br>
+      Address: Second Floor 106/3 Ava nti Vihar Road Raipur Raipur Chhattisgarh 492004, Raipur, Chhattisgarh, 492004<br>
+      GSTIN: 22AAICG8226H1ZO
+        &nbsp;&nbsp; State Code : 22
+      <br>
+      State:&nbsp;&nbsp; Andhra Pradesh
+    </td>
+    <td style="width: 50%;">
+        Name:&nbsp;&nbsp; <b>DEMO GST Register Party</b><br>
+        Address: Second Floor 106/3 Avanti Vihar Road Raipur Raipur Chhattisgarh 492004, Raipur, Chhattisgarh, 492004<br>
+        GSTIN: 22AAICG8226H1ZO
+          &nbsp;&nbsp; State Code : 22
+        <br>
+        State:&nbsp;&nbsp; Andhra Pradesh
+    </td>
+  </tr>
+</table>
+
+<!-- ITEMS TABLE -->
+<table>
+  <tr class="bold">
+    <th style="width: 8%;">Sr. No.</th>
+    <th style="width: 30%;">Name of Product</th>
+    <th style="width: 12%;">HSN/SAC</th>
+    <th style="width: 12%;">QTY</th>
+    <th style="width: 10%;">Unit</th>
+    <th style="width: 13%;">Rate</th>
+    <th style="width: 15%;">Total</th>
+  </tr>
+
+    <tr>
+      <td class="center">1</td>
+      <td class="bold">Demo Product</td>
+      <td class="center">0402</td>
+      <td class="right">10</td>
+      <td></td>
+      <td class="right">100.00</td>
+      <td class="right bold">₹ 1000.00</td>
+    </tr>
+
+      <tr>
+        <td colspan="6" class="right">handlng charge</td>
+        <td class="right bold">₹ 10.00</td>
+      </tr>
+
+  <tr class="bold">
+    <td colspan="3" class="center">Total</td>
+    <td class="right">10</td>
+    <td colspan="2"></td>
+    <td class="right">₹ 1010.00</td>
+  </tr>
+</table>
+
+<!-- AMOUNT IN WORDS + BANK + FINAL AMOUNTS -->
+<table>
+  <tr>
+    <td style="width: 50%; vertical-align: top;">
+      <div class="bold">Total Invoice Amount in words</div>
+      One Thousand Ten Rupees Only /-
+    </td>
+    <td style="width: 50%; vertical-align: top;">
+      <table style="width: 100%; border: none;">
+        <tr>
+          <td style="border: none; padding: 0;"><span class="bold">Final Invoice Amount</span></td>
+          <td style="border: none; padding: 0;" class="right bold">₹ 1010.00</td>
+        </tr>
+        <tr>
+          <td style="border: none; padding: 0;"><span class="bold">Balance Due</span></td>
+          <td style="border: none; padding: 0;" class="right bold">₹ 1010.00</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- BANK DETAILS SECTION -->
+<table>
+  <tr>
+    <td>
+      <div class="bold" style="color: #1C6FBD;">🏦 Bank and Payment Details</div><br>
+        Account Name&nbsp;&nbsp;&nbsp;&nbsp; CHIRAG<br>
+        Account No.&nbsp;&nbsp;&nbsp;&nbsp; 67583245608<br>
+        IFSC Code&nbsp;&nbsp;&nbsp;&nbsp; ICIC0006578<br>
+        Bank Name&nbsp;&nbsp;&nbsp;&nbsp; ICICI Bank<br>
+        Branch Name&nbsp;&nbsp;&nbsp;&nbsp; MANASA
+    </td>
+  </tr>
+</table>
+
+<!-- TERMS + SIGNATURE -->
+<table>
+  <tr>
+    <td style="width: 60%; vertical-align: top;">
+      <div class="bold">Terms And Conditions</div>
+      <div class="small">
+            1. This is an electronically generated document.<br>
+            2. All disputes are subject to seller city jurisdiction.<br>
+      </div>
+      <br>
+      <div class="small">
+        Certified that the particular given above are true and correct
+      </div>
+    </td>
+    <td style="width: 40%; text-align: right; vertical-align: top;">
+      <div class="bold">For, SATGURU ELECTRONICS AND FURNITURE</div>
+      <br><br>
+      <br><br>
+      Authorised Signatory
+    </td>
+  </tr>
+</table>
+
+<!-- FOOTER -->
+<table class="no-border">
+  <tr>
+    <td class="center">Thankyou for your business</td>
+  </tr>
+</table>
+
+</body>
+</html>
