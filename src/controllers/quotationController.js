@@ -72,6 +72,9 @@ const baseQuotationSchema = z.object({
     buyerName: z.string().optional().default(''),
     buyerGstin: z.string().optional().default(''),
     buyerAddress: z.preprocess((val) => (val == null ? '' : val), z.string().optional().default('')),
+    // Optional separate consignee details
+    shippingName: z.string().optional().default(''),
+    shippingGstin: z.string().optional().default(''),
     shippingAddress: z.preprocess((val) => (val == null ? '' : val), z.string().optional().default('')),
     items: z.array(lineItemSchema).optional().default([]),
     additionalCharges: z.array(additionalChargeSchema).optional().default([]),

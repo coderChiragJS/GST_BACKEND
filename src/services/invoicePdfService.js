@@ -144,9 +144,9 @@ async function renderInvoiceHtml(invoice, templateId) {
     const seller = invoice.seller || {};
     const buyerAddress = invoice.buyerAddress || '';
     const shippingAddress = invoice.shippingAddress || buyerAddress;
+    // Show shipping section if shippingAddress has value (even if same as billing)
     const showShippingAddress =
-        !!(invoice.shippingAddress && String(invoice.shippingAddress).trim()) &&
-        shippingAddress.trim() !== buyerAddress.trim();
+        !!(invoice.shippingAddress && String(invoice.shippingAddress).trim());
 
     const hasDispatchAddress = (() => {
         const d = seller.dispatchAddress;
@@ -182,6 +182,8 @@ async function renderInvoiceHtml(invoice, templateId) {
         seller,
         buyerAddress,
         shippingAddress,
+        shippingName: invoice.shippingName || invoice.buyerName || '',
+        shippingGstin: invoice.shippingGstin || invoice.buyerGstin || '',
         showShippingAddress,
         hasDispatchAddress,
         bankDetails,
@@ -232,9 +234,9 @@ async function renderSalesDebitNoteHtml(note, templateId) {
     const seller = note.seller || {};
     const buyerAddress = note.buyerAddress || '';
     const shippingAddress = note.shippingAddress || buyerAddress;
+    // Show shipping section if shippingAddress has value (even if same as billing)
     const showShippingAddress =
-        !!(note.shippingAddress && String(note.shippingAddress).trim()) &&
-        shippingAddress.trim() !== buyerAddress.trim();
+        !!(note.shippingAddress && String(note.shippingAddress).trim());
 
     const hasDispatchAddress = (() => {
         const d = seller.dispatchAddress;
@@ -271,6 +273,8 @@ async function renderSalesDebitNoteHtml(note, templateId) {
         seller,
         buyerAddress,
         shippingAddress,
+        shippingName: note.shippingName || note.buyerName || '',
+        shippingGstin: note.shippingGstin || note.buyerGstin || '',
         showShippingAddress,
         hasDispatchAddress,
         bankDetails,
@@ -313,9 +317,9 @@ async function renderQuotationHtml(quotation, templateId) {
     const seller = quotation.seller || {};
     const buyerAddress = quotation.buyerAddress || '';
     const shippingAddress = quotation.shippingAddress || buyerAddress;
+    // Show shipping section if shippingAddress has value (even if same as billing)
     const showShippingAddress =
-        !!(quotation.shippingAddress && String(quotation.shippingAddress).trim()) &&
-        shippingAddress.trim() !== buyerAddress.trim();
+        !!(quotation.shippingAddress && String(quotation.shippingAddress).trim());
     const hasDispatchAddress = (() => {
         const d = seller.dispatchAddress;
         if (d == null) return false;
@@ -339,6 +343,8 @@ async function renderQuotationHtml(quotation, templateId) {
         seller,
         buyerAddress,
         shippingAddress,
+        shippingName: quotation.shippingName || quotation.buyerName || '',
+        shippingGstin: quotation.shippingGstin || quotation.buyerGstin || '',
         showShippingAddress,
         hasDispatchAddress,
         bankDetails,
@@ -465,9 +471,9 @@ async function renderDeliveryChallanHtml(challan, templateId) {
     const seller = challan.seller || {};
     const buyerAddress = challan.buyerAddress || '';
     const shippingAddress = challan.shippingAddress || buyerAddress;
+    // Show shipping section if shippingAddress has value (even if same as billing)
     const showShippingAddress =
-        !!(challan.shippingAddress && String(challan.shippingAddress).trim()) &&
-        shippingAddress.trim() !== buyerAddress.trim();
+        !!(challan.shippingAddress && String(challan.shippingAddress).trim());
 
     const hasDispatchAddress = (() => {
         const d = seller.dispatchAddress;
@@ -504,6 +510,8 @@ async function renderDeliveryChallanHtml(challan, templateId) {
         seller,
         buyerAddress,
         shippingAddress,
+        shippingName: challan.shippingName || challan.buyerName || '',
+        shippingGstin: challan.shippingGstin || challan.buyerGstin || '',
         showShippingAddress,
         hasDispatchAddress,
         bankDetails,

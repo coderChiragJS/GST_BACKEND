@@ -6,7 +6,7 @@ const addressSchema = z.object({
     street: z.string().min(1, "Street address is required"),
     city: z.string().min(1, "City is required"),
     state: z.string().min(1, "State is required"),
-    pincode: z.string().min(6, "Pincode must be at least 6 digits").max(6, "Pincode must be at most 6 digits"),
+    pincode: z.string().regex(/^[0-9]{6}$/, "Pincode must be exactly 6 digits"),
     country: z.string().default('India'),
     gst: z.string().optional(),
     companyName: z.string().optional()

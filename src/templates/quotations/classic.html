@@ -69,7 +69,7 @@
   <tr>
     {{#if showShippingAddress}}
     <td>Name: <b>{{quotation.buyerName}}</b><br>{{#if buyerAddress}}Address: {{buyerAddress}}<br>{{/if}}{{#if quotation.buyerGstin}}GSTIN: {{quotation.buyerGstin}}{{/if}}</td>
-    <td>Name: <b>{{quotation.buyerName}}</b><br>{{#if shippingAddress}}Address: {{shippingAddress}}<br>{{/if}}{{#if quotation.buyerGstin}}GSTIN: {{quotation.buyerGstin}}{{/if}}</td>
+    <td>Name: <b>{{shippingName}}</b><br>{{#if shippingAddress}}Address: {{shippingAddress}}<br>{{/if}}{{#if shippingGstin}}GSTIN: {{shippingGstin}}{{/if}}</td>
     {{else}}
     <td>Name: <b>{{quotation.buyerName}}</b><br>{{#if buyerAddress}}Address: {{buyerAddress}}<br>{{/if}}{{#if quotation.buyerGstin}}GSTIN: {{quotation.buyerGstin}}{{/if}}</td>
     {{/if}}

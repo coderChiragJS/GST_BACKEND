@@ -119,7 +119,15 @@
         {{#if showShippingAddress}}
         <div class="col">
             <div class="label">Ship To</div>
+            {{#if shippingName}}<div class="value"><strong>{{shippingName}}</strong></div>{{/if}}
+            {{#if shippingGstin}}
+            <div class="label" style="margin-top:2px;">GSTIN</div>
+            <div class="value">{{shippingGstin}}</div>
+            {{/if}}
+            {{#if shippingAddress}}
+            <div class="label" style="margin-top:2px;">Address</div>
             <div class="value">{{shippingAddress}}</div>
+            {{/if}}
         </div>
         {{/if}}
         {{#if hasTransportInfo}}

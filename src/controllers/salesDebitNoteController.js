@@ -85,10 +85,17 @@ const baseSalesDebitNoteSchema = z.object({
     invoiceDate: z.string().nullable().optional(),
     dueDate: z.string().nullable().optional(),
     status: salesDebitNoteStatusEnum,
+    // Reference to original invoice (for debit notes linked to invoices)
+    referenceInvoiceId: z.string().nullable().optional(),
+    referenceInvoiceNumber: z.string().nullable().optional(),
+    reason: z.string().optional().default(''),
     seller: sellerSchema,
     buyerId: z.string().nullable().optional(),
     buyerName: z.string().min(1, 'buyerName is required'),
     buyerGstin: z.string().optional().default(''),
+    // Optional separate consignee details
+    shippingName: z.string().optional().default(''),
+    shippingGstin: z.string().optional().default(''),
     buyerAddress: z.preprocess(
         (val) => (val == null ? '' : val),
         z.string().optional().default('')
@@ -189,7 +196,7 @@ const salesDebitNoteController = {
                     .json({ message: 'Business ID is required in URL' });
             }
 
-            const { status, fromDate, toDate, search, limit, nextToken } =
+            const { status, fromDate, toDate, search, limit, nextToken, referenceInvoiceId } =
                 req.query;
             const parsedLimit = Math.min(
                 Math.max(parseInt(limit, 10) || 100, 1),
@@ -218,6 +225,9 @@ const salesDebitNoteController = {
 
             if (status) {
                 notes = notes.filter((n) => n.status === status);
+            }
+            if (referenceInvoiceId) {
+                notes = notes.filter((n) => n.referenceInvoiceId === referenceInvoiceId);
             }
             if (fromDate) {
                 const from = new Date(fromDate);

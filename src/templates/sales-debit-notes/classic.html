@@ -91,9 +91,9 @@
     <td style="width: 50%;">
       <div class="bold">Details of Consignee | Shipped to</div>
       {{#if showShippingAddress}}
-        Name: {{invoice.buyerName}}<br>
+        Name: <b>{{shippingName}}</b><br>
         Address: {{shippingAddress}}<br>
-        GSTIN: {{invoice.buyerGstin}}
+        {{#if shippingGstin}}GSTIN: {{shippingGstin}}{{/if}}
       {{else}}
         <span class="small">Same as billed to</span>
       {{/if}}

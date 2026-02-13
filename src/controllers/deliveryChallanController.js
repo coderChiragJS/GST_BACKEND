@@ -88,13 +88,13 @@ const baseDeliveryChallanSchema = z.object({
     buyerId: z.string().nullable().optional(),
     buyerName: z.string().min(1, 'buyerName is required'),
     buyerGstin: z.string().optional().default(''),
-    // Optional separate consignee details – fall back to buyer when omitted
-    shippingName: z.string().optional().default(''),
-    shippingGstin: z.string().optional().default(''),
     buyerAddress: z.preprocess(
         (val) => (val == null ? '' : val),
         z.string().optional().default('')
     ),
+    // Optional separate consignee details – fall back to buyer when omitted
+    shippingName: z.string().optional().default(''),
+    shippingGstin: z.string().optional().default(''),
     shippingAddress: z.preprocess(
         (val) => (val == null ? '' : val),
         z.string().optional().default('')

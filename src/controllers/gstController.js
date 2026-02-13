@@ -35,11 +35,16 @@ function placeOfSupply(req, res) {
         const shippingStateCode = normalizeStateCode(body.shippingStateCode);
         const shippingStateName = body.shippingStateName;
 
-        if (buyerStateCode) placeState = getStateByCode(buyerStateCode);
-        if (!placeState && buyerStateName) placeState = getStateByName(buyerStateName);
-        if (!placeState && buyerGstin && buyerGstin.length >= 2) placeState = getStateByGstin(buyerGstin);
-        if (!placeState && shippingStateCode) placeState = getStateByCode(shippingStateCode);
+        // Priority 1: Explicit place of supply (shipping state) - user's manual selection
+        if (shippingStateCode) placeState = getStateByCode(shippingStateCode);
         if (!placeState && shippingStateName) placeState = getStateByName(shippingStateName);
+
+        // Priority 2: Buyer GSTIN (if no explicit place of supply)
+        if (!placeState && buyerGstin && buyerGstin.length >= 2) placeState = getStateByGstin(buyerGstin);
+
+        // Priority 3: Buyer state (fallback)
+        if (!placeState && buyerStateCode) placeState = getStateByCode(buyerStateCode);
+        if (!placeState && buyerStateName) placeState = getStateByName(buyerStateName);
 
         if (!placeState) {
             return res.status(400).json({
