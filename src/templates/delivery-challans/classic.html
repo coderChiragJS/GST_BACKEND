@@ -87,7 +87,7 @@
       Challan Date<br><b>{{formatDate challan.challanDate}}</b>
     </td>
     <td>
-      Place of Supply<br><b>{{challan.transportInfo.placeOfSupplyStateName}}</b>
+      Place of Supply<br><b>{{#if placeOfSupplyDisplay}}{{placeOfSupplyDisplay}}{{else}}{{challan.transportInfo.placeOfSupplyStateName}}{{/if}}</b>
     </td>
     <td>
       Transporter ID<br><b>{{challan.transportInfo.transporterId}}</b>

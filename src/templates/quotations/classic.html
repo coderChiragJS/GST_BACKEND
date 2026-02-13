@@ -122,10 +122,21 @@
       <td colspan="9" class="right">Taxable Amount</td>
       <td class="right bold">{{formatCurrency totals.summary.taxableAmount}}</td>
     </tr>
+    {{#if showCgstSgst}}
     <tr>
-      <td colspan="9" class="right">Add : GST</td>
+      <td colspan="9" class="right">Add : CGST</td>
+      <td class="right bold">{{formatCurrency summaryCgstAmount}}</td>
+    </tr>
+    <tr>
+      <td colspan="9" class="right">Add : SGST</td>
+      <td class="right bold">{{formatCurrency summarySgstAmount}}</td>
+    </tr>
+    {{else}}
+    <tr>
+      <td colspan="9" class="right">Add : IGST</td>
       <td class="right bold">{{formatCurrency totals.summary.taxAmount}}</td>
     </tr>
+    {{/if}}
     {{#if totals.summary.tcsAmount}}
     <tr>
       <td colspan="9" class="right">Add : TCS</td>

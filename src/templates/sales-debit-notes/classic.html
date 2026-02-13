@@ -68,7 +68,7 @@
     </td>
     <td style="width: 50%;">
       Date Of Supply&nbsp;&nbsp; {{invoice.transportInfo.dateOfSupply}}<br>
-      Place of Supply&nbsp;&nbsp; {{invoice.transportInfo.placeOfSupplyStateName}}{{#if invoice.transportInfo.placeOfSupply}}{{#if invoice.transportInfo.placeOfSupplyStateName}}, {{/if}}{{invoice.transportInfo.placeOfSupply}}{{/if}}<br>
+      Place of Supply&nbsp;&nbsp; {{#if placeOfSupplyDisplay}}{{placeOfSupplyDisplay}}{{else}}{{invoice.transportInfo.placeOfSupplyStateName}}{{#if invoice.transportInfo.placeOfSupply}}{{#if invoice.transportInfo.placeOfSupplyStateName}}, {{/if}}{{invoice.transportInfo.placeOfSupply}}{{/if}}{{/if}}<br>
       Vehicle Number&nbsp;&nbsp; {{invoice.transportInfo.vehicleNumber}}<br>
       Transporter ID&nbsp;&nbsp; {{invoice.transportInfo.transporterId}}<br>
       Transporter Name&nbsp;&nbsp; {{invoice.transportInfo.transporterName}}<br>

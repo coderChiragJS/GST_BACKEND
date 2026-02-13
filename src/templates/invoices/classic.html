@@ -98,9 +98,11 @@
       Invoice Date<br><b style="white-space: nowrap;">{{formatDate invoice.invoiceDate}}</b>
     </td>
     <td class="center">
-      {{#if transportInfo.placeOfSupply}}
+      {{#if placeOfSupplyDisplay}}
+      Place of Supply<br><b>{{placeOfSupplyDisplay}}</b>
+      {{else}}{{#if transportInfo.placeOfSupply}}
       Place of Supply<br><b>{{transportInfo.placeOfSupply}}</b>
-      {{/if}}
+      {{/if}}{{/if}}
     </td>
   </tr>
 
@@ -214,7 +216,11 @@
       <th rowspan="2">Unit</th>
       <th rowspan="2">Rate</th>
       <th rowspan="2">Taxable Value</th>
+      {{#if showCgstSgst}}
+      <th colspan="2">CGST/SGST</th>
+      {{else}}
       <th colspan="2">IGST</th>
+      {{/if}}
       <th rowspan="2">CESS</th>
       <th rowspan="2">Total</th>
     </tr>
@@ -262,10 +268,21 @@
       <td colspan="10" class="right">Taxable Amount</td>
       <td class="right bold">{{formatCurrency totals.summary.taxableAmount}}</td>
     </tr>
+    {{#if showCgstSgst}}
+    <tr>
+      <td colspan="10" class="right">Add : CGST</td>
+      <td class="right bold">{{formatCurrency summaryCgstAmount}}</td>
+    </tr>
+    <tr>
+      <td colspan="10" class="right">Add : SGST</td>
+      <td class="right bold">{{formatCurrency summarySgstAmount}}</td>
+    </tr>
+    {{else}}
     <tr>
       <td colspan="10" class="right">Add : IGST</td>
       <td class="right bold">{{formatCurrency totals.summary.taxAmount}}</td>
     </tr>
+    {{/if}}
     {{#if totals.summary.tcsAmount}}
     <tr>
       <td colspan="10" class="right">Add : TCS</td>

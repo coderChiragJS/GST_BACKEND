@@ -135,7 +135,7 @@
             <div class="label">Shipping Details</div>
             {{#if transportInfo.vehicleNumber}}<div class="value">Vehicle: {{transportInfo.vehicleNumber}}</div>{{/if}}
             {{#if transportInfo.mode}}<div class="value">Mode: {{transportInfo.mode}}</div>{{/if}}
-            {{#if transportInfo.placeOfSupply}}<div class="value">Place of Supply: {{transportInfo.placeOfSupply}}</div>{{/if}}
+            {{#if placeOfSupplyDisplay}}<div class="value">Place of Supply: {{placeOfSupplyDisplay}}</div>{{else}}{{#if transportInfo.placeOfSupply}}<div class="value">Place of Supply: {{transportInfo.placeOfSupply}}</div>{{/if}}{{/if}}
         </div>
         {{/if}}
     </div>
@@ -182,11 +182,24 @@
                     <td>Taxable</td>
                     <td class="right">{{formatCurrency totals.summary.taxableAmount}}</td>
                 </tr>
+                {{#if showCgstSgst}}
                 <tr class="summary-row">
                     <td></td>
-                    <td>GST</td>
+                    <td>CGST</td>
+                    <td class="right">{{formatCurrency summaryCgstAmount}}</td>
+                </tr>
+                <tr class="summary-row">
+                    <td></td>
+                    <td>SGST</td>
+                    <td class="right">{{formatCurrency summarySgstAmount}}</td>
+                </tr>
+                {{else}}
+                <tr class="summary-row">
+                    <td></td>
+                    <td>IGST</td>
                     <td class="right">{{formatCurrency totals.summary.taxAmount}}</td>
                 </tr>
+                {{/if}}
                 {{#if totals.summary.tcsAmount}}
                 <tr class="summary-row">
                     <td></td>

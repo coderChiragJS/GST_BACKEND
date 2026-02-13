@@ -132,6 +132,35 @@ function loadTemplatesOnce() {
     });
 }
 
+/**
+ * Build supply-type and place-of-supply context from doc (invoice/note/quotation/challan).
+ * Use saved transportInfo.supplyTypeDisplay; do not recompute from buyer GSTIN.
+ * Returns: isInterstate, showCgstSgst, summaryCgstAmount, summarySgstAmount, placeOfSupplyDisplay
+ */
+function getSupplyTypeContext(doc, seller, totals) {
+    const transportInfo = doc.transportInfo || {};
+    let isInterstate = transportInfo.supplyTypeDisplay === 'interstate';
+    if (transportInfo.supplyTypeDisplay === 'intrastate') {
+        isInterstate = false;
+    } else if (
+        transportInfo.supplyTypeDisplay !== 'interstate' &&
+        transportInfo.placeOfSupplyStateCode &&
+        seller.stateCode
+    ) {
+        const posCode = String(transportInfo.placeOfSupplyStateCode).trim().padStart(2, '0').slice(-2);
+        const sellerCode = String(seller.stateCode).trim().padStart(2, '0').slice(-2);
+        isInterstate = posCode !== sellerCode;
+    } else {
+        isInterstate = true;
+    }
+    const taxAmount = totals?.summary?.taxAmount ?? 0;
+    const summaryCgstAmount = isInterstate ? 0 : Math.round((taxAmount / 2) * 100) / 100;
+    const summarySgstAmount = isInterstate ? 0 : Math.round((taxAmount - summaryCgstAmount) * 100) / 100;
+    const showCgstSgst = !isInterstate;
+    const placeOfSupplyDisplay = transportInfo.placeOfSupply || transportInfo.placeOfSupplyStateName || '';
+    return { isInterstate, showCgstSgst, summaryCgstAmount, summarySgstAmount, placeOfSupplyDisplay };
+}
+
 async function renderInvoiceHtml(invoice, templateId) {
     loadTemplatesOnce();
     const template = compiledTemplates[templateId];
@@ -171,8 +200,11 @@ async function renderInvoiceHtml(invoice, templateId) {
         transportInfo.transporterName ||
         transportInfo.transporterId ||
         transportInfo.docNo ||
-        transportInfo.placeOfSupply
+        transportInfo.placeOfSupply ||
+        transportInfo.placeOfSupplyStateName
     );
+
+    const supplyContext = getSupplyTypeContext(invoice, seller, totals);
 
     const termsAndConditions = invoice.termsAndConditions || [];
     const customFields = invoice.customFields || [];
@@ -190,6 +222,7 @@ async function renderInvoiceHtml(invoice, templateId) {
         hasBankDetails,
         transportInfo,
         hasTransportInfo,
+        ...supplyContext,
         termsAndConditions,
         customFields,
         totals
@@ -262,8 +295,11 @@ async function renderSalesDebitNoteHtml(note, templateId) {
         transportInfo.transporterName ||
         transportInfo.transporterId ||
         transportInfo.docNo ||
-        transportInfo.placeOfSupply
+        transportInfo.placeOfSupply ||
+        transportInfo.placeOfSupplyStateName
     );
+
+    const supplyContext = getSupplyTypeContext(note, seller, totals);
 
     const termsAndConditions = note.termsAndConditions || [];
     const customFields = note.customFields || [];
@@ -281,6 +317,7 @@ async function renderSalesDebitNoteHtml(note, templateId) {
         hasBankDetails,
         transportInfo,
         hasTransportInfo,
+        ...supplyContext,
         termsAndConditions,
         customFields,
         totals
@@ -334,6 +371,17 @@ async function renderQuotationHtml(quotation, templateId) {
         bankDetails.ifscCode ||
         bankDetails.upiId
     );
+    const transportInfo = quotation.transportInfo || {};
+    const hasTransportInfo = !!(
+        transportInfo.vehicleNumber ||
+        transportInfo.mode ||
+        transportInfo.transporterName ||
+        transportInfo.transporterId ||
+        transportInfo.docNo ||
+        transportInfo.placeOfSupply ||
+        transportInfo.placeOfSupplyStateName
+    );
+    const supplyContext = getSupplyTypeContext(quotation, seller, totals);
     const termsAndConditions = quotation.termsAndConditions || [];
     const customFields = quotation.customFields || [];
     const contactPersons = quotation.contactPersons || [];
@@ -349,6 +397,9 @@ async function renderQuotationHtml(quotation, templateId) {
         hasDispatchAddress,
         bankDetails,
         hasBankDetails,
+        transportInfo,
+        hasTransportInfo,
+        ...supplyContext,
         termsAndConditions,
         customFields,
         contactPersons,
@@ -499,8 +550,11 @@ async function renderDeliveryChallanHtml(challan, templateId) {
         transportInfo.transporterName ||
         transportInfo.transporterId ||
         transportInfo.docNo ||
-        transportInfo.placeOfSupply
+        transportInfo.placeOfSupply ||
+        transportInfo.placeOfSupplyStateName
     );
+
+    const supplyContext = getSupplyTypeContext(challan, seller, totals);
 
     const termsAndConditions = challan.termsAndConditions || [];
     const customFields = challan.customFields || [];
@@ -518,6 +572,7 @@ async function renderDeliveryChallanHtml(challan, templateId) {
         hasBankDetails,
         transportInfo,
         hasTransportInfo,
+        ...supplyContext,
         termsAndConditions,
         customFields,
         totals
