@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:invoice-pdf": "node scripts/test-invoice-template-local.js",
+    "test:invoice-pdf:html": "node scripts/test-invoice-template-local.js --html",
+    "test:sdn-pdf:html": "node scripts/test-sales-debit-note-template-local.js --html",
+    "test:challan-pdf:html": "node scripts/test-delivery-challan-template-local.js --html",
+    "test:quotation-pdf:html": "node scripts/test-quotation-template-local.js --html",
+    "test:all-modules-update": "node scripts/test-all-modules-update-and-verify.js"
   },
   "keywords": [],
   "author": "",

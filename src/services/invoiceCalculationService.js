@@ -41,7 +41,18 @@ function calculateLineItemTotals(item) {
         gstAmount = (taxableAmount * gstPercent) / 100;
     }
 
-    const lineTotal = taxableAmount + gstAmount;
+    // CESS: Percentage = % of taxable; Fixed/Per Unit = rupees per quantity
+    let cessAmount = 0;
+    const cessType = (item.cessType || 'Percentage').toString();
+    const cessValue = Number(item.cessValue || 0);
+    if (cessType === 'Percentage') {
+        cessAmount = (taxableAmount * cessValue) / 100;
+    } else if (cessType === 'Fixed' || cessType === 'Per Unit') {
+        const qty = Number(item.quantity || 0);
+        cessAmount = cessValue * qty;
+    }
+
+    const lineTotal = taxableAmount + gstAmount + cessAmount;
 
     return {
         baseAmount: round2(baseAmount),
@@ -49,6 +60,8 @@ function calculateLineItemTotals(item) {
         taxableAmount: round2(taxableAmount),
         gstPercent,
         gstAmount: round2(gstAmount),
+        cessAmount: round2(cessAmount),
+        cessValue,
         lineTotal: round2(lineTotal)
     };
 }
@@ -70,12 +83,14 @@ function calculateAdditionalChargeTotals(charge) {
         gstAmount = (amount * gstPercent) / 100;
     }
 
-    const total = taxableAmount + gstAmount;
+    const cessAmount = 0; // additionalCharges schema has no cessType/cessValue
+    const total = taxableAmount + gstAmount + cessAmount;
 
     return {
         taxableAmount: round2(taxableAmount),
         gstPercent,
         gstAmount: round2(gstAmount),
+        cessAmount: round2(cessAmount),
         total: round2(total)
     };
 }
@@ -99,13 +114,17 @@ function computeInvoiceTotals(invoice) {
     let totalItemGst = 0;
     let totalItemAmount = 0;
 
+    let totalItemCess = 0;
+    let totalQuantity = 0;
     const itemsWithTotals = items.map((item) => {
         const totals = calculateLineItemTotals(item);
         totalItemBase += totals.baseAmount;
         totalItemDiscount += totals.discountAmount;
         totalItemTaxable += totals.taxableAmount;
         totalItemGst += totals.gstAmount;
+        totalItemCess += totals.cessAmount || 0;
         totalItemAmount += totals.lineTotal;
+        totalQuantity += Number(item.quantity || 0);
         return {
             ...item,
             totals
@@ -129,6 +148,7 @@ function computeInvoiceTotals(invoice) {
 
     const taxableAmount = totalItemTaxable + totalChargeTaxable;
     const taxAmount = totalItemGst + totalChargeGst;
+    const cessAmount = totalItemCess;
 
     // TCS
     let tcsAmount = 0;
@@ -142,7 +162,22 @@ function computeInvoiceTotals(invoice) {
         tcsAmount = (baseForTcs * tcsPercent) / 100;
     }
 
-    const grandTotal = taxableAmount + taxAmount + tcsAmount;
+    // Total before global discount (taxable + tax + cess + tcs)
+    const totalBeforeDiscount = taxableAmount + taxAmount + cessAmount + tcsAmount;
+
+    // Global discount
+    let totalDiscountAmount = 0;
+    if (invoice.globalDiscountType && typeof invoice.globalDiscountValue === 'number') {
+        if (invoice.globalDiscountType === 'percentage') {
+            totalDiscountAmount = (totalBeforeDiscount * invoice.globalDiscountValue) / 100;
+        } else {
+            totalDiscountAmount = invoice.globalDiscountValue;
+        }
+    }
+    totalDiscountAmount = round2(Math.min(totalDiscountAmount, totalBeforeDiscount));
+
+    const roundOff = Number(invoice.roundOff) || 0;
+    const finalInvoiceAmount = round2(totalBeforeDiscount - totalDiscountAmount + roundOff);
 
     return {
         items: itemsWithTotals,
@@ -158,8 +193,16 @@ function computeInvoiceTotals(invoice) {
             totalChargeAmount: round2(totalChargeAmount),
             taxableAmount: round2(taxableAmount),
             taxAmount: round2(taxAmount),
+            cessAmount: round2(cessAmount),
             tcsAmount: round2(tcsAmount),
-            grandTotal: round2(grandTotal)
+            totalBeforeDiscount: round2(totalBeforeDiscount),
+            totalDiscountAmount: round2(totalDiscountAmount),
+            roundOff: round2(roundOff),
+            finalInvoiceAmount: round2(finalInvoiceAmount),
+            balanceDue: round2(finalInvoiceAmount),
+            grandTotal: round2(finalInvoiceAmount),
+            tableTotal: round2(totalItemAmount + totalChargeAmount),
+            totalQuantity
         }
     };
 }

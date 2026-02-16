@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>TAX INVOICE</title>
+  <title>{{#if invoice.billOfSupply}}BILL OF SUPPLY{{else}}TAX INVOICE{{/if}}</title>
 
   <style>
     body {
@@ -68,7 +68,7 @@
   <span style="float:right;">Original For Recipient</span>
 </div>
 
-<div class="title">TAX INVOICE</div>
+<div class="title">{{#if invoice.billOfSupply}}BILL OF SUPPLY{{else}}TAX INVOICE{{/if}}</div>
 
 <!-- SELLER + META -->
 <table>
@@ -84,7 +84,8 @@
       {{/if}}
       GSTIN : <b>{{seller.gstNumber}}</b>
       &nbsp;&nbsp;
-      {{#if seller.stateCode}}
+      {{!-- Not showing for now; frontend not sending seller.stateCode. Change to seller.stateCode when ready. --}}
+      {{#if false}}
       <span style="border:1px solid #000; padding:2px 6px;">
         State Code : {{seller.stateCode}}
       </span>
@@ -108,14 +109,16 @@
 
   <tr>
     <td class="center">
-      {{#if invoice.dateOfSupply}}
-      Date Of Supply<br><b style="white-space: nowrap;">{{formatDate invoice.dateOfSupply}}</b>
+      {{#if transportInfo.dateOfSupply}}
+      Date Of Supply<br><b style="white-space: nowrap;">{{formatDate transportInfo.dateOfSupply}}</b>
       {{/if}}
     </td>
     <td class="center">
-      {{#if invoice.reverseCharge}}
+      {{#if invoice.otherDetails.reverseCharge}}
+      Reverse Charge<br><b>{{invoice.otherDetails.reverseCharge}}</b>
+      {{else}}{{#if invoice.reverseCharge}}
       Reverse Charge<br><b>{{invoice.reverseCharge}}</b>
-      {{/if}}
+      {{/if}}{{/if}}
     </td>
     <td class="center">
       {{#if transportInfo.vehicleNumber}}
@@ -149,11 +152,15 @@
       {{/if}}
     </td>
     <td class="center">
+      {{#if invoice.otherDetails.challanNumber}}
+      Challan Number<br><b>{{invoice.otherDetails.challanNumber}}</b>
+      {{/if}}
+    </td>
+    <td class="center">
       {{#if transportInfo.docDate}}
       LR Date<br><b style="white-space: nowrap;">{{formatDate transportInfo.docDate}}</b>
       {{/if}}
     </td>
-    <td></td>
   </tr>
 </table>
 
@@ -167,7 +174,8 @@
       {{#if seller.dispatchAddress.street}}{{seller.dispatchAddress.street}}<br>{{/if}}
       {{#if seller.dispatchAddress.city}}{{seller.dispatchAddress.city}}{{/if}}{{#if seller.dispatchAddress.state}}, {{seller.dispatchAddress.state}}{{/if}}{{#if seller.dispatchAddress.pincode}} – {{seller.dispatchAddress.pincode}}{{/if}}
       {{#if seller.gstNumber}}<br>GSTIN: {{seller.gstNumber}}{{/if}}
-      {{#if seller.stateCode}} &nbsp; State Code : <b>{{seller.stateCode}}</b>{{/if}}
+      {{!-- Not showing for now; frontend not sending seller.stateCode. Change to seller.stateCode when ready. --}}
+      {{#if false}} &nbsp; State Code : <b>{{seller.stateCode}}</b>{{/if}}
     </td>
   </tr>
 </table>
@@ -189,6 +197,8 @@
       Name: <b>{{invoice.buyerName}}</b><br>
       {{#if buyerAddress}}Address: {{buyerAddress}}<br>{{/if}}
       {{#if invoice.buyerGstin}}GSTIN: {{invoice.buyerGstin}}{{/if}}
+      {{#if invoice.buyerStateCode}}<br>State Code : {{invoice.buyerStateCode}}{{/if}}
+      {{#if invoice.buyerStateName}}<br>State : {{invoice.buyerStateName}}{{/if}}
     </td>
     <td>
       Name: <b>{{shippingName}}</b><br>
@@ -200,6 +210,8 @@
       Name: <b>{{invoice.buyerName}}</b><br>
       {{#if buyerAddress}}Address: {{buyerAddress}}<br>{{/if}}
       {{#if invoice.buyerGstin}}GSTIN: {{invoice.buyerGstin}}{{/if}}
+      {{#if invoice.buyerStateCode}}<br>State Code : {{invoice.buyerStateCode}}{{/if}}
+      {{#if invoice.buyerStateName}}<br>State : {{invoice.buyerStateName}}{{/if}}
     </td>
     {{/if}}
   </tr>
@@ -215,6 +227,7 @@
       <th rowspan="2">QTY</th>
       <th rowspan="2">Unit</th>
       <th rowspan="2">Rate</th>
+      <th rowspan="2">Discount</th>
       <th rowspan="2">Taxable Value</th>
       {{#if showCgstSgst}}
       <th colspan="2">CGST/SGST</th>
@@ -239,73 +252,63 @@
       <td class="right">{{this.quantity}}</td>
       <td>{{this.unit}}</td>
       <td class="right">{{formatCurrency this.unitPrice}}</td>
+      <td class="right">{{formatCurrency this.totals.discountAmount}}{{#ifEq this.discountType 'percentage'}} ({{this.discountValue}}%){{/ifEq}}</td>
       <td class="right blue">{{formatCurrency this.totals.taxableAmount}}</td>
       <td class="center">{{this.totals.gstPercent}}%</td>
       <td class="right">{{formatCurrency this.totals.gstAmount}}</td>
-      <td class="right">
-        {{formatCurrency this.totals.cessAmount}}<br>
-        ({{this.cessValue}}%)
-      </td>
+      <td class="right">{{formatCurrency this.totals.cessAmount}}{{#ifEq this.cessType 'Percentage'}} ({{this.totals.cessValue}}%){{/ifEq}}</td>
       <td class="right bold">{{formatCurrency this.totals.lineTotal}}</td>
     </tr>
     {{/each}}
 
-    {{#each totals.additionalCharges}}
-    <tr>
+    <tr class="bold">
+      <td class="right" colspan="2">Total</td>
       <td></td>
-      <td class="right">{{this.name}}</td>
-      <td>{{this.hsnSac}}</td>
-      <td colspan="3"></td>
-      <td class="center blue">{{formatCurrency this.totals.taxableAmount}}</td>
-      <td class="center">{{this.totals.gstPercent}}%</td>
-      <td class="right">{{formatCurrency this.totals.gstAmount}}</td>
+      <td class="right">{{totals.summary.totalQuantity}}</td>
       <td></td>
-      <td class="right bold">{{formatCurrency this.totals.total}}</td>
-    </tr>
-    {{/each}}
-
-    <tr>
-      <td colspan="10" class="right">Taxable Amount</td>
-      <td class="right bold">{{formatCurrency totals.summary.taxableAmount}}</td>
-    </tr>
-    {{#if showCgstSgst}}
-    <tr>
-      <td colspan="10" class="right">Add : CGST</td>
-      <td class="right bold">{{formatCurrency summaryCgstAmount}}</td>
-    </tr>
-    <tr>
-      <td colspan="10" class="right">Add : SGST</td>
-      <td class="right bold">{{formatCurrency summarySgstAmount}}</td>
-    </tr>
-    {{else}}
-    <tr>
-      <td colspan="10" class="right">Add : IGST</td>
-      <td class="right bold">{{formatCurrency totals.summary.taxAmount}}</td>
-    </tr>
-    {{/if}}
-    {{#if totals.summary.tcsAmount}}
-    <tr>
-      <td colspan="10" class="right">Add : TCS</td>
-      <td class="right bold">{{formatCurrency totals.summary.tcsAmount}}</td>
-    </tr>
-    {{/if}}
-    <tr>
-      <td colspan="10" class="right bold">TOTAL</td>
-      <td class="right bold">{{formatCurrency totals.summary.grandTotal}}</td>
+      <td></td>
+      <td class="right">₹ {{formatCurrency totals.summary.totalItemDiscount}}</td>
+      <td class="right">₹ {{formatCurrency totals.summary.taxableAmount}}</td>
+      <td></td>
+      <td class="right">₹ {{formatCurrency totals.summary.taxAmount}}</td>
+      <td class="right">₹ {{formatCurrency totals.summary.cessAmount}}</td>
+      <td class="right">₹ {{formatCurrency totals.summary.tableTotal}}</td>
     </tr>
   </tbody>
 </table>
 
-<!-- AMOUNT IN WORDS -->
+<!-- AMOUNT IN WORDS + FINANCIAL SUMMARY -->
 <table>
   <tr>
-    <td class="bold">
-      <!-- Replace the static text below with a dynamic amount-in-words field if you add one to the context -->
-      Total Invoice Amount in words<br>
-      {{numberToWords totals.summary.grandTotal}} /-
+    <td style="width:50%; vertical-align: top;">
+      <span class="bold">Total Invoice Amount in words</span><br>
+      {{numberToWords totals.summary.finalInvoiceAmount}} /-
     </td>
-    <td class="right bold">Total</td>
-    <td class="right bold">{{formatCurrency totals.summary.grandTotal}}</td>
+    <td style="width:50%; vertical-align: top;" class="right">
+      <table style="margin-left: auto; border-collapse: collapse;">
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Total Amount Before Tax</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxableAmount}}</td></tr>
+        <tr><td class="right" style="padding:4px 8px;">Add : {{#if showCgstSgst}}CGST/SGST{{else}}IGST{{/if}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxAmount}}</td></tr>
+        <tr><td class="right" style="padding:4px 8px;">Total Tax Amount</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxAmount}}</td></tr>
+        {{#if totals.summary.cessAmount}}
+        <tr><td class="right" style="padding:4px 8px;">Add : CESS</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.cessAmount}}</td></tr>
+        {{/if}}
+        {{#each totals.additionalCharges}}
+        <tr><td class="right" style="padding:4px 8px;">{{this.name}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency this.totals.total}}</td></tr>
+        {{/each}}
+        {{#if invoice.tcsInfo}}
+        <tr><td class="right" style="padding:4px 8px;">TCS @ {{formatCurrency invoice.tcsInfo.percentage}}%</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.tcsAmount}}</td></tr>
+        {{/if}}
+        <tr class="blue"><td class="right" style="padding:4px 8px;">TOTAL</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.totalBeforeDiscount}}</td></tr>
+        {{#if invoice.globalDiscountType}}
+        <tr><td class="right" style="padding:4px 8px;">Total Discount {{#ifEq invoice.globalDiscountType 'percentage'}}@ {{invoice.globalDiscountValue}}%{{/ifEq}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.totalDiscountAmount}}</td></tr>
+        {{/if}}
+        {{#if totals.summary.roundOff}}
+        <tr><td class="right" style="padding:4px 8px;">Round Off Value</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.roundOff}}</td></tr>
+        {{/if}}
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Final Invoice Amount</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.finalInvoiceAmount}}</td></tr>
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Balance Due</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.balanceDue}}</td></tr>
+      </table>
+    </td>
   </tr>
 </table>
 

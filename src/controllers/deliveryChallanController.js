@@ -15,7 +15,7 @@ const lineItemSchema = z.object({
     discountPercent: z.number().nonnegative(),
     gstPercent: z.number().min(0).max(100),
     taxInclusive: z.boolean().default(false),
-    cessType: z.enum(['Percentage', 'Fixed']),
+    cessType: z.enum(['Percentage', 'Fixed', 'Per Unit']),
     cessValue: z.number().nonnegative()
 });
 
@@ -88,6 +88,8 @@ const baseDeliveryChallanSchema = z.object({
     buyerId: z.string().nullable().optional(),
     buyerName: z.string().min(1, 'buyerName is required'),
     buyerGstin: z.string().optional().default(''),
+    buyerStateCode: z.string().nullable().optional(),
+    buyerStateName: z.string().nullable().optional(),
     buyerAddress: z.preprocess(
         (val) => (val == null ? '' : val),
         z.string().optional().default('')
@@ -109,6 +111,8 @@ const baseDeliveryChallanSchema = z.object({
     otherDetails: otherDetailsSchema.nullable().optional(),
     customFields: z.array(customFieldSchema).optional().default([]),
     termsAndConditions: z.array(z.string()).optional().default([]),
+    terms: z.array(z.string()).optional().default([]),
+    roundOff: z.number().nullable().optional(),
     notes: z.string().optional().default(''),
     signatureUrl: z.string().nullable().optional(),
     stampUrl: z.string().nullable().optional(),

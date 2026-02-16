@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DELIVERY CHALLAN</title>
+
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      margin: 10px;
+      color: #000;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    td, th {
+      border: 1px solid #000;
+      padding: 6px;
+      vertical-align: top;
+    }
+
+    .no-border td {
+      border: none;
+    }
+
+    .bold { font-weight: bold; }
+    .center { text-align: center; }
+    .right { text-align: right; }
+
+    .header-note {
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+      margin: 4px 0;
+    }
+
+    .blue {
+      background: #d4e8fd;
+    }
+
+    .bank-title {
+      color: #1C6FBD;
+      font-weight: bold;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- TOP LINE -->
+<div class="header-note">
+  Thank-you for doing business with us
+  <span style="float:right;">Original For Recipient</span>
+</div>
+
+<div class="title">DELIVERY CHALLAN</div>
+
+<!-- SELLER + META -->
+<table>
+  <tr>
+    <td rowspan="4" style="width:55%;">
+      <div class="bold" style="font-size:14px;">SATGURU ELECTRONICS AND FURNITURE</div>
+        2505 INFRONT OF GOVT.HOSPITAL, MAIN ROAD KALAPIPAL MANDI DIST.SHAJAPUR<br>
+        Shajapur, Madhya Pradesh – 465337<br><br>
+        📞 9876543210<br><br>
+      GSTIN : <b>23ALFPM7215H1ZA</b>
+      &nbsp;&nbsp;
+    </td>
+
+    <td class="center">
+      Challan Number<br><b style="white-space: nowrap;">DC-2026-001</b>
+    </td>
+    <td class="center">
+      Challan Date<br><b style="white-space: nowrap;">16/02/2026</b>
+    </td>
+    <td class="center">
+      Place of Supply<br><b>Chhattisgarh</b>
+      
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+      Date Of Supply<br><b style="white-space: nowrap;">16/02/2026</b>
+    </td>
+    <td class="center">
+      Reverse Charge<br><b>No</b>
+      
+    </td>
+    <td class="center">
+      Vehicle Number<br><b>MH12AB1234</b>
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+      Transporter ID<br><b>22AAAAA0000A1Z5</b>
+    </td>
+    <td class="center">
+      Transporter Name<br><b>Demo Transporter</b>
+    </td>
+    <td class="center">
+      Transportation Mode<br><b>Road</b>
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+      LR Number<br><b>LR-12345</b>
+    </td>
+    <td class="center">
+      Challan Number<br><b>CH-001</b>
+    </td>
+    <td class="center">
+      LR Date<br><b style="white-space: nowrap;">16/02/2026</b>
+    </td>
+  </tr>
+</table>
+
+<!-- DISPATCH -->
+
+<!-- BILL TO / SHIP TO -->
+<table>
+  <tr>
+    <td class="bold">Details of Receiver | Billed to</td>
+  </tr>
+  <tr>
+    <td>
+      Name: <b>Demo GST Register Party</b><br>
+      Address: Second Floor 106/3 Avanti Vihar Road Raipur Chhattisgarh 492004<br>
+      GSTIN: 22AAICG8226H1ZO
+      <br>State Code : 22
+      <br>State : Chhattisgarh
+    </td>
+  </tr>
+</table>
+
+<!-- ITEMS -->
+<table>
+  <thead>
+    <tr class="blue">
+      <th rowspan="2">Sr. No.</th>
+      <th rowspan="2">Name of Product</th>
+      <th rowspan="2">HSN/SAC</th>
+      <th rowspan="2">QTY</th>
+      <th rowspan="2">Unit</th>
+      <th rowspan="2">Rate</th>
+      <th rowspan="2">Discount</th>
+      <th rowspan="2">Taxable Value</th>
+      <th colspan="2">IGST</th>
+      <th rowspan="2">CESS</th>
+      <th rowspan="2">Total</th>
+    </tr>
+    <tr class="blue">
+      <th>Rate</th>
+      <th>Amount</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <td class="center">1</td>
+      <td class="bold">Demo Product</td>
+      <td>0402</td>
+      <td class="right">100</td>
+      <td>Nos</td>
+      <td class="right">25.00</td>
+      <td class="right">62.50 (2.5%)</td>
+      <td class="right blue">2437.50</td>
+      <td class="center">5%</td>
+      <td class="right">121.88</td>
+      <td class="right">24.38 (1%)</td>
+      <td class="right bold">2583.75</td>
+    </tr>
+    <tr>
+      <td class="center">2</td>
+      <td class="bold">Widget A</td>
+      <td>8471</td>
+      <td class="right">20</td>
+      <td>Pcs</td>
+      <td class="right">150.00</td>
+      <td class="right">150.00 (5%)</td>
+      <td class="right blue">2850.00</td>
+      <td class="center">18%</td>
+      <td class="right">513.00</td>
+      <td class="right">0.00 (0%)</td>
+      <td class="right bold">3363.00</td>
+    </tr>
+
+    <tr class="bold">
+      <td class="right" colspan="2">Total</td>
+      <td></td>
+      <td class="right">120</td>
+      <td></td>
+      <td></td>
+      <td class="right">₹ 212.50</td>
+      <td class="right">₹ 5287.50</td>
+      <td></td>
+      <td class="right">₹ 634.88</td>
+      <td class="right">₹ 24.38</td>
+      <td class="right">₹ 5946.75</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- AMOUNT IN WORDS + FINANCIAL SUMMARY -->
+<table>
+  <tr>
+    <td style="width:50%; vertical-align: top;">
+      <span class="bold">Total Amount in words</span><br>
+      Five Thousand Nine Hundred Forty Six Rupees and Seventy Six Paise Only /-
+    </td>
+    <td style="width:50%; vertical-align: top;" class="right">
+      <table style="margin-left: auto; border-collapse: collapse;">
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Total Amount Before Tax</td><td class="right bold" style="padding:4px 8px;">₹ 5287.50</td></tr>
+        <tr><td class="right" style="padding:4px 8px;">Add : IGST</td><td class="right" style="padding:4px 8px;">₹ 634.88</td></tr>
+        <tr><td class="right" style="padding:4px 8px;">Total Tax Amount</td><td class="right" style="padding:4px 8px;">₹ 634.88</td></tr>
+        <tr><td class="right" style="padding:4px 8px;">Add : CESS</td><td class="right" style="padding:4px 8px;">₹ 24.38</td></tr>
+        <tr class="blue"><td class="right" style="padding:4px 8px;">TOTAL</td><td class="right bold" style="padding:4px 8px;">₹ 5946.76</td></tr>
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Final Amount</td><td class="right bold" style="padding:4px 8px;">₹ 5946.76</td></tr>
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Balance Due</td><td class="right bold" style="padding:4px 8px;">₹ 5946.76</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- BANK + SIGN -->
+<table>
+  <tr>
+    <td style="width:50%;">
+      <div class="bank-title">🏦 Bank and Payment Details</div><br>
+      Bank Name : <b>ICICI Bank</b><br>
+      Account Holder : <b>Demo Account</b><br>
+      Account No. : <b>8602378087</b><br>
+      IFSC Code : <b>ICIC0005769</b><br>
+      
+    </td>
+    <td class="right" style="width:50%;">
+      Certified that the particular given above are true and correct<br><br>
+      <b>For, SATGURU ELECTRONICS AND FURNITURE</b><br><br><br>
+      Authorised Signatory
+    </td>
+  </tr>
+</table>
+
+<!-- TERMS -->
+<table>
+  <tr>
+    <td>
+      <b>Terms And Conditions</b><br>
+          1. This is an electronically generated document.<br>
+          2. All disputes are subject to seller city jurisdiction.<br>
+    </td>
+  </tr>
+</table>
+
+<div class="footer">Thankyou for your business</div>
+<div class="footer">Document Made From <b>GimBooks</b></div>
+
+</body>
+</html>

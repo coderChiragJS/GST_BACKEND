@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>SALES DEBIT NOTE</title>
+
   <style>
     body {
       font-family: Arial, Helvetica, sans-serif;
@@ -10,208 +11,359 @@
       margin: 10px;
       color: #000;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
     }
+
     td, th {
       border: 1px solid #000;
       padding: 6px;
       vertical-align: top;
     }
+
     .no-border td {
       border: none;
     }
+
     .bold { font-weight: bold; }
     .center { text-align: center; }
     .right { text-align: right; }
-    .small { font-size: 10px; }
-    .header-row {
+
+    .header-note {
       font-size: 11px;
+      text-align: center;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+      margin: 4px 0;
+    }
+
+    .blue {
+      background: #d4e8fd;
+    }
+
+    .bank-title {
+      color: #1C6FBD;
+      font-weight: bold;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      margin-top: 6px;
     }
   </style>
 </head>
+
 <body>
 
-<!-- TOP HEADER -->
-<table class="no-border header-row">
+<!-- TOP LINE -->
+<div class="header-note">
+  Thank-you for doing business with us
+  <span style="float:right;">Original For Recipient</span>
+</div>
+
+<div class="title">SALES DEBIT NOTE</div>
+
+<!-- SELLER + META -->
+<table>
   <tr>
-    <td style="width: 50%;">Thank-you for doing business with us</td>
-    <td style="width: 50%; text-align: right;">Original For Recipient</td>
+    <td rowspan="4" style="width:55%;">
+      <div class="bold" style="font-size:14px;">{{seller.firmName}}</div>
+      {{#if seller.address}}
+        {{seller.address.street}}<br>
+        {{seller.address.city}}, {{seller.address.state}} – {{seller.address.pincode}}<br><br>
+      {{/if}}
+      {{#if seller.mobile}}
+        📞 {{seller.mobile}}<br><br>
+      {{/if}}
+      GSTIN : <b>{{seller.gstNumber}}</b>
+      &nbsp;&nbsp;
+      {{#if false}}
+      <span style="border:1px solid #000; padding:2px 6px;">
+        State Code : {{seller.stateCode}}
+      </span>
+      {{/if}}
+    </td>
+
+    <td class="center">
+      Debit Note Number<br><b style="white-space: nowrap;">{{invoice.invoiceNumber}}</b>
+    </td>
+    <td class="center">
+      Debit Note Date<br><b style="white-space: nowrap;">{{formatDate invoice.invoiceDate}}</b>
+    </td>
+    <td class="center">
+      {{#if placeOfSupplyDisplay}}
+      Place of Supply<br><b>{{placeOfSupplyDisplay}}</b>
+      {{else}}{{#if transportInfo.placeOfSupply}}
+      Place of Supply<br><b>{{transportInfo.placeOfSupply}}</b>
+      {{/if}}{{/if}}
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+      {{#if transportInfo.dateOfSupply}}
+      Date Of Supply<br><b style="white-space: nowrap;">{{formatDate transportInfo.dateOfSupply}}</b>
+      {{/if}}
+    </td>
+    <td class="center">
+      {{#if invoice.otherDetails.reverseCharge}}
+      Reverse Charge<br><b>{{invoice.otherDetails.reverseCharge}}</b>
+      {{else}}{{#if invoice.reverseCharge}}
+      Reverse Charge<br><b>{{invoice.reverseCharge}}</b>
+      {{/if}}{{/if}}
+    </td>
+    <td class="center">
+      {{#if transportInfo.vehicleNumber}}
+      Vehicle Number<br><b>{{transportInfo.vehicleNumber}}</b>
+      {{/if}}
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+      {{#if transportInfo.transporterId}}
+      Transporter ID<br><b>{{transportInfo.transporterId}}</b>
+      {{/if}}
+    </td>
+    <td class="center">
+      {{#if transportInfo.transporterName}}
+      Transporter Name<br><b>{{transportInfo.transporterName}}</b>
+      {{/if}}
+    </td>
+    <td class="center">
+      {{#if transportInfo.mode}}
+      Transportation Mode<br><b>{{transportInfo.mode}}</b>
+      {{/if}}
+    </td>
+  </tr>
+
+  <tr>
+    <td class="center">
+      {{#if transportInfo.docNo}}
+      LR Number<br><b>{{transportInfo.docNo}}</b>
+      {{/if}}
+    </td>
+    <td class="center">
+      {{#if invoice.otherDetails.challanNumber}}
+      Challan Number<br><b>{{invoice.otherDetails.challanNumber}}</b>
+      {{/if}}
+    </td>
+    <td class="center">
+      {{#if transportInfo.docDate}}
+      LR Date<br><b style="white-space: nowrap;">{{formatDate transportInfo.docDate}}</b>
+      {{/if}}
+    </td>
   </tr>
 </table>
 
-<!-- SELLER BLOCK -->
+<!-- DISPATCH (only when seller.dispatchAddress is set) -->
+{{#if hasDispatchAddress}}
 <table>
   <tr>
     <td>
-      <div class="bold" style="font-size:14px;">{{seller.firmName}}</div>
-      {{#if seller.address}}
-        {{seller.address.street}}, {{seller.address.city}}, {{seller.address.state}}, {{seller.address.pincode}}<br>
-      {{/if}}
-      GSTIN : {{seller.gstNumber}}
-      {{#if seller.stateCode}}
-        &nbsp; State Code : {{seller.stateCode}}
-      {{/if}}
+      <b>Dispatch From (Consignor)</b><br>
+      {{#if seller.firmName}}{{seller.firmName}}<br>{{/if}}
+      {{#if seller.dispatchAddress.street}}{{seller.dispatchAddress.street}}<br>{{/if}}
+      {{#if seller.dispatchAddress.city}}{{seller.dispatchAddress.city}}{{/if}}{{#if seller.dispatchAddress.state}}, {{seller.dispatchAddress.state}}{{/if}}{{#if seller.dispatchAddress.pincode}} – {{seller.dispatchAddress.pincode}}{{/if}}
+      {{#if seller.gstNumber}}<br>GSTIN: {{seller.gstNumber}}{{/if}}
+      {{#if false}} &nbsp; State Code : <b>{{seller.stateCode}}</b>{{/if}}
     </td>
   </tr>
 </table>
+{{/if}}
 
-<!-- INVOICE / TRANSPORT META -->
+<!-- BILL TO / SHIP TO -->
 <table>
   <tr>
-    <td style="width: 50%;">
-      Invoice Number&nbsp;&nbsp; {{invoice.invoiceNumber}}<br>
-      Invoice Date&nbsp;&nbsp; {{formatDate invoice.invoiceDate}}<br>
-      State&nbsp;&nbsp; {{seller.address.state}}<br>
-      Reverse Charge&nbsp;&nbsp; {{#if invoice.otherDetails.reverseCharge}}Yes{{else}}No{{/if}}
+    {{#if showShippingAddress}}
+    <td class="bold">Details of Receiver | Billed to</td>
+    <td class="bold">Details of Consignee | Shipped to</td>
+    {{else}}
+    <td class="bold">Details of Receiver | Billed to</td>
+    {{/if}}
+  </tr>
+  <tr>
+    {{#if showShippingAddress}}
+    <td>
+      Name: <b>{{invoice.buyerName}}</b><br>
+      {{#if buyerAddress}}Address: {{buyerAddress}}<br>{{/if}}
+      {{#if invoice.buyerGstin}}GSTIN: {{invoice.buyerGstin}}{{/if}}
+      {{#if invoice.buyerStateCode}}<br>State Code : {{invoice.buyerStateCode}}{{/if}}
+      {{#if invoice.buyerStateName}}<br>State : {{invoice.buyerStateName}}{{/if}}
     </td>
-    <td style="width: 50%;">
-      Date Of Supply&nbsp;&nbsp; {{invoice.transportInfo.dateOfSupply}}<br>
-      Place of Supply&nbsp;&nbsp; {{#if placeOfSupplyDisplay}}{{placeOfSupplyDisplay}}{{else}}{{invoice.transportInfo.placeOfSupplyStateName}}{{#if invoice.transportInfo.placeOfSupply}}{{#if invoice.transportInfo.placeOfSupplyStateName}}, {{/if}}{{invoice.transportInfo.placeOfSupply}}{{/if}}{{/if}}<br>
-      Vehicle Number&nbsp;&nbsp; {{invoice.transportInfo.vehicleNumber}}<br>
-      Transporter ID&nbsp;&nbsp; {{invoice.transportInfo.transporterId}}<br>
-      Transporter Name&nbsp;&nbsp; {{invoice.transportInfo.transporterName}}<br>
-      Transportation Mode&nbsp;&nbsp; {{invoice.transportInfo.mode}}<br>
-      LR Number&nbsp;&nbsp; {{invoice.transportInfo.docNo}}<br>
-      LR Date&nbsp;&nbsp; {{invoice.transportInfo.docDate}}
+    <td>
+      Name: <b>{{shippingName}}</b><br>
+      {{#if shippingAddress}}Address: {{shippingAddress}}<br>{{/if}}
+      {{#if shippingGstin}}GSTIN: {{shippingGstin}}{{/if}}
     </td>
+    {{else}}
+    <td>
+      Name: <b>{{invoice.buyerName}}</b><br>
+      {{#if buyerAddress}}Address: {{buyerAddress}}<br>{{/if}}
+      {{#if invoice.buyerGstin}}GSTIN: {{invoice.buyerGstin}}{{/if}}
+      {{#if invoice.buyerStateCode}}<br>State Code : {{invoice.buyerStateCode}}{{/if}}
+      {{#if invoice.buyerStateName}}<br>State : {{invoice.buyerStateName}}{{/if}}
+    </td>
+    {{/if}}
   </tr>
 </table>
 
-<!-- RECEIVER / CONSIGNEE -->
+<!-- ITEMS -->
 <table>
-  <tr>
-    <td style="width: 50%;">
-      <div class="bold">Details of Receiver | Billed to</div>
-      Name: {{invoice.buyerName}}<br>
-      Address: {{buyerAddress}}<br>
-      GSTIN: {{invoice.buyerGstin}}
-    </td>
-    <td style="width: 50%;">
-      <div class="bold">Details of Consignee | Shipped to</div>
-      {{#if showShippingAddress}}
-        Name: <b>{{shippingName}}</b><br>
-        Address: {{shippingAddress}}<br>
-        {{#if shippingGstin}}GSTIN: {{shippingGstin}}{{/if}}
+  <thead>
+    <tr class="blue">
+      <th rowspan="2">Sr. No.</th>
+      <th rowspan="2">Name of Product</th>
+      <th rowspan="2">HSN/SAC</th>
+      <th rowspan="2">QTY</th>
+      <th rowspan="2">Unit</th>
+      <th rowspan="2">Rate</th>
+      <th rowspan="2">Discount</th>
+      <th rowspan="2">Taxable Value</th>
+      {{#if showCgstSgst}}
+      <th colspan="2">CGST/SGST</th>
       {{else}}
-        <span class="small">Same as billed to</span>
+      <th colspan="2">IGST</th>
+      {{/if}}
+      <th rowspan="2">CESS</th>
+      <th rowspan="2">Total</th>
+    </tr>
+    <tr class="blue">
+      <th>Rate</th>
+      <th>Amount</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {{#each totals.items}}
+    <tr>
+      <td class="center">{{inc @index}}</td>
+      <td class="bold">{{this.itemName}}</td>
+      <td>{{this.hsnSac}}</td>
+      <td class="right">{{this.quantity}}</td>
+      <td>{{this.unit}}</td>
+      <td class="right">{{formatCurrency this.unitPrice}}</td>
+      <td class="right">{{formatCurrency this.totals.discountAmount}}{{#ifEq this.discountType 'percentage'}} ({{this.discountValue}}%){{/ifEq}}</td>
+      <td class="right blue">{{formatCurrency this.totals.taxableAmount}}</td>
+      <td class="center">{{this.totals.gstPercent}}%</td>
+      <td class="right">{{formatCurrency this.totals.gstAmount}}</td>
+      <td class="right">{{formatCurrency this.totals.cessAmount}}{{#ifEq this.cessType 'Percentage'}} ({{this.totals.cessValue}}%){{/ifEq}}</td>
+      <td class="right bold">{{formatCurrency this.totals.lineTotal}}</td>
+    </tr>
+    {{/each}}
+
+    <tr class="bold">
+      <td class="right" colspan="2">Total</td>
+      <td></td>
+      <td class="right">{{totals.summary.totalQuantity}}</td>
+      <td></td>
+      <td></td>
+      <td class="right">₹ {{formatCurrency totals.summary.totalItemDiscount}}</td>
+      <td class="right">₹ {{formatCurrency totals.summary.taxableAmount}}</td>
+      <td></td>
+      <td class="right">₹ {{formatCurrency totals.summary.taxAmount}}</td>
+      <td class="right">₹ {{formatCurrency totals.summary.cessAmount}}</td>
+      <td class="right">₹ {{formatCurrency totals.summary.tableTotal}}</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- AMOUNT IN WORDS + FINANCIAL SUMMARY -->
+<table>
+  <tr>
+    <td style="width:50%; vertical-align: top;">
+      <span class="bold">Total Amount in words</span><br>
+      {{numberToWords totals.summary.finalInvoiceAmount}} /-
+    </td>
+    <td style="width:50%; vertical-align: top;" class="right">
+      <table style="margin-left: auto; border-collapse: collapse;">
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Total Amount Before Tax</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxableAmount}}</td></tr>
+        <tr><td class="right" style="padding:4px 8px;">Add : {{#if showCgstSgst}}CGST/SGST{{else}}IGST{{/if}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxAmount}}</td></tr>
+        <tr><td class="right" style="padding:4px 8px;">Total Tax Amount</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxAmount}}</td></tr>
+        {{#if totals.summary.cessAmount}}
+        <tr><td class="right" style="padding:4px 8px;">Add : CESS</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.cessAmount}}</td></tr>
+        {{/if}}
+        {{#each totals.additionalCharges}}
+        <tr><td class="right" style="padding:4px 8px;">{{this.name}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency this.totals.total}}</td></tr>
+        {{/each}}
+        {{#if invoice.tcsInfo}}
+        <tr><td class="right" style="padding:4px 8px;">TCS @ {{formatCurrency invoice.tcsInfo.percentage}}%</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.tcsAmount}}</td></tr>
+        {{/if}}
+        <tr class="blue"><td class="right" style="padding:4px 8px;">TOTAL</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.totalBeforeDiscount}}</td></tr>
+        {{#if invoice.globalDiscountType}}
+        <tr><td class="right" style="padding:4px 8px;">Total Discount {{#ifEq invoice.globalDiscountType 'percentage'}}@ {{invoice.globalDiscountValue}}%{{/ifEq}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.totalDiscountAmount}}</td></tr>
+        {{/if}}
+        {{#if totals.summary.roundOff}}
+        <tr><td class="right" style="padding:4px 8px;">Round Off Value</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.roundOff}}</td></tr>
+        {{/if}}
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Final Amount</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.finalInvoiceAmount}}</td></tr>
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Balance Due</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.balanceDue}}</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- BANK + SIGN -->
+<table>
+  <tr>
+    <td style="width:50%;">
+      {{#if hasBankDetails}}
+      <div class="bank-title">🏦 Bank and Payment Details</div><br>
+      {{#if bankDetails.bankName}}Bank Name : <b>{{bankDetails.bankName}}</b><br>{{/if}}
+      {{#if bankDetails.accountHolderName}}Account Holder : <b>{{bankDetails.accountHolderName}}</b><br>{{/if}}
+      {{#if bankDetails.accountNumber}}Account No. : <b>{{bankDetails.accountNumber}}</b><br>{{/if}}
+      {{#if bankDetails.ifscCode}}IFSC Code : <b>{{bankDetails.ifscCode}}</b><br>{{/if}}
+      {{#if bankDetails.upiId}}UPI ID : <b>{{bankDetails.upiId}}</b><br>{{/if}}
+      {{else}}
+      <div class="bank-title">🏦 Bank and Payment Details</div><br>
+      Account No. : <b>8602378087</b><br>
+      IFSC Code : <b>ICIC0005769</b><br>
+      Bank Name : <b>ICICI Bank</b><br>
+      Branch Name : <b>NARSINGI II</b>
       {{/if}}
     </td>
-  </tr>
-</table>
-
-<!-- ITEMS TABLE (simple, invoice-style) -->
-<table>
-  <tr class="bold">
-    <th style="width: 8%;">Sr. No.</th>
-    <th>Name of Product</th>
-    <th style="width: 12%;">HSN/SAC</th>
-    <th style="width: 10%;">QTY</th>
-    <th style="width: 10%;">Unit</th>
-    <th style="width: 15%;">Rate</th>
-    <th style="width: 15%;">Total</th>
-  </tr>
-
-  {{#each totals.items as |item index|}}
-    <tr>
-      <td class="center">{{inc index}}</td>
-      <td>{{item.itemName}}</td>
-      <td class="center">{{item.hsnSac}}</td>
-      <td class="right">{{item.quantity}}</td>
-      <td class="center">{{item.unit}}</td>
-      <td class="right">₹ {{formatCurrency item.unitPrice}}</td>
-      <td class="right">₹ {{formatCurrency item.totals.lineTotal}}</td>
-    </tr>
-  {{/each}}
-
-  {{#if totals.additionalCharges.length}}
-    {{#each totals.additionalCharges as |c|}}
-      <tr>
-        <td></td>
-        <td colspan="5">{{c.name}}</td>
-        <td class="right">₹ {{formatCurrency c.totals.total}}</td>
-      </tr>
-    {{/each}}
-  {{/if}}
-
-  <tr class="bold">
-    <td colspan="5">Total</td>
-    <td></td>
-    <td class="right">₹ {{formatCurrency totals.summary.grandTotal}}</td>
-  </tr>
-</table>
-
-<!-- AMOUNT IN WORDS + BANK DETAILS -->
-<table>
-  <tr>
-    <td style="width: 60%;">
-      <div class="bold">Total Invoice Amount in words</div>
-      <!-- If you add a helper later, plug words here; for now we show numeric -->
-      ₹ {{formatCurrency totals.summary.grandTotal}}
-    </td>
-    <td style="width: 40%;">
-      <div class="bold">Bank and Payment Details</div>
-      Account Name&nbsp;&nbsp; {{bankDetails.accountHolderName}}<br>
-      Account No.&nbsp;&nbsp; {{bankDetails.accountNumber}}<br>
-      IFSC Code&nbsp;&nbsp; {{bankDetails.ifscCode}}<br>
-      Bank Name&nbsp;&nbsp; {{bankDetails.bankName}}<br>
-      Branch Name&nbsp;&nbsp; {{bankDetails.branch}}
-    </td>
-  </tr>
-</table>
-
-<!-- FINAL AMOUNT + TERMS + SIGNATURE -->
-<table>
-  <tr>
-    <td style="width: 60%;">
-      <div class="bold">Final Invoice Amount&nbsp;&nbsp; ₹ {{formatCurrency totals.summary.grandTotal}}</div>
-      <div>Balance Due&nbsp;&nbsp; ₹ {{formatCurrency totals.summary.grandTotal}}</div>
-      <br>
-      <div class="bold">Terms And Conditions</div>
-      <div class="small">
-        {{#if termsAndConditions.length}}
-          {{#each termsAndConditions}}
-            {{this}}<br>
-          {{/each}}
-        {{else}}
-          1. This is an electronically generated document.<br>
-          2. All disputes are subject to seller city jurisdiction.
-        {{/if}}
-      </div>
-      <br>
-      <div class="small">
-        Certified that the particular given above are true and correct
-      </div>
-    </td>
-    <td style="width: 40%; text-align: right;">
+    <td class="right" style="width:50%;">
+      Certified that the particular given above are true and correct<br><br>
       {{#if invoice.stampUrl}}
-        <img src="{{invoice.stampUrl}}" alt="Stamp" style="max-height:60px; max-width:120px; margin-bottom:8px;" />
-        <br>
+      <img src="{{invoice.stampUrl}}" alt="Stamp" style="max-height:60px; max-width:120px; margin-bottom:8px;" />
+      <br>
       {{/if}}
       {{#if invoice.signatureUrl}}
-        <img src="{{invoice.signatureUrl}}" alt="Signature" style="max-height:50px; max-width:180px; margin-bottom:4px;" />
-        <br>
+      <img src="{{invoice.signatureUrl}}" alt="Signature" style="max-height:50px; max-width:180px; margin-bottom:4px;" />
+      <br>
       {{/if}}
-      For, {{seller.firmName}}<br><br><br><br>
+      <b>For, {{seller.firmName}}</b><br><br><br>
       Authorised Signatory
     </td>
   </tr>
 </table>
 
-<!-- FOOTER -->
-<table class="no-border">
-  <tr>
-    <td>Thankyou for your business</td>
-  </tr>
+<!-- TERMS -->
+<table>
   <tr>
     <td>
-      Document Made From&nbsp;&nbsp; SALES DEBIT NOTE
-      <span style="float:right;">Original For Recipient</span>
+      <b>Terms And Conditions</b><br>
+      {{#if termsAndConditions.length}}
+        {{#each termsAndConditions}}
+          {{inc @index}}. {{this}}<br>
+        {{/each}}
+      {{else}}
+        1. This is an electronically generated document.<br>
+        2. All disputes are subject to seller city jurisdiction.
+      {{/if}}
     </td>
   </tr>
 </table>
 
+<div class="footer">Thankyou for your business</div>
+<div class="footer">Document Made From <b>GimBooks</b></div>
+
 </body>
 </html>
-
