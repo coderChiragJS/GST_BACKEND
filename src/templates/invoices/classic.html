@@ -260,20 +260,6 @@
       <td class="right bold">{{formatCurrency this.totals.lineTotal}}</td>
     </tr>
     {{/each}}
-
-    <tr class="bold">
-      <td class="right" colspan="2">Total</td>
-      <td></td>
-      <td class="right">{{totals.summary.totalQuantity}}</td>
-      <td></td>
-      <td></td>
-      <td class="right">₹ {{formatCurrency totals.summary.totalItemDiscount}}</td>
-      <td class="right">₹ {{formatCurrency totals.summary.taxableAmount}}</td>
-      <td></td>
-      <td class="right">₹ {{formatCurrency totals.summary.taxAmount}}</td>
-      <td class="right">₹ {{formatCurrency totals.summary.cessAmount}}</td>
-      <td class="right">₹ {{formatCurrency totals.summary.tableTotal}}</td>
-    </tr>
   </tbody>
 </table>
 
@@ -286,7 +272,7 @@
     </td>
     <td style="width:50%; vertical-align: top;" class="right">
       <table style="margin-left: auto; border-collapse: collapse;">
-        <tr class="blue"><td class="right" style="padding:4px 8px;">Total Amount Before Tax</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxableAmount}}</td></tr>
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Total Amount Before Tax</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.totalItemTaxable}}</td></tr>
         <tr><td class="right" style="padding:4px 8px;">Add : {{#if showCgstSgst}}CGST/SGST{{else}}IGST{{/if}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxAmount}}</td></tr>
         <tr><td class="right" style="padding:4px 8px;">Total Tax Amount</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxAmount}}</td></tr>
         {{#if totals.summary.cessAmount}}

@@ -117,7 +117,9 @@ function getSampleInvoice() {
                 cessValue: 1
             }
         ],
-        additionalCharges: [],
+        additionalCharges: [
+            { name: 'handling', amount: 100, gstPercent: 0, isTaxInclusive: false }
+        ],
         seller: {
             firmName: 'SATGURU ELECTRONICS AND FURNITURE',
             gstNumber: '23ALFPM7215H1ZA',
