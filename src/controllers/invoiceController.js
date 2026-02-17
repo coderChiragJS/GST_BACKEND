@@ -1,5 +1,6 @@
 const Invoice = require('../models/invoiceModel');
 const UserSubscription = require('../models/userSubscriptionModel');
+const VoucherIndex = require('../models/voucherIndexModel');
 const { z } = require('zod');
 
 // --- Zod Schemas matching the shared Invoice JSON spec ---
@@ -78,7 +79,10 @@ const sellerSchema = z.object({
 
 const baseInvoiceSchema = z.object({
     id: z.string().optional().nullable(),
-    invoiceNumber: z.string().min(1, 'invoiceNumber is required'),
+    invoiceNumber: z
+        .string()
+        .min(1, 'invoiceNumber is required')
+        .regex(/^INV-.+/, 'Invoice number must start with INV-'),
     invoiceDate: z.string().nullable().optional(),
     dueDate: z.string().nullable().optional(),
     type: z.enum(['taxInvoice', 'billOfSupply']),
@@ -162,7 +166,36 @@ const invoiceController = {
                 });
             }
 
-            const invoice = await Invoice.create(userId, businessId, validation.data);
+            try {
+                await VoucherIndex.claimVoucherNumber(
+                    userId,
+                    businessId,
+                    VoucherIndex.DOC_TYPES.INVOICE,
+                    validation.data.invoiceNumber
+                );
+            } catch (err) {
+                if (err.code === 'VOUCHER_NUMBER_TAKEN') {
+                    return res.status(409).json({
+                        message: 'Voucher number already in use',
+                        code: 'VOUCHER_NUMBER_TAKEN',
+                        field: 'invoiceNumber'
+                    });
+                }
+                throw err;
+            }
+
+            let invoice;
+            try {
+                invoice = await Invoice.create(userId, businessId, validation.data);
+            } catch (createErr) {
+                await VoucherIndex.releaseVoucherNumber(
+                    userId,
+                    businessId,
+                    VoucherIndex.DOC_TYPES.INVOICE,
+                    validation.data.invoiceNumber
+                ).catch(() => {});
+                throw createErr;
+            }
 
             // When not on trial, increment usage on the active subscription bound to this business.
             if (!req.onTrial && req.subscription) {
@@ -282,6 +315,30 @@ const invoiceController = {
                 return res.status(404).json({ message: 'Invoice not found' });
             }
 
+            const newNumber = validation.data.invoiceNumber;
+            const oldNumber = existing.invoiceNumber;
+            if (newNumber !== undefined && newNumber !== oldNumber) {
+                try {
+                    await VoucherIndex.updateVoucherNumber(
+                        userId,
+                        businessId,
+                        VoucherIndex.DOC_TYPES.INVOICE,
+                        oldNumber,
+                        newNumber,
+                        invoiceId
+                    );
+                } catch (err) {
+                    if (err.code === 'VOUCHER_NUMBER_TAKEN') {
+                        return res.status(409).json({
+                            message: 'Voucher number already in use',
+                            code: 'VOUCHER_NUMBER_TAKEN',
+                            field: 'invoiceNumber'
+                        });
+                    }
+                    throw err;
+                }
+            }
+
             const invoice = await Invoice.update(userId, businessId, invoiceId, validation.data);
             return res.json({ invoice });
         } catch (error) {
@@ -301,6 +358,12 @@ const invoiceController = {
             }
 
             await Invoice.delete(userId, businessId, invoiceId);
+            await VoucherIndex.releaseVoucherNumber(
+                userId,
+                businessId,
+                VoucherIndex.DOC_TYPES.INVOICE,
+                existing.invoiceNumber
+            ).catch(() => {});
             // Client accepts 200 or 204; body is ignored
             return res.status(204).send();
         } catch (error) {

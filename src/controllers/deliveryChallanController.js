@@ -1,4 +1,5 @@
 const DeliveryChallan = require('../models/deliveryChallanModel');
+const VoucherIndex = require('../models/voucherIndexModel');
 const { z } = require('zod');
 
 // Zod schemas – mirror invoice structure so we can reuse totals + templates.
@@ -81,7 +82,10 @@ const baseDeliveryChallanSchema = z.object({
     id: z.string().optional().nullable(),
     deliveryChallanId: z.string().optional().nullable(),
     // Primary challan fields
-    challanNumber: z.string().min(1, 'Challan Number is required'),
+    challanNumber: z
+        .string()
+        .min(1, 'Challan Number is required')
+        .regex(/^DC-.+/, 'Challan number must start with DC-'),
     challanDate: z.string().nullable().optional(),
     status: deliveryChallanStatusEnum,
     seller: sellerSchema,
@@ -166,11 +170,40 @@ const deliveryChallanController = {
                 });
             }
 
-            const challan = await DeliveryChallan.create(
-                userId,
-                businessId,
-                validation.data
-            );
+            try {
+                await VoucherIndex.claimVoucherNumber(
+                    userId,
+                    businessId,
+                    VoucherIndex.DOC_TYPES.DELIVERY_CHALLAN,
+                    validation.data.challanNumber
+                );
+            } catch (err) {
+                if (err.code === 'VOUCHER_NUMBER_TAKEN') {
+                    return res.status(409).json({
+                        message: 'Voucher number already in use',
+                        code: 'VOUCHER_NUMBER_TAKEN',
+                        field: 'challanNumber'
+                    });
+                }
+                throw err;
+            }
+
+            let challan;
+            try {
+                challan = await DeliveryChallan.create(
+                    userId,
+                    businessId,
+                    validation.data
+                );
+            } catch (createErr) {
+                await VoucherIndex.releaseVoucherNumber(
+                    userId,
+                    businessId,
+                    VoucherIndex.DOC_TYPES.DELIVERY_CHALLAN,
+                    validation.data.challanNumber
+                ).catch(() => {});
+                throw createErr;
+            }
 
             // For now, delivery challans do not consume invoice / quotation usage.
 
@@ -321,6 +354,30 @@ const deliveryChallanController = {
                     .json({ message: 'Delivery Challan not found' });
             }
 
+            const newNumber = validation.data.challanNumber;
+            const oldNumber = existing.challanNumber;
+            if (newNumber !== undefined && newNumber !== oldNumber) {
+                try {
+                    await VoucherIndex.updateVoucherNumber(
+                        userId,
+                        businessId,
+                        VoucherIndex.DOC_TYPES.DELIVERY_CHALLAN,
+                        oldNumber,
+                        newNumber,
+                        challanId
+                    );
+                } catch (err) {
+                    if (err.code === 'VOUCHER_NUMBER_TAKEN') {
+                        return res.status(409).json({
+                            message: 'Voucher number already in use',
+                            code: 'VOUCHER_NUMBER_TAKEN',
+                            field: 'challanNumber'
+                        });
+                    }
+                    throw err;
+                }
+            }
+
             const challan = await DeliveryChallan.update(
                 userId,
                 businessId,
@@ -358,6 +415,12 @@ const deliveryChallanController = {
                 businessId,
                 challanId
             );
+            await VoucherIndex.releaseVoucherNumber(
+                userId,
+                businessId,
+                VoucherIndex.DOC_TYPES.DELIVERY_CHALLAN,
+                existing.challanNumber
+            ).catch(() => {});
             return res.status(204).send();
         } catch (error) {
             console.error('Delete Delivery Challan Error:', error);

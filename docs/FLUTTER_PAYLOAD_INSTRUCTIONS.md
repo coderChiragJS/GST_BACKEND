@@ -4,6 +4,18 @@
 
 The backend **accepts and persists** the fields below. Implement them in your Flutter app and include them in the request body when creating or updating Invoice, Sales Debit Note, Delivery Challan, or Quotation.
 
+### Voucher numbers (required format and uniqueness)
+
+| Document | Field | Prefix | Example |
+|----------|-------|--------|--------|
+| Invoice | invoiceNumber | **INV-** | INV-000001 |
+| Quotation | quotationNumber | **QTN-** | QTN-000001 |
+| Sales Debit Note | invoiceNumber | **SDN-** | SDN-000001 |
+| Delivery Challan | challanNumber | **DC-** | DC-000001 |
+
+- **Format:** Value must start with the prefix (case-sensitive). Rest can be digits/hyphens (e.g. INV-000001).
+- **Uniqueness:** Each number must be unique per business for that document type. If the user enters a number already in use, the API returns **409** with `code: "VOUCHER_NUMBER_TAKEN"` and `field`. Show a clear error and ask for a different number.
+
 ---
 
 ## 1. Fields to Add and Send

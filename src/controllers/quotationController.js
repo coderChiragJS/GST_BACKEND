@@ -1,5 +1,6 @@
 const Quotation = require('../models/quotationModel');
 const UserSubscription = require('../models/userSubscriptionModel');
+const VoucherIndex = require('../models/voucherIndexModel');
 const { z } = require('zod');
 
 // --- Zod Schemas for Quotation (aligned with Gimbook; shared shapes mirror invoice where applicable) ---
@@ -63,7 +64,10 @@ const quotationStatusEnum = z.enum(['draft', 'sent', 'accepted', 'rejected', 'ex
 
 const baseQuotationSchema = z.object({
     id: z.string().optional().nullable(),
-    quotationNumber: z.string().min(1, 'quotationNumber is required'),
+    quotationNumber: z
+        .string()
+        .min(1, 'quotationNumber is required')
+        .regex(/^QTN-.+/, 'Quotation number must start with QTN-'),
     quotationDate: z.string().nullable().optional(),
     validUntil: z.string().nullable().optional(),
     status: quotationStatusEnum,
@@ -137,7 +141,36 @@ const quotationController = {
                 });
             }
 
-            const quotation = await Quotation.create(userId, businessId, validation.data);
+            try {
+                await VoucherIndex.claimVoucherNumber(
+                    userId,
+                    businessId,
+                    VoucherIndex.DOC_TYPES.QUOTATION,
+                    validation.data.quotationNumber
+                );
+            } catch (err) {
+                if (err.code === 'VOUCHER_NUMBER_TAKEN') {
+                    return res.status(409).json({
+                        message: 'Voucher number already in use',
+                        code: 'VOUCHER_NUMBER_TAKEN',
+                        field: 'quotationNumber'
+                    });
+                }
+                throw err;
+            }
+
+            let quotation;
+            try {
+                quotation = await Quotation.create(userId, businessId, validation.data);
+            } catch (createErr) {
+                await VoucherIndex.releaseVoucherNumber(
+                    userId,
+                    businessId,
+                    VoucherIndex.DOC_TYPES.QUOTATION,
+                    validation.data.quotationNumber
+                ).catch(() => {});
+                throw createErr;
+            }
 
             // When not on trial, increment usage on the active subscription bound to this business.
             if (!req.onTrial && req.subscription) {
@@ -256,6 +289,30 @@ const quotationController = {
                 return res.status(404).json({ message: 'Quotation not found' });
             }
 
+            const newNumber = validation.data.quotationNumber;
+            const oldNumber = existing.quotationNumber;
+            if (newNumber !== undefined && newNumber !== oldNumber) {
+                try {
+                    await VoucherIndex.updateVoucherNumber(
+                        userId,
+                        businessId,
+                        VoucherIndex.DOC_TYPES.QUOTATION,
+                        oldNumber,
+                        newNumber,
+                        quotationId
+                    );
+                } catch (err) {
+                    if (err.code === 'VOUCHER_NUMBER_TAKEN') {
+                        return res.status(409).json({
+                            message: 'Voucher number already in use',
+                            code: 'VOUCHER_NUMBER_TAKEN',
+                            field: 'quotationNumber'
+                        });
+                    }
+                    throw err;
+                }
+            }
+
             const quotation = await Quotation.update(userId, businessId, quotationId, validation.data);
             return res.json({ quotation });
         } catch (error) {
@@ -275,6 +332,12 @@ const quotationController = {
             }
 
             await Quotation.delete(userId, businessId, quotationId);
+            await VoucherIndex.releaseVoucherNumber(
+                userId,
+                businessId,
+                VoucherIndex.DOC_TYPES.QUOTATION,
+                existing.quotationNumber
+            ).catch(() => {});
             return res.status(204).send();
         } catch (error) {
             console.error('Delete Quotation Error:', error);

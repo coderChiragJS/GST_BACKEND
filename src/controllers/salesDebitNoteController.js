@@ -1,4 +1,5 @@
 const SalesDebitNote = require('../models/salesDebitNoteModel');
+const VoucherIndex = require('../models/voucherIndexModel');
 const { z } = require('zod');
 
 // Zod schemas – mirror invoice structure so we can reuse totals + templates.
@@ -81,7 +82,10 @@ const baseSalesDebitNoteSchema = z.object({
     id: z.string().optional().nullable(),
     salesDebitNoteId: z.string().optional().nullable(),
     // We reuse invoiceNumber & dates for compatibility with templates and clients.
-    invoiceNumber: z.string().min(1, 'Sales Debit Note Number is required'),
+    invoiceNumber: z
+        .string()
+        .min(1, 'Sales Debit Note Number is required')
+        .regex(/^SDN-.+/, 'Sales Debit Note number must start with SDN-'),
     invoiceDate: z.string().nullable().optional(),
     dueDate: z.string().nullable().optional(),
     status: salesDebitNoteStatusEnum,
@@ -171,11 +175,36 @@ const salesDebitNoteController = {
                 });
             }
 
-            const note = await SalesDebitNote.create(
-                userId,
-                businessId,
-                validation.data
-            );
+            try {
+                await VoucherIndex.claimVoucherNumber(
+                    userId,
+                    businessId,
+                    VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
+                    validation.data.invoiceNumber
+                );
+            } catch (err) {
+                if (err.code === 'VOUCHER_NUMBER_TAKEN') {
+                    return res.status(409).json({
+                        message: 'Voucher number already in use',
+                        code: 'VOUCHER_NUMBER_TAKEN',
+                        field: 'invoiceNumber'
+                    });
+                }
+                throw err;
+            }
+
+            let note;
+            try {
+                note = await SalesDebitNote.create(userId, businessId, validation.data);
+            } catch (createErr) {
+                await VoucherIndex.releaseVoucherNumber(
+                    userId,
+                    businessId,
+                    VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
+                    validation.data.invoiceNumber
+                ).catch(() => {});
+                throw createErr;
+            }
 
             // For now, debit notes do not consume invoice / quotation usage.
 
@@ -329,6 +358,30 @@ const salesDebitNoteController = {
                     .json({ message: 'Sales Debit Note not found' });
             }
 
+            const newNumber = validation.data.invoiceNumber;
+            const oldNumber = existing.invoiceNumber;
+            if (newNumber !== undefined && newNumber !== oldNumber) {
+                try {
+                    await VoucherIndex.updateVoucherNumber(
+                        userId,
+                        businessId,
+                        VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
+                        oldNumber,
+                        newNumber,
+                        salesDebitNoteId
+                    );
+                } catch (err) {
+                    if (err.code === 'VOUCHER_NUMBER_TAKEN') {
+                        return res.status(409).json({
+                            message: 'Voucher number already in use',
+                            code: 'VOUCHER_NUMBER_TAKEN',
+                            field: 'invoiceNumber'
+                        });
+                    }
+                    throw err;
+                }
+            }
+
             const note = await SalesDebitNote.update(
                 userId,
                 businessId,
@@ -366,6 +419,12 @@ const salesDebitNoteController = {
                 businessId,
                 salesDebitNoteId
             );
+            await VoucherIndex.releaseVoucherNumber(
+                userId,
+                businessId,
+                VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
+                existing.invoiceNumber
+            ).catch(() => {});
             return res.status(204).send();
         } catch (error) {
             console.error('Delete Sales Debit Note Error:', error);

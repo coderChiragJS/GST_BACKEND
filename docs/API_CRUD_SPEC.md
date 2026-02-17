@@ -15,7 +15,24 @@ All endpoints in this document (except health) require authentication. Business-
 
 ---
 
-## 2. Shared types (reused across documents)
+## 2. Voucher numbers (format and uniqueness)
+
+Each document type has a **voucher number** that must follow a fixed prefix and be unique per business for that type.
+
+| Document | Field | Prefix | Example |
+|----------|-------|--------|--------|
+| Invoice | invoiceNumber | **INV-** | INV-000001, INV-2026-01 |
+| Quotation | quotationNumber | **QTN-** | QTN-000001, QTN-2026-01 |
+| Sales Debit Note | invoiceNumber | **SDN-** | SDN-000001, SDN-001 |
+| Delivery Challan | challanNumber | **DC-** | DC-000001, DC-2026-01 |
+
+- **Format:** The value must start with the prefix (case-sensitive). The rest can be digits, hyphens, etc. (e.g. `INV-000001`).
+- **Uniqueness:** Within a business, the same voucher number cannot be used twice for the same document type. Creating or updating a document with a number that is already in use returns **409 Conflict** with `code: "VOUCHER_NUMBER_TAKEN"`.
+- **On delete:** When a document is deleted, its voucher number is released and can be used again.
+
+---
+
+## 3. Shared types (reused across documents)
 
 These shapes are used in Invoice, Quotation, Sales Debit Note, and/or Delivery Challan. Reference them by name in the per-document sections.
 
@@ -125,7 +142,7 @@ Same as **Seller** above, plus:
 
 ---
 
-## 3. Common error responses
+## 4. Common error responses
 
 - **400 — Validation failed (create/update):**
   ```json
@@ -136,6 +153,16 @@ Same as **Seller** above, plus:
     "code": "VALIDATION_FAILED"
   }
   ```
+- **409 — Voucher number already in use (create/update):**
+  Returned when the voucher number is already used by another document of the same type in the same business.
+  ```json
+  {
+    "message": "Voucher number already in use",
+    "code": "VOUCHER_NUMBER_TAKEN",
+    "field": "invoiceNumber"
+  }
+  ```
+  `field` is one of: `invoiceNumber`, `quotationNumber`, `challanNumber`. Frontend should show a clear error and ask the user to choose a different number.
 - **400 — Invalid nextToken (list):**
   ```json
   { "message": "Invalid nextToken" }
@@ -173,7 +200,7 @@ Same as **Seller** above, plus:
 
 ---
 
-## 4. Invoice
+## 5. Invoice
 
 **Path prefix:** `GET/POST/PUT/DELETE` under `/business/:businessId/invoices` or `/business/:businessId/invoices/:invoiceId`.  
 Use **invoiceId** in the URL for get/update/delete/PDF (returned as `invoice.invoiceId` or `invoice.id` from create/get).
@@ -200,7 +227,7 @@ Use **invoiceId** in the URL for get/update/delete/PDF (returned as `invoice.inv
 | Field | Type | Required | Notes |
 |-------|------|----------|--------|
 | id | string | No | Ignored on create |
-| invoiceNumber | string | Yes | Non-empty |
+| invoiceNumber | string | Yes | Non-empty; must start with **INV-** (e.g. INV-000001). Unique per business. |
 | invoiceDate | string \| null | No | |
 | dueDate | string \| null | No | |
 | type | string | Yes | `"taxInvoice"` \| `"billOfSupply"` |
@@ -399,7 +426,7 @@ Use `invoice.invoiceId` or `invoice.id` for subsequent GET/PUT/DELETE/PDF. Ignor
 
 ---
 
-## 5. Quotation
+## 6. Quotation
 
 **Path prefix:** `/business/:businessId/quotations` and `/business/:businessId/quotations/:quotationId`.  
 Use **quotationId** in the URL for get/update/delete/PDF (returned as `quotation.quotationId` or `quotation.id` from create/get).
@@ -421,7 +448,7 @@ Use **quotationId** in the URL for get/update/delete/PDF (returned as `quotation
 | Field | Type | Required | Notes |
 |-------|------|----------|--------|
 | id | string | No | Ignored on create |
-| quotationNumber | string | Yes | Non-empty |
+| quotationNumber | string | Yes | Non-empty; must start with **QTN-** (e.g. QTN-000001). Unique per business. |
 | quotationDate | string \| null | No | |
 | validUntil | string \| null | No | |
 | status | string | Yes | `"draft"` \| `"sent"` \| `"accepted"` \| `"rejected"` \| `"expired"` |
@@ -585,7 +612,7 @@ Use `quotation.quotationId` or `quotation.id` for subsequent calls.
 
 ---
 
-## 6. Sales Debit Note
+## 7. Sales Debit Note
 
 **Path prefix:** `/business/:businessId/sales-debit-notes` and `/business/:businessId/sales-debit-notes/:salesDebitNoteId`.  
 Use **salesDebitNoteId** in the URL (returned as `salesDebitNote.salesDebitNoteId` or `salesDebitNote.id`).
@@ -771,7 +798,7 @@ Use `salesDebitNote.salesDebitNoteId` or `salesDebitNote.id` for subsequent call
 
 ---
 
-## 7. Delivery Challan
+## 8. Delivery Challan
 
 **Path prefix:** `/business/:businessId/delivery-challans` and `/business/:businessId/delivery-challans/:challanId`.  
 Use **challanId** in the URL (same value as `deliveryChallan.deliveryChallanId` or `deliveryChallan.id`).
@@ -795,7 +822,7 @@ Use **challanId** in the URL (same value as `deliveryChallan.deliveryChallanId` 
 |-------|------|----------|--------|
 | id | string | No | Ignored on create |
 | deliveryChallanId | string | No | Ignored on create |
-| challanNumber | string | Yes | Non-empty; document number for challan |
+| challanNumber | string | Yes | Non-empty; must start with **DC-** (e.g. DC-000001). Unique per business. |
 | challanDate | string \| null | No | |
 | status | string | Yes | `"pending"` \| `"delivered"` \| `"cancelled"` |
 | seller | object | Yes | **Seller** |
@@ -949,7 +976,7 @@ Use `deliveryChallan.deliveryChallanId` or `deliveryChallan.id` as **challanId**
 
 ---
 
-## 8. Quick reference — URL path params
+## 9. Quick reference — URL path params
 
 | Module | List/Create path | Get/Update/Delete/PDF path | ID param name |
 |--------|------------------|----------------------------|----------------|
@@ -960,7 +987,7 @@ Use `deliveryChallan.deliveryChallanId` or `deliveryChallan.id` as **challanId**
 
 ---
 
-## 9. Frontend checklist (easy to miss)
+## 10. Frontend checklist (easy to miss)
 
 - **Invoice create:** For `status: "draft"`, buyerName and items can be empty; for `status: "saved"` or `"cancelled"`, buyerName and at least one item required. `type` must be `"taxInvoice"` or `"billOfSupply"`.
 - **Quotation create:** For `status: "sent"`, buyerName and at least one item required. Quotation has `contactPersons` and `validUntil`; no `transportInfo`/`otherDetails` in schema; no `roundOff`.
