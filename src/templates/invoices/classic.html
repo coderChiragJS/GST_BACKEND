@@ -272,15 +272,16 @@
     </td>
     <td style="width:50%; vertical-align: top;" class="right">
       <table style="margin-left: auto; border-collapse: collapse;">
-        <tr class="blue"><td class="right" style="padding:4px 8px;">Total Amount Before Tax</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.totalItemTaxable}}</td></tr>
+        <tr><td class="right" style="padding:4px 8px;">Subtotal (Items) Before Tax</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.totalItemTaxable}}</td></tr>
+        {{#each totals.additionalCharges}}
+        <tr><td class="right" style="padding:4px 8px;">{{this.name}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency this.totals.taxableAmount}}</td></tr>
+        {{/each}}
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Total Amount Before Tax</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxableAmount}}</td></tr>
         <tr><td class="right" style="padding:4px 8px;">Add : {{#if showCgstSgst}}CGST/SGST{{else}}IGST{{/if}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxAmount}}</td></tr>
         <tr><td class="right" style="padding:4px 8px;">Total Tax Amount</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxAmount}}</td></tr>
         {{#if totals.summary.cessAmount}}
         <tr><td class="right" style="padding:4px 8px;">Add : CESS</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.cessAmount}}</td></tr>
         {{/if}}
-        {{#each totals.additionalCharges}}
-        <tr><td class="right" style="padding:4px 8px;">{{this.name}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency this.totals.total}}</td></tr>
-        {{/each}}
         {{#if invoice.tcsInfo}}
         <tr><td class="right" style="padding:4px 8px;">TCS @ {{formatCurrency invoice.tcsInfo.percentage}}%</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.tcsAmount}}</td></tr>
         {{/if}}
