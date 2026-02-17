@@ -78,10 +78,12 @@ const baseQuotationSchema = z.object({
     buyerStateCode: z.string().nullable().optional(),
     buyerStateName: z.string().nullable().optional(),
     buyerAddress: z.preprocess((val) => (val == null ? '' : val), z.string().optional().default('')),
-    // Optional separate consignee details
+    // Optional separate consignee details (Ship To)
     shippingName: z.string().optional().default(''),
     shippingGstin: z.string().optional().default(''),
     shippingAddress: z.preprocess((val) => (val == null ? '' : val), z.string().optional().default('')),
+    shippingStateCode: z.string().nullable().optional(),
+    shippingStateName: z.string().nullable().optional(),
     items: z.array(lineItemSchema).optional().default([]),
     additionalCharges: z.array(additionalChargeSchema).optional().default([]),
     globalDiscountType: z.enum(['percentage', 'flat']).optional().default('percentage'),

@@ -181,14 +181,14 @@
 </table>
 {{/if}}
 
-<!-- BILL TO / SHIP TO -->
+<!-- Quotation To / Ship To: Ship To column shown only when shipping details are present -->
 <table>
   <tr>
     {{#if showShippingAddress}}
-    <td class="bold">Details of Receiver | Billed to</td>
-    <td class="bold">Details of Consignee | Shipped to</td>
+    <td class="bold">Quotation To</td>
+    <td class="bold">Ship To</td>
     {{else}}
-    <td class="bold">Details of Receiver | Billed to</td>
+    <td class="bold">Quotation To</td>
     {{/if}}
   </tr>
   <tr>
@@ -204,6 +204,7 @@
       Name: <b>{{shippingName}}</b><br>
       {{#if shippingAddress}}Address: {{shippingAddress}}<br>{{/if}}
       {{#if shippingGstin}}GSTIN: {{shippingGstin}}{{/if}}
+      {{#if shippingStateName}}<br>State : {{shippingStateName}}{{/if}}
     </td>
     {{else}}
     <td>
@@ -229,6 +230,22 @@
       {{#if this.name}}<b>{{this.name}}</b>{{/if}}
       {{#if this.phone}} &nbsp; Phone: {{this.phone}}{{/if}}
       {{#if this.email}} &nbsp; Email: {{this.email}}{{/if}}
+    </td>
+  </tr>
+  {{/each}}
+</table>
+{{/if}}
+
+<!-- CUSTOM FIELDS (optional) -->
+{{#if customFields.length}}
+<table>
+  <tr>
+    <td class="bold">Additional Details</td>
+  </tr>
+  {{#each customFields}}
+  <tr>
+    <td>
+      {{#if this.name}}<b>{{this.name}}</b>{{/if}}{{#if this.value}}: {{this.value}}{{/if}}
     </td>
   </tr>
   {{/each}}
@@ -290,15 +307,16 @@
     </td>
     <td style="width:50%; vertical-align: top;" class="right">
       <table style="margin-left: auto; border-collapse: collapse;">
-        <tr class="blue"><td class="right" style="padding:4px 8px;">Total Amount Before Tax</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.totalItemTaxable}}</td></tr>
+        <tr><td class="right" style="padding:4px 8px;">Subtotal (Items) Before Tax</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.totalItemTaxable}}</td></tr>
+        {{#each totals.additionalCharges}}
+        <tr><td class="right" style="padding:4px 8px;">{{this.name}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency this.totals.total}}</td></tr>
+        {{/each}}
+        <tr class="blue"><td class="right" style="padding:4px 8px;">Total Amount Before Tax</td><td class="right bold" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxableAmount}}</td></tr>
         <tr><td class="right" style="padding:4px 8px;">Add : {{#if showCgstSgst}}CGST/SGST{{else}}IGST{{/if}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxAmount}}</td></tr>
         <tr><td class="right" style="padding:4px 8px;">Total Tax Amount</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.taxAmount}}</td></tr>
         {{#if totals.summary.cessAmount}}
         <tr><td class="right" style="padding:4px 8px;">Add : CESS</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.cessAmount}}</td></tr>
         {{/if}}
-        {{#each totals.additionalCharges}}
-        <tr><td class="right" style="padding:4px 8px;">{{this.name}}</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency this.totals.total}}</td></tr>
-        {{/each}}
         {{#if quotation.tcsInfo}}
         <tr><td class="right" style="padding:4px 8px;">TCS @ {{formatCurrency quotation.tcsInfo.percentage}}%</td><td class="right" style="padding:4px 8px;">₹ {{formatCurrency totals.summary.tcsAmount}}</td></tr>
         {{/if}}
@@ -381,7 +399,6 @@
 {{/if}}
 
 <div class="footer">Thankyou for your business</div>
-<div class="footer">Document Made From <b>GimBooks</b></div>
 
 </body>
 </html>

@@ -5,6 +5,12 @@ const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { computeInvoiceTotals } = require('./invoiceCalculationService');
+const {
+    getStateByCode,
+    getStateByGstin,
+    getStateByName,
+    getAllStates
+} = require('../data/gstStates');
 
 const s3Client = new S3Client({ region: process.env.REGION });
 const BUCKET_NAME = process.env.UPLOADS_BUCKET;
@@ -159,6 +165,105 @@ function getSupplyTypeContext(doc, seller, totals) {
     const showCgstSgst = !isInterstate;
     const placeOfSupplyDisplay = transportInfo.placeOfSupply || transportInfo.placeOfSupplyStateName || '';
     return { isInterstate, showCgstSgst, summaryCgstAmount, summarySgstAmount, placeOfSupplyDisplay };
+}
+
+/**
+ * Parse state name (or code) from an address string for quotation place-of-supply.
+ * Tries last line first; then tries matching known state names in the address.
+ * Used only for quotation PDF when shippingAddress is present.
+ */
+function parseStateFromAddress(address) {
+    if (!address || typeof address !== 'string') return null;
+    const trimmed = address.trim();
+    if (!trimmed) return null;
+    const lines = trimmed.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 0) {
+        const lastLine = lines[lines.length - 1];
+        let state = getStateByName(lastLine);
+        if (state) return state.name;
+        const codeMatch = lastLine.match(/\b(\d{2})\b/);
+        if (codeMatch) {
+            state = getStateByCode(codeMatch[1]);
+            if (state) return state.name;
+        }
+    }
+    const allStates = getAllStates();
+    let found = null;
+    for (const s of allStates) {
+        if (trimmed.toLowerCase().includes(s.name.toLowerCase())) {
+            if (!found || s.name.length > found.length) found = s;
+        }
+    }
+    return found ? found.name : null;
+}
+
+/**
+ * Resolve place-of-supply for quotation PDF only (per BACKEND_QUOTATION_PLACE_OF_SUPPLY).
+ * Uses seller.state or seller GSTIN; if shippingAddress present uses delivery state from it,
+ * else uses buyerStateName or buyerGstin. Returns null if cannot determine.
+ */
+function getQuotationPlaceOfSupply(quotation) {
+    const seller = quotation.seller || {};
+    const sellerStateName = (seller.state && String(seller.state).trim()) || null;
+    let sellerState = sellerStateName ? getStateByName(sellerStateName) : null;
+    if (!sellerState && seller.gstNumber && String(seller.gstNumber).trim().length >= 2) {
+        sellerState = getStateByGstin(String(seller.gstNumber).trim());
+    }
+    if (!sellerState) return null;
+
+    const shippingAddress = quotation.shippingAddress && String(quotation.shippingAddress).trim();
+    const buyerStateName = quotation.buyerStateName && String(quotation.buyerStateName).trim();
+    const buyerStateCode = quotation.buyerStateCode && String(quotation.buyerStateCode).trim();
+    const buyerGstin = quotation.buyerGstin && String(quotation.buyerGstin).trim();
+
+    let placeState = null;
+    if (shippingAddress) {
+        const parsedName = parseStateFromAddress(shippingAddress);
+        if (parsedName) placeState = getStateByName(parsedName);
+    }
+    if (!placeState && buyerGstin && buyerGstin.length >= 2) {
+        placeState = getStateByGstin(buyerGstin);
+    }
+    if (!placeState && buyerStateCode) {
+        placeState = getStateByCode(buyerStateCode);
+    }
+    if (!placeState && buyerStateName) {
+        placeState = getStateByName(buyerStateName);
+    }
+    if (!placeState) return null;
+
+    const supplyTypeDisplay =
+        sellerState.code === placeState.code ? 'intrastate' : 'interstate';
+    return {
+        placeOfSupplyStateCode: placeState.code,
+        placeOfSupplyStateName: placeState.name,
+        supplyTypeDisplay
+    };
+}
+
+/**
+ * Build supply context for quotation PDF only. Uses getQuotationPlaceOfSupply (seller/shipping/buyer)
+ * and item-level GST total. Do not use for invoice/challan/debit note.
+ */
+function getQuotationSupplyContext(quotation, totals) {
+    const pos = getQuotationPlaceOfSupply(quotation);
+    const taxAmount = totals?.summary?.taxAmount ?? 0;
+    let isInterstate = true;
+    let placeOfSupplyDisplay = '';
+    if (pos) {
+        isInterstate = pos.supplyTypeDisplay === 'interstate';
+        placeOfSupplyDisplay = pos.placeOfSupplyStateName || '';
+    }
+    const summaryCgstAmount = isInterstate ? 0 : Math.round((taxAmount / 2) * 100) / 100;
+    const summarySgstAmount = isInterstate ? 0 : Math.round((taxAmount - summaryCgstAmount) * 100) / 100;
+    const showCgstSgst = !isInterstate;
+    return {
+        isInterstate,
+        showCgstSgst,
+        summaryCgstAmount,
+        summarySgstAmount,
+        placeOfSupplyDisplay
+    };
 }
 
 async function renderInvoiceHtml(invoice, templateId) {
@@ -381,7 +486,8 @@ async function renderQuotationHtml(quotation, templateId) {
         transportInfo.placeOfSupply ||
         transportInfo.placeOfSupplyStateName
     );
-    const supplyContext = getSupplyTypeContext(quotation, seller, totals);
+    // Quotation PDF: place-of-supply from seller/shipping/buyer (per BACKEND_QUOTATION_PLACE_OF_SUPPLY)
+    const supplyContext = getQuotationSupplyContext(quotation, totals);
     const termsAndConditions = quotation.termsAndConditions || [];
     const customFields = quotation.customFields || [];
     const contactPersons = quotation.contactPersons || [];
@@ -393,6 +499,8 @@ async function renderQuotationHtml(quotation, templateId) {
         shippingAddress,
         shippingName: quotation.shippingName || quotation.buyerName || '',
         shippingGstin: quotation.shippingGstin || quotation.buyerGstin || '',
+        shippingStateCode: quotation.shippingStateCode || null,
+        shippingStateName: quotation.shippingStateName || null,
         showShippingAddress,
         hasDispatchAddress,
         bankDetails,
