@@ -10,7 +10,7 @@ const deliveryChallanPdfController = {
         try {
             const userId = req.user.userId;
             const { businessId, challanId } = req.params;
-            const { templateId } = req.body || {};
+            const { templateId, copyType: rawCopyType } = req.body || {};
 
             if (!businessId || !challanId) {
                 return res
@@ -27,6 +27,9 @@ const deliveryChallanPdfController = {
                     allowedTemplates: ALLOWED_TEMPLATES
                 });
             }
+
+            const validCopyTypes = ['original', 'duplicate', 'triplicate'];
+            const copyType = validCopyTypes.includes(rawCopyType) ? rawCopyType : 'original';
 
             const challan = await DeliveryChallan.getById(
                 userId,
@@ -47,13 +50,15 @@ const deliveryChallanPdfController = {
                     businessId,
                     deliveryChallan: challan,
                     templateId,
+                    copyType,
                     business
                 });
 
             return res.json({
                 pdfUrl,
                 deliveryChallanId: challanId,
-                templateId
+                templateId,
+                copyType
             });
         } catch (error) {
             console.error('Generate Delivery Challan PDF Error:', error);

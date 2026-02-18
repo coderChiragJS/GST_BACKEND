@@ -9,7 +9,7 @@ const invoicePdfController = {
         try {
             const userId = req.user.userId;
             const { businessId, invoiceId } = req.params;
-            const { templateId } = req.body || {};
+            const { templateId, copyType: rawCopyType } = req.body || {};
 
             if (!businessId || !invoiceId) {
                 return res.status(400).json({ message: 'Business ID and Invoice ID are required in URL' });
@@ -22,6 +22,9 @@ const invoicePdfController = {
                 });
             }
 
+            const validCopyTypes = ['original', 'duplicate', 'triplicate'];
+            const copyType = validCopyTypes.includes(rawCopyType) ? rawCopyType : 'original';
+
             const invoice = await Invoice.getById(userId, businessId, invoiceId);
             if (!invoice) {
                 return res.status(404).json({ message: 'Invoice not found' });
@@ -31,13 +34,15 @@ const invoicePdfController = {
                 userId,
                 businessId,
                 invoice,
-                templateId
+                templateId,
+                copyType
             });
 
             return res.json({
                 pdfUrl,
                 invoiceId,
-                templateId
+                templateId,
+                copyType
             });
         } catch (error) {
             console.error('Generate Invoice PDF Error:', error);

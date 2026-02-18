@@ -321,6 +321,12 @@ const invoiceController = {
             if (!existing) {
                 return res.status(404).json({ message: 'Invoice not found' });
             }
+            if (existing.status === 'cancelled') {
+                return res.status(403).json({
+                    message: 'Cancelled invoices cannot be edited',
+                    code: 'CANCELLED_INVOICE_EDIT_FORBIDDEN'
+                });
+            }
 
             const newNumber = validation.data.invoiceNumber;
             const oldNumber = existing.invoiceNumber;

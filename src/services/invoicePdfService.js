@@ -167,6 +167,23 @@ function getSupplyTypeContext(doc, seller, totals) {
     return { isInterstate, showCgstSgst, summaryCgstAmount, summarySgstAmount, placeOfSupplyDisplay };
 }
 
+const COPY_TYPE_LABELS = {
+    original: 'Original for Recipient',
+    duplicate: 'Duplicate for Transporter',
+    triplicate: 'Triplicate for Supplier'
+};
+
+function getCopyLabel(copyType) {
+    const t = copyType && String(copyType).toLowerCase();
+    return COPY_TYPE_LABELS[t] || COPY_TYPE_LABELS.original;
+}
+
+function getPdfKeySuffix(templateId, copyType) {
+    const t = copyType && String(copyType).toLowerCase();
+    if (t === 'duplicate' || t === 'triplicate') return `${templateId}_${t}.pdf`;
+    return `${templateId}.pdf`;
+}
+
 /**
  * Parse state name (or code) from an address string for quotation place-of-supply.
  * Tries last line first; then tries matching known state names in the address.
@@ -266,13 +283,14 @@ function getQuotationSupplyContext(quotation, totals) {
     };
 }
 
-async function renderInvoiceHtml(invoice, templateId) {
+async function renderInvoiceHtml(invoice, templateId, copyType = 'original') {
     loadTemplatesOnce();
     const template = compiledTemplates[templateId];
     if (!template) {
         throw new Error(`Template not found: ${templateId}`);
     }
 
+    const copyLabel = getCopyLabel(copyType);
     const totals = computeInvoiceTotals(invoice);
 
     const seller = invoice.seller || {};
@@ -330,7 +348,8 @@ async function renderInvoiceHtml(invoice, templateId) {
         ...supplyContext,
         termsAndConditions,
         customFields,
-        totals
+        totals,
+        copyLabel
     };
 
     return template(context);
@@ -359,13 +378,14 @@ function loadSalesDebitNoteTemplatesOnce() {
     });
 }
 
-async function renderSalesDebitNoteHtml(note, templateId) {
+async function renderSalesDebitNoteHtml(note, templateId, copyType = 'original') {
     loadSalesDebitNoteTemplatesOnce();
     const template = compiledSalesDebitNoteTemplates[templateId];
     if (!template) {
         throw new Error(`Sales debit note template not found: ${templateId}`);
     }
 
+    const copyLabel = getCopyLabel(copyType);
     // Reuse invoice totals logic – payload shape matches invoice.
     const totals = computeInvoiceTotals(note);
 
@@ -425,7 +445,8 @@ async function renderSalesDebitNoteHtml(note, templateId) {
         ...supplyContext,
         termsAndConditions,
         customFields,
-        totals
+        totals,
+        copyLabel
     };
 
     return template(context);
@@ -447,7 +468,7 @@ function loadQuotationTemplatesOnce() {
 
 const QUOTATION_TEMPLATE_ALIAS = { compact: 'classic', modern: 'classic' };
 
-async function renderQuotationHtml(quotation, templateId) {
+async function renderQuotationHtml(quotation, templateId, copyType = 'original') {
     loadQuotationTemplatesOnce();
     const resolvedId = QUOTATION_TEMPLATE_ALIAS[templateId] || templateId;
     const template = compiledQuotationTemplates[resolvedId];
@@ -455,6 +476,7 @@ async function renderQuotationHtml(quotation, templateId) {
         throw new Error(`Quotation template not found: ${templateId}`);
     }
 
+    const copyLabel = getCopyLabel(copyType);
     const totals = computeInvoiceTotals(quotation);
     const seller = quotation.seller || {};
     const buyerAddress = quotation.buyerAddress || '';
@@ -511,17 +533,19 @@ async function renderQuotationHtml(quotation, templateId) {
         termsAndConditions,
         customFields,
         contactPersons,
-        totals
+        totals,
+        copyLabel
     };
 
     return template(context);
 }
 
-async function uploadQuotationPdfToS3({ userId, businessId, quotationId, templateId, pdfBuffer }) {
+async function uploadQuotationPdfToS3({ userId, businessId, quotationId, templateId, copyType, pdfBuffer }) {
     if (!BUCKET_NAME) {
         throw new Error('UPLOADS_BUCKET environment variable is not set');
     }
-    const key = `quotations/${userId}/${businessId}/${quotationId}/${templateId}.pdf`;
+    const fileName = getPdfKeySuffix(templateId, copyType);
+    const key = `quotations/${userId}/${businessId}/${quotationId}/${fileName}`;
     const params = {
         Bucket: BUCKET_NAME,
         Key: key,
@@ -534,14 +558,15 @@ async function uploadQuotationPdfToS3({ userId, businessId, quotationId, templat
     return publicUrl;
 }
 
-async function generateAndUploadQuotationPdf({ userId, businessId, quotation, templateId }) {
-    const html = await renderQuotationHtml(quotation, templateId);
+async function generateAndUploadQuotationPdf({ userId, businessId, quotation, templateId, copyType = 'original' }) {
+    const html = await renderQuotationHtml(quotation, templateId, copyType);
     const pdfBuffer = await generatePdfBuffer(html);
     const pdfUrl = await uploadQuotationPdfToS3({
         userId,
         businessId,
         quotationId: quotation.quotationId || quotation.id,
         templateId,
+        copyType,
         pdfBuffer
     });
     return pdfUrl;
@@ -552,12 +577,14 @@ async function uploadSalesDebitNotePdfToS3({
     businessId,
     salesDebitNoteId,
     templateId,
+    copyType,
     pdfBuffer
 }) {
     if (!BUCKET_NAME) {
         throw new Error('UPLOADS_BUCKET environment variable is not set');
     }
-    const key = `sales-debit-notes/${userId}/${businessId}/${salesDebitNoteId}/${templateId}.pdf`;
+    const fileName = getPdfKeySuffix(templateId, copyType);
+    const key = `sales-debit-notes/${userId}/${businessId}/${salesDebitNoteId}/${fileName}`;
     const params = {
         Bucket: BUCKET_NAME,
         Key: key,
@@ -575,6 +602,7 @@ async function generateAndUploadSalesDebitNotePdf({
     businessId,
     salesDebitNote,
     templateId,
+    copyType = 'original',
     business
 }) {
     const noteWithDefaults = {
@@ -582,13 +610,14 @@ async function generateAndUploadSalesDebitNotePdf({
         signatureUrl: salesDebitNote.signatureUrl || business?.defaultSignatureUrl,
         stampUrl: salesDebitNote.stampUrl || business?.defaultStampUrl
     };
-    const html = await renderSalesDebitNoteHtml(noteWithDefaults, templateId);
+    const html = await renderSalesDebitNoteHtml(noteWithDefaults, templateId, copyType);
     const pdfBuffer = await generatePdfBuffer(html);
     const pdfUrl = await uploadSalesDebitNotePdfToS3({
         userId,
         businessId,
         salesDebitNoteId: salesDebitNote.salesDebitNoteId || salesDebitNote.id,
         templateId,
+        copyType,
         pdfBuffer
     });
     return pdfUrl;
@@ -617,13 +646,14 @@ function loadDeliveryChallanTemplatesOnce() {
     });
 }
 
-async function renderDeliveryChallanHtml(challan, templateId) {
+async function renderDeliveryChallanHtml(challan, templateId, copyType = 'original') {
     loadDeliveryChallanTemplatesOnce();
     const template = compiledDeliveryChallanTemplates[templateId];
     if (!template) {
         throw new Error(`Delivery challan template not found: ${templateId}`);
     }
 
+    const copyLabel = getCopyLabel(copyType);
     // Reuse invoice totals logic – payload shape matches invoice.
     const totals = computeInvoiceTotals(challan);
 
@@ -683,7 +713,8 @@ async function renderDeliveryChallanHtml(challan, templateId) {
         ...supplyContext,
         termsAndConditions,
         customFields,
-        totals
+        totals,
+        copyLabel
     };
 
     return template(context);
@@ -694,12 +725,14 @@ async function uploadDeliveryChallanPdfToS3({
     businessId,
     deliveryChallanId,
     templateId,
+    copyType,
     pdfBuffer
 }) {
     if (!BUCKET_NAME) {
         throw new Error('UPLOADS_BUCKET environment variable is not set');
     }
-    const key = `delivery-challans/${userId}/${businessId}/${deliveryChallanId}/${templateId}.pdf`;
+    const fileName = getPdfKeySuffix(templateId, copyType);
+    const key = `delivery-challans/${userId}/${businessId}/${deliveryChallanId}/${fileName}`;
     const params = {
         Bucket: BUCKET_NAME,
         Key: key,
@@ -717,6 +750,7 @@ async function generateAndUploadDeliveryChallanPdf({
     businessId,
     deliveryChallan,
     templateId,
+    copyType = 'original',
     business
 }) {
     const challanWithDefaults = {
@@ -724,13 +758,14 @@ async function generateAndUploadDeliveryChallanPdf({
         signatureUrl: deliveryChallan.signatureUrl || business?.defaultSignatureUrl,
         stampUrl: deliveryChallan.stampUrl || business?.defaultStampUrl
     };
-    const html = await renderDeliveryChallanHtml(challanWithDefaults, templateId);
+    const html = await renderDeliveryChallanHtml(challanWithDefaults, templateId, copyType);
     const pdfBuffer = await generatePdfBuffer(html);
     const pdfUrl = await uploadDeliveryChallanPdfToS3({
         userId,
         businessId,
         deliveryChallanId: deliveryChallan.deliveryChallanId || deliveryChallan.id,
         templateId,
+        copyType,
         pdfBuffer
     });
     return pdfUrl;
@@ -776,12 +811,13 @@ async function generatePdfBuffer(html) {
     }
 }
 
-async function uploadPdfToS3({ userId, businessId, invoiceId, templateId, pdfBuffer }) {
+async function uploadPdfToS3({ userId, businessId, invoiceId, templateId, copyType, pdfBuffer }) {
     if (!BUCKET_NAME) {
         throw new Error('UPLOADS_BUCKET environment variable is not set');
     }
 
-    const key = `invoices/${userId}/${businessId}/${invoiceId}/${templateId}.pdf`;
+    const fileName = getPdfKeySuffix(templateId, copyType);
+    const key = `invoices/${userId}/${businessId}/${invoiceId}/${fileName}`;
 
     const params = {
         Bucket: BUCKET_NAME,
@@ -797,14 +833,15 @@ async function uploadPdfToS3({ userId, businessId, invoiceId, templateId, pdfBuf
     return publicUrl;
 }
 
-async function generateAndUploadInvoicePdf({ userId, businessId, invoice, templateId }) {
-    const html = await renderInvoiceHtml(invoice, templateId);
+async function generateAndUploadInvoicePdf({ userId, businessId, invoice, templateId, copyType = 'original' }) {
+    const html = await renderInvoiceHtml(invoice, templateId, copyType);
     const pdfBuffer = await generatePdfBuffer(html);
     const pdfUrl = await uploadPdfToS3({
         userId,
         businessId,
         invoiceId: invoice.invoiceId || invoice.id,
         templateId,
+        copyType,
         pdfBuffer
     });
     return pdfUrl;

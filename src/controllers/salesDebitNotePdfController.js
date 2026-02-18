@@ -10,7 +10,7 @@ const salesDebitNotePdfController = {
         try {
             const userId = req.user.userId;
             const { businessId, salesDebitNoteId } = req.params;
-            const { templateId } = req.body || {};
+            const { templateId, copyType: rawCopyType } = req.body || {};
 
             if (!businessId || !salesDebitNoteId) {
                 return res
@@ -27,6 +27,9 @@ const salesDebitNotePdfController = {
                     allowedTemplates: ALLOWED_TEMPLATES
                 });
             }
+
+            const validCopyTypes = ['original', 'duplicate', 'triplicate'];
+            const copyType = validCopyTypes.includes(rawCopyType) ? rawCopyType : 'original';
 
             const note = await SalesDebitNote.getById(
                 userId,
@@ -47,13 +50,15 @@ const salesDebitNotePdfController = {
                     businessId,
                     salesDebitNote: note,
                     templateId,
+                    copyType,
                     business
                 });
 
             return res.json({
                 pdfUrl,
                 salesDebitNoteId,
-                templateId
+                templateId,
+                copyType
             });
         } catch (error) {
             console.error('Generate Sales Debit Note PDF Error:', error);
