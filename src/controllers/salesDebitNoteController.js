@@ -231,6 +231,13 @@ const salesDebitNoteController = {
 
             const { status, fromDate, toDate, search, limit, nextToken, referenceInvoiceId } =
                 req.query;
+            const validStatuses = ['draft', 'saved', 'cancelled'];
+            if (status && !validStatuses.includes(status)) {
+                return res.status(400).json({
+                    message: `Invalid status. Must be one of: ${validStatuses.join(', ')}. Omit for all.`,
+                    code: 'INVALID_QUERY'
+                });
+            }
             const parsedLimit = Math.min(
                 Math.max(parseInt(limit, 10) || 100, 1),
                 100
