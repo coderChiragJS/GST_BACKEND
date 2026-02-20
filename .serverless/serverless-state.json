@@ -278,7 +278,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-280b993e-594e",
-                "S3Key": "serverless/gst-billing-backend/dev/1771415543854-2026-02-18T11:52:23.854Z/gst-billing-backend.zip"
+                "S3Key": "serverless/gst-billing-backend/dev/1771502654814-2026-02-19T12:04:14.814Z/gst-billing-backend.zip"
               },
               "Handler": "src/app.handler",
               "Runtime": "nodejs20.x",
@@ -319,14 +319,14 @@
               "ApiLogGroup"
             ]
           },
-          "ApiLambdaVersions6Qs4TfCjFR0UD84tVRyEJRjywNo2OaiBmgo0jLyU": {
+          "ApiLambdaVersionfiOtMgxLYBus4vScDBIPS5JvVJHhIW6eH7gYCYSy8w": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ApiLambdaFunction"
               },
-              "CodeSha256": "gEVmjfwCftvbnHzcEe1try9YKs6AHX9wkviST6MY1Q8="
+              "CodeSha256": "V3a59k3hoLiQpHrxiXS4/PJrU11mcuqGivImONsGLQA="
             }
           },
           "ApiGatewayRestApi": {
@@ -457,7 +457,7 @@
               "ApiLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1771415523819": {
+          "ApiGatewayDeployment1771502634705": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -821,7 +821,7 @@
           "ApiLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ApiLambdaVersions6Qs4TfCjFR0UD84tVRyEJRjywNo2OaiBmgo0jLyU"
+              "Ref": "ApiLambdaVersionfiOtMgxLYBus4vScDBIPS5JvVJHhIW6eH7gYCYSy8w"
             },
             "Export": {
               "Name": "sls-gst-billing-backend-dev-ApiLambdaFunctionQualifiedArn"
@@ -886,7 +886,7 @@
         "timeout": 30,
         "runtime": "nodejs20.x",
         "vpc": {},
-        "versionLogicalId": "ApiLambdaVersions6Qs4TfCjFR0UD84tVRyEJRjywNo2OaiBmgo0jLyU"
+        "versionLogicalId": "ApiLambdaVersionfiOtMgxLYBus4vScDBIPS5JvVJHhIW6eH7gYCYSy8w"
       }
     },
     "resources": {
@@ -1220,7 +1220,7 @@
     "artifact": "/Users/chiragtankwal/projects/GST_BILLING_BACKEND/.serverless/gst-billing-backend.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/gst-billing-backend/dev/1771415543854-2026-02-18T11:52:23.854Z",
+    "artifactDirectoryName": "serverless/gst-billing-backend/dev/1771502654814-2026-02-19T12:04:14.814Z",
     "artifact": "gst-billing-backend.zip"
   }
 }

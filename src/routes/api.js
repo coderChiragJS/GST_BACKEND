@@ -181,6 +181,16 @@ router.post(
     deliveryChallanPdfController.generatePdf
 );
 
+// Payment Receipt Routes (Protected; requireBusiness)
+const paymentReceiptController = require('../controllers/paymentReceiptController');
+const receiptPdfController = require('../controllers/receiptPdfController');
+router.post('/business/:businessId/receipts', authMiddleware, requireBusiness, paymentReceiptController.createReceipt);
+router.get('/business/:businessId/receipts', authMiddleware, requireBusiness, paymentReceiptController.listReceipts);
+router.get('/business/:businessId/receipts/:receiptId', authMiddleware, requireBusiness, paymentReceiptController.getReceipt);
+router.put('/business/:businessId/receipts/:receiptId', authMiddleware, requireBusiness, paymentReceiptController.updateReceipt);
+router.delete('/business/:businessId/receipts/:receiptId', authMiddleware, requireBusiness, paymentReceiptController.deleteReceipt);
+router.post('/business/:businessId/receipts/:receiptId/pdf', authMiddleware, requireBusiness, receiptPdfController.generatePdf);
+
 // Optional: public list of available invoice templates
 router.get('/invoice-templates', invoicePdfController.listTemplates);
 

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PAYMENT RECEIPT</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; margin: 10px; color: #000; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { border: 1px solid #000; padding: 6px; vertical-align: top; }
+    .no-border td { border: none; }
+    .bold { font-weight: bold; }
+    .center { text-align: center; }
+    .right { text-align: right; }
+    .title { font-size: 16px; font-weight: bold; text-align: center; margin: 8px 0; }
+    .footer { margin-top: 12px; font-size: 11px; }
+  </style>
+</head>
+<body>
+
+<div class="title">PAYMENT RECEIPT</div>
+
+<table class="no-border">
+  <tr>
+    <td style="width:60%;">
+      <div class="bold" style="font-size:14px;">{{business.firmName}}</div>
+      {{#if business.address}}
+        {{#if business.address.street}}{{business.address.street}}<br>{{/if}}
+        {{#if business.address.city}}{{business.address.city}}, {{/if}}{{#if business.address.state}}{{business.address.state}}{{/if}}{{#if business.address.pincode}} {{business.address.pincode}}{{/if}}
+      {{/if}}
+      {{#if business.gstNumber}}<br>GSTIN : <b>{{business.gstNumber}}</b>{{/if}}
+    </td>
+    <td class="no-border" style="text-align:right;">
+      <table class="no-border" style="margin-left:auto;">
+        <tr><td>Receipt No</td><td><b>{{receipt.receiptNumber}}</b></td></tr>
+        <tr><td>Date</td><td><b>{{formatDate receipt.receiptDate}}</b></td></tr>
+        <tr><td>Received From</td><td><b>{{receipt.partyName}}</b></td></tr>
+        <tr><td>Payment Mode</td><td><b>{{receipt.paymentMode}}</b></td></tr>
+        {{#if receipt.accountName}}<tr><td>Deposit To</td><td><b>{{receipt.accountName}}</b></td></tr>{{/if}}
+      </table>
+    </td>
+  </tr>
+</table>
+
+<div class="bold" style="margin-top:10px;">Invoice Payment Breakup</div>
+<table style="margin-top:4px;">
+  <thead>
+    <tr>
+      <th>Invoice No</th>
+      <th class="right">Total Amt</th>
+      <th class="right">Paid Amt</th>
+      <th class="right">Due Amt</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each receipt.allocations}}
+    <tr>
+      <td>{{this.invoiceNumber}}</td>
+      <td class="right">₹ {{formatCurrency this.invoiceTotalAmount}}</td>
+      <td class="right">₹ {{formatCurrency this.allocatedAmount}}</td>
+      <td class="right">₹ {{formatCurrency this.dueAmount}}</td>
+    </tr>
+    {{/each}}
+    <tr class="bold">
+      <td>Total</td>
+      <td class="right">₹ {{formatCurrency totals.totalInvoice}}</td>
+      <td class="right">₹ {{formatCurrency totals.totalPaid}}</td>
+      <td class="right">₹ {{formatCurrency totals.totalDue}}</td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="no-border" style="margin-top:8px;">
+  <tr><td>Paid Against Invoice</td><td class="right"><b>₹ {{formatCurrency totals.paidAgainstInvoice}}</b></td></tr>
+  <tr><td>Excess Amount</td><td class="right"><b>₹ {{formatCurrency totals.excessAmount}}</b></td></tr>
+  <tr><td>Total Amount Received</td><td class="right"><b>₹ {{formatCurrency receipt.amountCollected}}</b></td></tr>
+</table>
+
+<div class="footer" style="margin-top:12px;">
+  Total amount in words : <b>{{numberToWords receipt.amountCollected}}</b>
+</div>
+<div class="footer" style="margin-top:16px; text-align:right;">
+  Authorised Signatory
+</div>
+
+</body>
+</html>

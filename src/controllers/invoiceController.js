@@ -271,9 +271,14 @@ const invoiceController = {
                 ? Buffer.from(JSON.stringify(lastEvaluatedKey), 'utf8').toString('base64url')
                 : null;
 
+            const invoicesWithPaid = invoices.map((inv) => ({
+                ...inv,
+                paidAmount: inv.paidAmount ?? 0
+            }));
+
             return res.json({
-                invoices,
-                count: invoices.length,
+                invoices: invoicesWithPaid,
+                count: invoicesWithPaid.length,
                 ...(nextTokenOut && { nextToken: nextTokenOut })
             });
         } catch (error) {
@@ -295,7 +300,8 @@ const invoiceController = {
                 return res.status(404).json({ message: 'Invoice not found' });
             }
 
-            return res.json({ invoice });
+            const invoiceWithPaid = { ...invoice, paidAmount: invoice.paidAmount ?? 0 };
+            return res.json({ invoice: invoiceWithPaid });
         } catch (error) {
             console.error('Get Invoice Error:', error);
             return res.status(500).json({ message: 'Internal Server Error' });

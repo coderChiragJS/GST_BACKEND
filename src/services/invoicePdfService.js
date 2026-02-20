@@ -31,6 +31,10 @@ const compiledSalesDebitNoteTemplates = {};
 const DELIVERY_CHALLAN_TEMPLATE_IDS = ['classic'];
 const compiledDeliveryChallanTemplates = {};
 
+// Payment Receipt templates
+const RECEIPT_TEMPLATE_IDS = ['classic'];
+const compiledReceiptTemplates = {};
+
 function loadTemplatesOnce() {
     if (Object.keys(compiledTemplates).length > 0) return;
 
@@ -646,6 +650,75 @@ function loadDeliveryChallanTemplatesOnce() {
     });
 }
 
+function loadReceiptTemplatesOnce() {
+    if (Object.keys(compiledReceiptTemplates).length > 0) return;
+    loadTemplatesOnce();
+    RECEIPT_TEMPLATE_IDS.forEach((id) => {
+        const filePath = path.join(__dirname, '..', 'templates', 'receipts', `${id}.html`);
+        try {
+            const source = fs.readFileSync(filePath, 'utf8');
+            compiledReceiptTemplates[id] = Handlebars.compile(source);
+        } catch (err) {
+            console.error(`Failed to load receipt template "${id}" from ${filePath}:`, err);
+        }
+    });
+}
+
+async function renderReceiptHtml(receipt, business, templateId) {
+    loadReceiptTemplatesOnce();
+    const template = compiledReceiptTemplates[templateId];
+    if (!template) {
+        throw new Error(`Receipt template not found: ${templateId}`);
+    }
+    const allocations = receipt.allocations || [];
+    const totalPaid = allocations.reduce((s, a) => s + (Number(a.allocatedAmount) || 0), 0);
+    const totalInvoice = allocations.reduce((s, a) => s + (Number(a.invoiceTotalAmount) || 0), 0);
+    const totalDue = allocations.reduce((s, a) => s + (Number(a.dueAmount) || 0), 0);
+    const excessAmount = (Number(receipt.amountCollected) || 0) - totalPaid;
+    const context = {
+        receipt,
+        business: business || {},
+        totals: {
+            totalPaid,
+            totalInvoice,
+            totalDue,
+            paidAgainstInvoice: totalPaid,
+            excessAmount
+        }
+    };
+    return template(context);
+}
+
+async function uploadReceiptPdfToS3({ userId, businessId, receiptId, templateId, pdfBuffer }) {
+    if (!BUCKET_NAME) {
+        throw new Error('UPLOADS_BUCKET environment variable is not set');
+    }
+    const key = `receipts/${userId}/${businessId}/${receiptId}/${templateId}.pdf`;
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: pdfBuffer,
+        ContentType: 'application/pdf',
+        ACL: 'public-read'
+    };
+    await s3Client.send(new PutObjectCommand(params));
+    const publicUrl = `https://${BUCKET_NAME}.s3.${process.env.REGION}.amazonaws.com/${key}`;
+    return publicUrl;
+}
+
+async function generateAndUploadReceiptPdf({ userId, businessId, receipt, business, templateId = 'classic' }) {
+    const html = await renderReceiptHtml(receipt, business, templateId);
+    const pdfBuffer = await generatePdfBuffer(html);
+    const pdfUrl = await uploadReceiptPdfToS3({
+        userId,
+        businessId,
+        receiptId: receipt.receiptId,
+        templateId,
+        pdfBuffer
+    });
+    return pdfUrl;
+}
+
 async function renderDeliveryChallanHtml(challan, templateId, copyType = 'original') {
     loadDeliveryChallanTemplatesOnce();
     const template = compiledDeliveryChallanTemplates[templateId];
@@ -860,6 +933,9 @@ module.exports = {
     generateAndUploadQuotationPdf,
     renderDeliveryChallanHtml,
     uploadDeliveryChallanPdfToS3,
-    generateAndUploadDeliveryChallanPdf
+    generateAndUploadDeliveryChallanPdf,
+    renderReceiptHtml,
+    uploadReceiptPdfToS3,
+    generateAndUploadReceiptPdf
 };
 
