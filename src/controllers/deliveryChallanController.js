@@ -1,5 +1,9 @@
 const DeliveryChallan = require('../models/deliveryChallanModel');
 const VoucherIndex = require('../models/voucherIndexModel');
+const {
+    applyDeliveryChallanStockDeductions,
+    reverseDeliveryChallanStockDeductions
+} = require('../services/inventoryService');
 const { z } = require('zod');
 
 // Zod schemas – mirror invoice structure so we can reuse totals + templates.
@@ -205,7 +209,23 @@ const deliveryChallanController = {
                 throw createErr;
             }
 
-            // For now, delivery challans do not consume invoice / quotation usage.
+            const isCancelled = validation.data.status === 'cancelled';
+            if (!isCancelled) {
+                try {
+                    await applyDeliveryChallanStockDeductions(userId, businessId, challan);
+                } catch (stockErr) {
+                    await DeliveryChallan.delete(userId, businessId, challan.deliveryChallanId || challan.challanId).catch(() => {});
+                    await VoucherIndex.releaseVoucherNumber(
+                        userId,
+                        businessId,
+                        VoucherIndex.DOC_TYPES.DELIVERY_CHALLAN,
+                        validation.data.challanNumber
+                    ).catch(() => {});
+                    const code = stockErr.code || 'STOCK_ERROR';
+                    const message = stockErr.message || 'Inventory update failed';
+                    return res.status(400).json({ message, code, ...(stockErr.currentStock !== undefined && { currentStock: stockErr.currentStock }) });
+                }
+            }
 
             return res.status(201).json({ deliveryChallan: challan });
         } catch (error) {
@@ -385,12 +405,30 @@ const deliveryChallanController = {
                 }
             }
 
+            const wasCancelled = existing.status === 'cancelled';
+            if (!wasCancelled) {
+                await reverseDeliveryChallanStockDeductions(userId, businessId, existing).catch(() => {});
+            }
+
             const challan = await DeliveryChallan.update(
                 userId,
                 businessId,
                 challanId,
                 validation.data
             );
+
+            const isCancelled = challan.status === 'cancelled';
+            if (!isCancelled) {
+                try {
+                    await applyDeliveryChallanStockDeductions(userId, businessId, challan);
+                } catch (stockErr) {
+                    await reverseDeliveryChallanStockDeductions(userId, businessId, challan).catch(() => {});
+                    const code = stockErr.code || 'STOCK_ERROR';
+                    const message = stockErr.message || 'Inventory update failed';
+                    return res.status(400).json({ message, code, ...(stockErr.currentStock !== undefined && { currentStock: stockErr.currentStock }) });
+                }
+            }
+
             return res.json({ deliveryChallan: challan });
         } catch (error) {
             console.error('Update Delivery Challan Error:', error);
@@ -415,6 +453,10 @@ const deliveryChallanController = {
                 return res
                     .status(404)
                     .json({ message: 'Delivery Challan not found' });
+            }
+
+            if (existing.status !== 'cancelled') {
+                await reverseDeliveryChallanStockDeductions(userId, businessId, existing).catch(() => {});
             }
 
             await DeliveryChallan.delete(

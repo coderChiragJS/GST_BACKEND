@@ -223,7 +223,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-us-east-1-280b993e-594e",
-          "S3Key": "serverless/gst-billing-backend/dev/1771569269465-2026-02-20T06:34:29.465Z/gst-billing-backend.zip"
+          "S3Key": "serverless/gst-billing-backend/dev/1771590190556-2026-02-20T12:23:10.556Z/gst-billing-backend.zip"
         },
         "Handler": "src/app.handler",
         "Runtime": "nodejs20.x",
@@ -264,14 +264,14 @@
         "ApiLogGroup"
       ]
     },
-    "ApiLambdaVersionZyvEdoiPv7p8tM6unmr9jbfOdju5NZgaBRWLXfIs": {
+    "ApiLambdaVersion8WNuSS1FsTcHUExo0aGgbZ7ItT9jUbz99QDsMmLE": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ApiLambdaFunction"
         },
-        "CodeSha256": "2sT8jMmYtEg8qWGmixiTVMkQdGawCVAilJ1Th9/4ifw="
+        "CodeSha256": "y1biFFOpeL8iwFd+EDbqHryS2alMSluizGn1j2u81bg="
       }
     },
     "ApiGatewayRestApi": {
@@ -402,7 +402,7 @@
         "ApiLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1771569250088": {
+    "ApiGatewayDeployment1771590170544": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -766,7 +766,7 @@
     "ApiLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ApiLambdaVersionZyvEdoiPv7p8tM6unmr9jbfOdju5NZgaBRWLXfIs"
+        "Ref": "ApiLambdaVersion8WNuSS1FsTcHUExo0aGgbZ7ItT9jUbz99QDsMmLE"
       },
       "Export": {
         "Name": "sls-gst-billing-backend-dev-ApiLambdaFunctionQualifiedArn"

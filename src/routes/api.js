@@ -79,10 +79,20 @@ router.get('/business/:businessId/products/:productId', authMiddleware, requireB
 router.put('/business/:businessId/products/:productId', authMiddleware, requireBusiness, productController.updateProduct);
 router.delete('/business/:businessId/products/:productId', authMiddleware, requireBusiness, productController.deleteProduct);
 
+// Inventory: stock adjustment and stock timeline (per product)
+const inventoryController = require('../controllers/inventoryController');
+router.post('/business/:businessId/products/:productId/stock', authMiddleware, requireBusiness, inventoryController.adjustStock);
+router.get('/business/:businessId/products/:productId/stock-movements', authMiddleware, requireBusiness, inventoryController.getStockMovements);
+
+// Inventory settings (per business)
+router.get('/business/:businessId/settings/inventory', authMiddleware, requireBusiness, inventoryController.getInventorySettings);
+router.put('/business/:businessId/settings/inventory', authMiddleware, requireBusiness, inventoryController.updateInventorySettings);
+
 // Invoice Routes (Protected; requireBusiness ensures businessId belongs to user)
 const invoiceController = require('../controllers/invoiceController');
 const invoicePdfController = require('../controllers/invoicePdfController');
 const invoiceStatementPdfController = require('../controllers/invoiceStatementPdfController');
+const invoicePackingSlipPdfController = require('../controllers/invoicePackingSlipPdfController');
 router.post('/business/:businessId/invoices', authMiddleware, requireBusiness, canCreateDocument, invoiceController.createInvoice);
 router.get('/business/:businessId/invoices', authMiddleware, requireBusiness, invoiceController.listInvoices);
 router.get('/business/:businessId/invoices/:invoiceId', authMiddleware, requireBusiness, invoiceController.getInvoice);
@@ -90,6 +100,7 @@ router.put('/business/:businessId/invoices/:invoiceId', authMiddleware, requireB
 router.delete('/business/:businessId/invoices/:invoiceId', authMiddleware, requireBusiness, invoiceController.deleteInvoice);
 router.post('/business/:businessId/invoices/:invoiceId/pdf', authMiddleware, requireBusiness, invoicePdfController.generatePdf);
 router.post('/business/:businessId/invoices/:invoiceId/statement-pdf', authMiddleware, requireBusiness, invoiceStatementPdfController.generateStatementPdf);
+router.post('/business/:businessId/invoices/:invoiceId/packing-slip-pdf', authMiddleware, requireBusiness, invoicePackingSlipPdfController.generatePackingSlipPdf);
 
 // Quotation Routes (Protected; requireBusiness ensures businessId belongs to user)
 const quotationController = require('../controllers/quotationController');

@@ -29,6 +29,7 @@ const Business = {
             termsTemplates: businessData.termsTemplates || [],
             defaultSignatureUrl: businessData.defaultSignatureUrl || null,
             defaultStampUrl: businessData.defaultStampUrl || null,
+            inventorySettings: businessData.inventorySettings || null,
 
             approvalStatus: 'PENDING', // Default status for new business
             isActive: false, // Default inactive until approved
@@ -89,7 +90,7 @@ const Business = {
             'isActive',
             // Master Settings
             'bankAccounts', 'transporters', 'termsTemplates',
-            'defaultSignatureUrl', 'defaultStampUrl'
+            'defaultSignatureUrl', 'defaultStampUrl', 'inventorySettings'
         ];
 
         allowedFields.forEach(field => {

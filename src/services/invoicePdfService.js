@@ -39,6 +39,10 @@ const compiledReceiptTemplates = {};
 const STATEMENT_TEMPLATE_IDS = ['classic'];
 const compiledStatementTemplates = {};
 
+// Packing slip templates (per-invoice; no CRUD, generate only)
+const PACKING_SLIP_TEMPLATE_IDS = ['classic'];
+const compiledPackingSlipTemplates = {};
+
 function loadTemplatesOnce() {
     if (Object.keys(compiledTemplates).length > 0) return;
 
@@ -746,6 +750,84 @@ async function renderStatementHtml(statementContext, templateId) {
     return template(statementContext);
 }
 
+function loadPackingSlipTemplatesOnce() {
+    if (Object.keys(compiledPackingSlipTemplates).length > 0) return;
+    loadTemplatesOnce();
+    PACKING_SLIP_TEMPLATE_IDS.forEach((id) => {
+        const filePath = path.join(__dirname, '..', 'templates', 'packing-slips', `${id}.html`);
+        try {
+            const source = fs.readFileSync(filePath, 'utf8');
+            compiledPackingSlipTemplates[id] = Handlebars.compile(source);
+        } catch (err) {
+            console.error(`Failed to load packing slip template "${id}" from ${filePath}:`, err);
+        }
+    });
+}
+
+async function renderPackingSlipHtml(invoice, templateId) {
+    loadPackingSlipTemplatesOnce();
+    const template = compiledPackingSlipTemplates[templateId];
+    if (!template) {
+        throw new Error(`Packing slip template not found: ${templateId}`);
+    }
+    const seller = invoice.seller || {};
+    const shipToName = invoice.shippingName || invoice.buyerName || '';
+    let shipToAddress = invoice.shippingAddress || invoice.buyerAddress || '';
+    if (shipToAddress && typeof shipToAddress === 'object') {
+        const a = shipToAddress;
+        shipToAddress = [a.street, a.city, a.state, a.pincode].filter(Boolean).join(', ') || '';
+    }
+    shipToAddress = typeof shipToAddress === 'string' ? shipToAddress : '';
+    const rawItems = Array.isArray(invoice.items) ? invoice.items : [];
+    const items = rawItems.map((it) => ({
+        itemName: it.itemName || '',
+        hsnSac: it.hsnSac || '',
+        quantity: Number(it.quantity) || 0,
+        unit: it.unit || 'Nos'
+    }));
+    const context = {
+        seller,
+        invoice: {
+            invoiceNumber: invoice.invoiceNumber || '',
+            invoiceDate: invoice.invoiceDate || ''
+        },
+        shipToName,
+        shipToAddress,
+        items
+    };
+    return template(context);
+}
+
+async function uploadPackingSlipPdfToS3({ userId, businessId, invoiceId, templateId, pdfBuffer }) {
+    if (!BUCKET_NAME) {
+        throw new Error('UPLOADS_BUCKET environment variable is not set');
+    }
+    const key = `invoices/${userId}/${businessId}/${invoiceId}/packing-slip-${templateId}.pdf`;
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: pdfBuffer,
+        ContentType: 'application/pdf',
+        ACL: 'public-read'
+    };
+    await s3Client.send(new PutObjectCommand(params));
+    const publicUrl = `https://${BUCKET_NAME}.s3.${process.env.REGION}.amazonaws.com/${key}`;
+    return publicUrl;
+}
+
+async function generateAndUploadPackingSlipPdf({ userId, businessId, invoice, templateId = 'classic' }) {
+    const html = await renderPackingSlipHtml(invoice, templateId);
+    const pdfBuffer = await generatePdfBuffer(html);
+    const pdfUrl = await uploadPackingSlipPdfToS3({
+        userId,
+        businessId,
+        invoiceId: invoice.invoiceId || invoice.id,
+        templateId,
+        pdfBuffer
+    });
+    return pdfUrl;
+}
+
 async function renderDeliveryChallanHtml(challan, templateId, copyType = 'original') {
     loadDeliveryChallanTemplatesOnce();
     const template = compiledDeliveryChallanTemplates[templateId];
@@ -974,12 +1056,37 @@ async function generateAndUploadInvoiceStatementPdf({
     paidAmount,
     balanceDue
 }) {
-    // Standalone payment statement PDF only (separate template from receipt; invoice PDF unchanged)
+    // Statement PDF: business details, product details, payment history (clearer for user and customer)
     const totalPaid = Number(paidAmount) || 0;
     const balance = Number(balanceDue) ?? (grandTotal - totalPaid);
     const displayBalance = balance < 0.01 ? 0 : balance;
+    const invoiceTotals = computeInvoiceTotals(invoice);
+    const seller = invoice.seller || {};
+    let buyerAddress = invoice.buyerAddress || '';
+    if (buyerAddress && typeof buyerAddress === 'object') {
+        const a = buyerAddress;
+        buyerAddress = [a.street, a.city, a.state, a.pincode].filter(Boolean).join(', ') || '';
+    }
+    buyerAddress = typeof buyerAddress === 'string' ? buyerAddress : '';
+    const items = (invoiceTotals.items || []).map((it) => ({
+        itemName: it.itemName || '',
+        quantity: Number(it.quantity) || 0,
+        unit: it.unit || 'Nos',
+        lineTotal: it.totals?.lineTotal ?? 0
+    }));
     const statementContext = {
         invoiceNumber: invoice.invoiceNumber || '',
+        invoiceDate: invoice.invoiceDate || '',
+        seller: {
+            firmName: seller.firmName || '',
+            address: seller.address || {},
+            gstNumber: seller.gstNumber || '',
+            mobile: seller.mobile || ''
+        },
+        buyerName: invoice.buyerName || '',
+        buyerAddress,
+        items,
+        grandTotal: Number(grandTotal) || 0,
         paymentHistory: Array.isArray(paymentHistory) ? paymentHistory : [],
         totals: {
             totalPaid,
@@ -1015,6 +1122,8 @@ module.exports = {
     renderReceiptHtml,
     uploadReceiptPdfToS3,
     generateAndUploadReceiptPdf,
-    generateAndUploadInvoiceStatementPdf
+    generateAndUploadInvoiceStatementPdf,
+    renderPackingSlipHtml,
+    generateAndUploadPackingSlipPdf
 };
 

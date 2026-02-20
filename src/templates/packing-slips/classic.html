@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PACKING SLIP</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      margin: 10px;
+      color: #000;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    td, th {
+      border: 1px solid #000;
+      padding: 6px;
+      vertical-align: top;
+    }
+    .bold { font-weight: bold; }
+    .center { text-align: center; }
+    .right { text-align: right; }
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      margin: 8px 0 12px 0;
+    }
+    .header-meta {
+      font-size: 11px;
+      text-align: right;
+      margin-bottom: 4px;
+    }
+    .section-label {
+      font-size: 11px;
+      color: #333;
+      margin-bottom: 2px;
+    }
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      margin-top: 16px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div class="title">PACKING SLIP</div>
+
+<!-- Seller + Invoice reference -->
+<table>
+  <tr>
+    <td style="width:60%;">
+      <div class="bold" style="font-size:14px;">{{seller.firmName}}</div>
+      {{#if seller.address}}
+        {{#if seller.address.street}}{{seller.address.street}}<br>{{/if}}
+        {{#if seller.address.city}}{{seller.address.city}}{{/if}}{{#if seller.address.state}}, {{seller.address.state}}{{/if}}{{#if seller.address.pincode}} – {{seller.address.pincode}}{{/if}}
+      {{/if}}
+      {{#if seller.gstNumber}}<br>GSTIN: {{seller.gstNumber}}{{/if}}
+    </td>
+    <td style="vertical-align: top;">
+      <div class="section-label">Invoice No.</div>
+      <div class="bold">{{invoice.invoiceNumber}}</div>
+      <div class="section-label" style="margin-top:8px;">Invoice Date</div>
+      <div class="bold">{{formatDate invoice.invoiceDate}}</div>
+    </td>
+  </tr>
+</table>
+
+<!-- Ship To -->
+<table style="margin-top:10px;">
+  <tr>
+    <td class="bold">Ship To</td>
+  </tr>
+  <tr>
+    <td>
+      <div class="bold">{{shipToName}}</div>
+      {{#if shipToAddress}}{{shipToAddress}}{{/if}}
+    </td>
+  </tr>
+</table>
+
+<!-- Items (no prices / tax) -->
+<table style="margin-top:12px;">
+  <thead>
+    <tr style="background:#eee;">
+      <th class="center">Sr.</th>
+      <th>Product / Description</th>
+      <th class="center">HSN/SAC</th>
+      <th class="right">Qty</th>
+      <th class="center">Unit</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each items}}
+    <tr>
+      <td class="center">{{inc @index}}</td>
+      <td class="bold">{{this.itemName}}</td>
+      <td class="center">{{this.hsnSac}}</td>
+      <td class="right">{{this.quantity}}</td>
+      <td>{{this.unit}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<div class="footer">This packing slip is for shipping reference only. Thank you for your business.</div>
+
+</body>
+</html>

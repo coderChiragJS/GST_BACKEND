@@ -1,6 +1,10 @@
 const Invoice = require('../models/invoiceModel');
 const UserSubscription = require('../models/userSubscriptionModel');
 const VoucherIndex = require('../models/voucherIndexModel');
+const {
+    applyInvoiceStockDeductions,
+    reverseInvoiceStockDeductions
+} = require('../services/inventoryService');
 const { z } = require('zod');
 
 // --- Zod Schemas matching the shared Invoice JSON spec ---
@@ -197,6 +201,23 @@ const invoiceController = {
                 throw createErr;
             }
 
+            if (validation.data.status === 'saved') {
+                try {
+                    await applyInvoiceStockDeductions(userId, businessId, invoice);
+                } catch (stockErr) {
+                    await Invoice.delete(userId, businessId, invoice.invoiceId).catch(() => {});
+                    await VoucherIndex.releaseVoucherNumber(
+                        userId,
+                        businessId,
+                        VoucherIndex.DOC_TYPES.INVOICE,
+                        validation.data.invoiceNumber
+                    ).catch(() => {});
+                    const code = stockErr.code || 'STOCK_ERROR';
+                    const message = stockErr.message || 'Inventory update failed';
+                    return res.status(400).json({ message, code, ...(stockErr.currentStock !== undefined && { currentStock: stockErr.currentStock }) });
+                }
+            }
+
             // When not on trial, increment usage on the active subscription bound to this business.
             if (!req.onTrial && req.subscription) {
                 await UserSubscription.incrementInvoicesUsed(userId, req.subscription.subscriptionId);
@@ -358,7 +379,23 @@ const invoiceController = {
                 }
             }
 
+            if (existing.status === 'saved') {
+                await reverseInvoiceStockDeductions(userId, businessId, existing).catch(() => {});
+            }
+
             const invoice = await Invoice.update(userId, businessId, invoiceId, validation.data);
+
+            if (invoice.status === 'saved') {
+                try {
+                    await applyInvoiceStockDeductions(userId, businessId, invoice);
+                } catch (stockErr) {
+                    await reverseInvoiceStockDeductions(userId, businessId, invoice).catch(() => {});
+                    const code = stockErr.code || 'STOCK_ERROR';
+                    const message = stockErr.message || 'Inventory update failed';
+                    return res.status(400).json({ message, code, ...(stockErr.currentStock !== undefined && { currentStock: stockErr.currentStock }) });
+                }
+            }
+
             return res.json({ invoice });
         } catch (error) {
             console.error('Update Invoice Error:', error);
@@ -374,6 +411,10 @@ const invoiceController = {
             const existing = await Invoice.getById(userId, businessId, invoiceId);
             if (!existing) {
                 return res.status(404).json({ message: 'Invoice not found' });
+            }
+
+            if (existing.status === 'saved') {
+                await reverseInvoiceStockDeductions(userId, businessId, existing).catch(() => {});
             }
 
             await Invoice.delete(userId, businessId, invoiceId);

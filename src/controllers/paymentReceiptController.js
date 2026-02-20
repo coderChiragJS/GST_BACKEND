@@ -160,8 +160,9 @@ const paymentReceiptController = {
                 return res.status(400).json({ message: 'Business ID is required in URL' });
             }
 
-            const { partyId, fromDate, toDate, limit, nextToken } = req.query;
+            const { partyId, fromDate, toDate, limit, nextToken, search, q } = req.query;
             const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 100, 1), 100);
+            const searchTerm = (search || q || '').toString().trim().toLowerCase();
             let exclusiveStartKey = null;
             if (nextToken) {
                 try {
@@ -188,6 +189,13 @@ const paymentReceiptController = {
             if (toDate) {
                 const to = new Date(toDate);
                 receipts = receipts.filter((r) => r.receiptDate && new Date(r.receiptDate) <= to);
+            }
+            if (searchTerm) {
+                receipts = receipts.filter((r) => {
+                    const receiptNum = (r.receiptNumber || '').toString().toLowerCase();
+                    const party = (r.partyName || '').toString().toLowerCase();
+                    return receiptNum.includes(searchTerm) || party.includes(searchTerm);
+                });
             }
 
             const nextTokenOut = lastEvaluatedKey

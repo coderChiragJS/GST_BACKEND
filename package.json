@@ -9,7 +9,8 @@
     "test:sdn-pdf:html": "node scripts/test-sales-debit-note-template-local.js --html",
     "test:challan-pdf:html": "node scripts/test-delivery-challan-template-local.js --html",
     "test:quotation-pdf:html": "node scripts/test-quotation-template-local.js --html",
-    "test:all-modules-update": "node scripts/test-all-modules-update-and-verify.js"
+    "test:all-modules-update": "node scripts/test-all-modules-update-and-verify.js",
+    "test:inventory": "node scripts/test-inventory-api.js"
   },
   "keywords": [],
   "author": "",

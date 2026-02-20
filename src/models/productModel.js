@@ -43,6 +43,12 @@ const Product = {
             discountType: productData.discountType || 'percentage', // percentage | amount
             discountValue: productData.discountValue || 0,
 
+            // Inventory (when type === 'product' and maintainStock is true)
+            maintainStock: !!productData.maintainStock,
+            openingStock: Number(productData.openingStock) || 0,
+            currentStock: productData.maintainStock ? (Number(productData.openingStock) || 0) : 0,
+            lowStockAlertQty: Number(productData.lowStockAlertQty) || 0,
+
             // Media & Extra
             imagePath: productData.imagePath || '',
             customFields: productData.customFields || [],
@@ -107,7 +113,8 @@ const Product = {
             'taxInclusive', 'gstPercent', 'cessType', 'cessValue',
             'discountType', 'discountValue', 'purchasePrice',
             'taxInclusivePurchase', 'wholesalePrice', 'minWholesaleQty',
-            'categoryId', 'imagePath', 'customFields'
+            'categoryId', 'imagePath', 'customFields',
+            'maintainStock', 'openingStock', 'currentStock', 'lowStockAlertQty'
         ];
 
         allowedFields.forEach(field => {

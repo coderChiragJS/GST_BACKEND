@@ -10,20 +10,88 @@
     .no-border td { border: none; }
     .bold { font-weight: bold; }
     .right { text-align: right; }
+    .center { text-align: center; }
     .title { font-size: 16px; font-weight: bold; text-align: center; margin: 8px 0; }
-    .subtitle { font-size: 12px; margin-bottom: 16px; }
+    .subtitle { font-size: 12px; margin-bottom: 8px; }
+    .section-label { font-size: 11px; color: #333; margin-bottom: 2px; }
     .footer { margin-top: 16px; font-size: 11px; }
+    .block { margin-bottom: 12px; }
   </style>
 </head>
 <body>
 
 <div class="title">PAYMENT STATEMENT</div>
-<div class="subtitle">Invoice: <b>{{invoiceNumber}}</b></div>
 
-<div class="bold" style="margin-bottom:6px;">Payment history</div>
+<!-- Business (seller) details -->
+<table class="no-border block">
+  <tr>
+    <td style="width:60%;">
+      <div class="section-label">From (Business)</div>
+      <div class="bold" style="font-size:14px;">{{seller.firmName}}</div>
+      {{#if seller.address}}
+        {{#if seller.address.street}}{{seller.address.street}}<br>{{/if}}
+        {{#if seller.address.city}}{{seller.address.city}}{{/if}}{{#if seller.address.state}}, {{seller.address.state}}{{/if}}{{#if seller.address.pincode}} – {{seller.address.pincode}}{{/if}}
+      {{/if}}
+      {{#if seller.gstNumber}}<br>GSTIN: {{seller.gstNumber}}{{/if}}
+      {{#if seller.mobile}}<br>📞 {{seller.mobile}}{{/if}}
+    </td>
+    <td style="vertical-align: top;">
+      <div class="section-label">Invoice</div>
+      <div class="bold">{{invoiceNumber}}</div>
+      <div class="section-label" style="margin-top:6px;">Date</div>
+      <div class="bold">{{formatDate invoiceDate}}</div>
+    </td>
+  </tr>
+</table>
+
+<!-- Customer (bill to) details -->
+<table class="no-border block">
+  <tr>
+    <td>
+      <div class="section-label">Bill To (Customer)</div>
+      <div class="bold">{{buyerName}}</div>
+      {{#if buyerAddress}}{{buyerAddress}}{{/if}}
+    </td>
+  </tr>
+</table>
+
+<!-- Product / invoice items summary -->
+<div class="bold" style="margin-bottom:6px;">Invoice details (products / services)</div>
 <table>
   <thead>
+    <tr style="background:#eee;">
+      <th class="center">Sr.</th>
+      <th>Product / Description</th>
+      <th class="right">Qty</th>
+      <th class="center">Unit</th>
+      <th class="right">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each items}}
     <tr>
+      <td class="center">{{inc @index}}</td>
+      <td>{{this.itemName}}</td>
+      <td class="right">{{this.quantity}}</td>
+      <td>{{this.unit}}</td>
+      <td class="right">₹ {{formatCurrency this.lineTotal}}</td>
+    </tr>
+    {{else}}
+    <tr>
+      <td colspan="5" class="center">No line items</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+<table class="no-border" style="margin-top:4px;">
+  <tr><td class="right bold">Invoice total</td><td class="right bold" style="width:120px;">₹ {{formatCurrency grandTotal}}</td></tr>
+</table>
+
+<!-- Payment history -->
+<div class="bold" style="margin-top:16px; margin-bottom:6px;">Payment history</div>
+<table>
+  <thead>
+    <tr style="background:#eee;">
       <th>Date</th>
       <th class="right">Amount</th>
       <th>Receipt No</th>
