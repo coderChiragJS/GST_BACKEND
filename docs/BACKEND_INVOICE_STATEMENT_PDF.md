@@ -1,13 +1,13 @@
-# Backend: Invoice Statement PDF (Invoice + Payment History)
+# Backend: Invoice Statement PDF (Payment History Only)
 
-This document describes the API contract for **Invoice statement PDF**: a single PDF that includes the full invoice plus a **payment history** section (date and amount of each payment, total paid, balance due). The app uses this so users can view or share a detailed record without cluttering the invoice detail screen.
+This document describes the API contract for **Invoice statement PDF**: a **separate** PDF that contains **only payment history** for an invoice (date and amount of each payment, total paid, balance due). The **invoice PDF is unchanged** and does not include payment history. The statement PDF lets users view or share a payment summary without opening the full invoice.
 
 ---
 
 ## 1. Purpose
 
 - **App behaviour:** For a saved invoice, the user can tap **More → Invoice statement (PDF)**. The app requests a PDF URL from the backend and opens it in-app (same viewer as other PDFs).
-- **PDF content:** Same as the existing invoice PDF (header, seller, buyer, items, totals) **plus** a **Payment history** section that lists each payment applied to this invoice: date, amount, optional receipt number, then **Total amount paid** and **Balance due**.
+- **PDF content:** A **standalone** document with **payment history only**: title “Payment statement”, invoice number reference, table of payments (date, amount, receipt number), **Total amount paid**, and **Balance due**. The **invoice PDF remains as-is** (no payment history added to it).
 
 ---
 
@@ -78,14 +78,14 @@ Example:
 
 ## 5. PDF Content Requirements
 
-The generated PDF must include:
+The generated PDF is a **separate document** (no invoice content). It must include:
 
-1. **Full invoice**  
-   Reuse the same content as the existing invoice PDF (e.g. classic template): header, seller and buyer details, items table, taxes, totals, etc.
+1. **Title and invoice reference**  
+   - **Title:** e.g. “Payment statement”.
+   - **Invoice reference:** e.g. “Invoice: INV-001” so the user knows which invoice the statement refers to.
 
-2. **Payment history section** (after the invoice body)  
-   - **Title:** e.g. “Payment history” or “Payments against this invoice”.
-   - **Table or list** with one row per payment applied to this invoice. For each payment include:
+2. **Payment history table**  
+   - One row per payment applied to this invoice. For each payment include:
      - **Date** – receipt date (e.g. DD-MM-YYYY or as per locale).
      - **Amount** – amount applied to this invoice (allocated amount).
      - **Receipt number** (optional but recommended) – e.g. PR-000001.
@@ -104,7 +104,7 @@ If there are **no payments**, still show the payment history section with a line
 
 ## 6. Backend Implementation Notes
 
-- **Reuse existing invoice PDF:** Use the same template/layout as the current invoice PDF; add a second section (or extra pages) for payment history so one “statement” PDF is produced.
+- **Separate PDF:** The statement PDF is **not** the invoice PDF. Do **not** include invoice content (items, buyer, etc.). Generate a standalone document with only the payment statement (title, invoice number, payment table, totals). The invoice PDF remains unchanged.
 - **Fetching payment history:** Query receipts that have at least one allocation with `invoiceId = :invoiceId`. From each receipt use: `receiptDate`, `receiptNumber`, and the allocation’s `allocatedAmount` for this invoice. Ensure the sum of these amounts equals the invoice’s `paidAmount` (already maintained by your receipt create/update/delete logic).
 - **Rounding:** Format all amounts in the PDF to 2 decimal places. Balance due should be shown as 0.00 when the invoice is fully paid (e.g. when `paidAmount >= grandTotal` or balance &lt; 0.01).
 - **URL lifetime:** Return a pre-signed or public URL with the same expiry/lifecycle policy as your existing invoice and receipt PDFs so the app can open it in a WebView or browser.
@@ -117,6 +117,8 @@ If there are **no payments**, still show the payment history section with a line
 - On **200**, it opens the returned `pdfUrl` in the in-app PDF viewer (same as invoice/receipt PDFs).
 - On **404** or other errors, it shows a friendly message (e.g. “Invoice statement PDF is not available yet”) so missing backend support does not confuse the user.
 
+**Flutter (short):** User taps **More → Invoice statement (PDF)** on a saved invoice. Call **POST** `/business/{businessId}/invoices/{invoiceId}/statement-pdf` (same base URL and `Authorization: Bearer <token>`). Body: `{}` or `{ "templateId": "classic" }`. On **200**, open `response['pdfUrl']` in your in-app PDF viewer (same as invoice/receipt PDFs). On 404/400/500 show a short message (e.g. "Statement not available"). Reuse the same PDF viewer as for invoice and receipt PDFs.
+
 ---
 
 ## 8. Summary
@@ -126,5 +128,5 @@ If there are **no payments**, still show the payment history section with a line
 | Endpoint | `POST /business/:businessId/invoices/:invoiceId/statement-pdf` |
 | Body | Optional `{ "templateId": "classic" }` |
 | Response | `200` → `{ "pdfUrl": "..." }` |
-| PDF content | Invoice (existing layout) + Payment history (date, amount, optional receipt no., total paid, balance due) |
+| PDF content | **Separate** payment statement only: title, invoice ref, payment table (date, amount, receipt no.), total paid, balance due. Invoice PDF unchanged. |
 | Payment data | From receipts that allocate to this invoice; one row per payment; totals consistent with `paidAmount` |

@@ -35,6 +35,10 @@ const compiledDeliveryChallanTemplates = {};
 const RECEIPT_TEMPLATE_IDS = ['classic'];
 const compiledReceiptTemplates = {};
 
+// Payment Statement templates (separate from receipt; statement = payment history for an invoice)
+const STATEMENT_TEMPLATE_IDS = ['classic'];
+const compiledStatementTemplates = {};
+
 function loadTemplatesOnce() {
     if (Object.keys(compiledTemplates).length > 0) return;
 
@@ -719,6 +723,29 @@ async function generateAndUploadReceiptPdf({ userId, businessId, receipt, busine
     return pdfUrl;
 }
 
+function loadStatementTemplatesOnce() {
+    if (Object.keys(compiledStatementTemplates).length > 0) return;
+    loadTemplatesOnce();
+    STATEMENT_TEMPLATE_IDS.forEach((id) => {
+        const filePath = path.join(__dirname, '..', 'templates', 'statements', `${id}.html`);
+        try {
+            const source = fs.readFileSync(filePath, 'utf8');
+            compiledStatementTemplates[id] = Handlebars.compile(source);
+        } catch (err) {
+            console.error(`Failed to load statement template "${id}" from ${filePath}:`, err);
+        }
+    });
+}
+
+async function renderStatementHtml(statementContext, templateId) {
+    loadStatementTemplatesOnce();
+    const template = compiledStatementTemplates[templateId];
+    if (!template) {
+        throw new Error(`Statement template not found: ${templateId}`);
+    }
+    return template(statementContext);
+}
+
 async function renderDeliveryChallanHtml(challan, templateId, copyType = 'original') {
     loadDeliveryChallanTemplatesOnce();
     const template = compiledDeliveryChallanTemplates[templateId];
@@ -920,6 +947,57 @@ async function generateAndUploadInvoicePdf({ userId, businessId, invoice, templa
     return pdfUrl;
 }
 
+async function uploadInvoiceStatementPdfToS3({ userId, businessId, invoiceId, templateId, pdfBuffer }) {
+    if (!BUCKET_NAME) {
+        throw new Error('UPLOADS_BUCKET environment variable is not set');
+    }
+    const key = `invoices/${userId}/${businessId}/${invoiceId}/statement-${templateId}.pdf`;
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: pdfBuffer,
+        ContentType: 'application/pdf',
+        ACL: 'public-read'
+    };
+    await s3Client.send(new PutObjectCommand(params));
+    const publicUrl = `https://${BUCKET_NAME}.s3.${process.env.REGION}.amazonaws.com/${key}`;
+    return publicUrl;
+}
+
+async function generateAndUploadInvoiceStatementPdf({
+    userId,
+    businessId,
+    invoice,
+    templateId,
+    paymentHistory,
+    grandTotal,
+    paidAmount,
+    balanceDue
+}) {
+    // Standalone payment statement PDF only (separate template from receipt; invoice PDF unchanged)
+    const totalPaid = Number(paidAmount) || 0;
+    const balance = Number(balanceDue) ?? (grandTotal - totalPaid);
+    const displayBalance = balance < 0.01 ? 0 : balance;
+    const statementContext = {
+        invoiceNumber: invoice.invoiceNumber || '',
+        paymentHistory: Array.isArray(paymentHistory) ? paymentHistory : [],
+        totals: {
+            totalPaid,
+            balanceDue: displayBalance
+        }
+    };
+    const statementHtml = await renderStatementHtml(statementContext, templateId);
+    const pdfBuffer = await generatePdfBuffer(statementHtml);
+    const pdfUrl = await uploadInvoiceStatementPdfToS3({
+        userId,
+        businessId,
+        invoiceId: invoice.invoiceId || invoice.id,
+        templateId,
+        pdfBuffer
+    });
+    return pdfUrl;
+}
+
 module.exports = {
     renderInvoiceHtml,
     generatePdfBuffer,
@@ -936,6 +1014,7 @@ module.exports = {
     generateAndUploadDeliveryChallanPdf,
     renderReceiptHtml,
     uploadReceiptPdfToS3,
-    generateAndUploadReceiptPdf
+    generateAndUploadReceiptPdf,
+    generateAndUploadInvoiceStatementPdf
 };
 

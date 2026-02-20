@@ -82,12 +82,14 @@ router.delete('/business/:businessId/products/:productId', authMiddleware, requi
 // Invoice Routes (Protected; requireBusiness ensures businessId belongs to user)
 const invoiceController = require('../controllers/invoiceController');
 const invoicePdfController = require('../controllers/invoicePdfController');
+const invoiceStatementPdfController = require('../controllers/invoiceStatementPdfController');
 router.post('/business/:businessId/invoices', authMiddleware, requireBusiness, canCreateDocument, invoiceController.createInvoice);
 router.get('/business/:businessId/invoices', authMiddleware, requireBusiness, invoiceController.listInvoices);
 router.get('/business/:businessId/invoices/:invoiceId', authMiddleware, requireBusiness, invoiceController.getInvoice);
 router.put('/business/:businessId/invoices/:invoiceId', authMiddleware, requireBusiness, invoiceController.updateInvoice);
 router.delete('/business/:businessId/invoices/:invoiceId', authMiddleware, requireBusiness, invoiceController.deleteInvoice);
 router.post('/business/:businessId/invoices/:invoiceId/pdf', authMiddleware, requireBusiness, invoicePdfController.generatePdf);
+router.post('/business/:businessId/invoices/:invoiceId/statement-pdf', authMiddleware, requireBusiness, invoiceStatementPdfController.generateStatementPdf);
 
 // Quotation Routes (Protected; requireBusiness ensures businessId belongs to user)
 const quotationController = require('../controllers/quotationController');

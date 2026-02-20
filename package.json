@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "test:invoice-pdf": "node scripts/test-invoice-template-local.js",
     "test:invoice-pdf:html": "node scripts/test-invoice-template-local.js --html",
     "test:sdn-pdf:html": "node scripts/test-sales-debit-note-template-local.js --html",
@@ -36,6 +36,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
     "nodemon": "^3.1.11",
     "serverless": "^4.31.2",
     "serverless-offline": "^14.4.0"
