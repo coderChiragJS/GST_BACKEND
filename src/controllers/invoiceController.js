@@ -294,7 +294,8 @@ const invoiceController = {
 
             const invoicesWithPaid = invoices.map((inv) => ({
                 ...inv,
-                paidAmount: inv.paidAmount ?? 0
+                paidAmount: inv.paidAmount ?? 0,
+                tdsAmount: inv.tdsAmount ?? 0
             }));
 
             return res.json({
@@ -321,7 +322,7 @@ const invoiceController = {
                 return res.status(404).json({ message: 'Invoice not found' });
             }
 
-            const invoiceWithPaid = { ...invoice, paidAmount: invoice.paidAmount ?? 0 };
+            const invoiceWithPaid = { ...invoice, paidAmount: invoice.paidAmount ?? 0, tdsAmount: invoice.tdsAmount ?? 0 };
             return res.json({ invoice: invoiceWithPaid });
         } catch (error) {
             console.error('Get Invoice Error:', error);

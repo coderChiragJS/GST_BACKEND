@@ -43,6 +43,10 @@ const compiledStatementTemplates = {};
 const PACKING_SLIP_TEMPLATE_IDS = ['classic'];
 const compiledPackingSlipTemplates = {};
 
+// TDS voucher templates (per-voucher; generate PDF with all details)
+const TDS_VOUCHER_TEMPLATE_IDS = ['classic'];
+const compiledTdsVoucherTemplates = {};
+
 function loadTemplatesOnce() {
     if (Object.keys(compiledTemplates).length > 0) return;
 
@@ -727,6 +731,68 @@ async function generateAndUploadReceiptPdf({ userId, businessId, receipt, busine
     return pdfUrl;
 }
 
+function loadTdsVoucherTemplatesOnce() {
+    if (Object.keys(compiledTdsVoucherTemplates).length > 0) return;
+    loadTemplatesOnce();
+    TDS_VOUCHER_TEMPLATE_IDS.forEach((id) => {
+        const filePath = path.join(__dirname, '..', 'templates', 'tds-vouchers', `${id}.html`);
+        try {
+            const source = fs.readFileSync(filePath, 'utf8');
+            compiledTdsVoucherTemplates[id] = Handlebars.compile(source);
+        } catch (err) {
+            console.error(`Failed to load TDS voucher template "${id}" from ${filePath}:`, err);
+        }
+    });
+}
+
+async function renderTdsVoucherHtml(voucher, business, templateId) {
+    loadTdsVoucherTemplatesOnce();
+    const template = compiledTdsVoucherTemplates[templateId];
+    if (!template) {
+        throw new Error(`TDS voucher template not found: ${templateId}`);
+    }
+    const allocations = voucher.allocations || [];
+    const totalTdsAllocated = allocations.reduce((s, a) => s + (Number(a.tdsAllocated) || 0), 0);
+    const context = {
+        voucher,
+        business: business || {},
+        totals: {
+            totalTdsAllocated
+        }
+    };
+    return template(context);
+}
+
+async function uploadTdsVoucherPdfToS3({ userId, businessId, voucherId, templateId, pdfBuffer }) {
+    if (!BUCKET_NAME) {
+        throw new Error('UPLOADS_BUCKET environment variable is not set');
+    }
+    const key = `tds-vouchers/${userId}/${businessId}/${voucherId}/${templateId}.pdf`;
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: pdfBuffer,
+        ContentType: 'application/pdf',
+        ACL: 'public-read'
+    };
+    await s3Client.send(new PutObjectCommand(params));
+    const publicUrl = `https://${BUCKET_NAME}.s3.${process.env.REGION}.amazonaws.com/${key}`;
+    return publicUrl;
+}
+
+async function generateAndUploadTdsVoucherPdf({ userId, businessId, voucher, business, templateId = 'classic' }) {
+    const html = await renderTdsVoucherHtml(voucher, business, templateId);
+    const pdfBuffer = await generatePdfBuffer(html);
+    const pdfUrl = await uploadTdsVoucherPdfToS3({
+        userId,
+        businessId,
+        voucherId: voucher.voucherId,
+        templateId,
+        pdfBuffer
+    });
+    return pdfUrl;
+}
+
 function loadStatementTemplatesOnce() {
     if (Object.keys(compiledStatementTemplates).length > 0) return;
     loadTemplatesOnce();
@@ -1052,13 +1118,16 @@ async function generateAndUploadInvoiceStatementPdf({
     invoice,
     templateId,
     paymentHistory,
+    tdsHistory = [],
     grandTotal,
     paidAmount,
+    tdsAmount = 0,
     balanceDue
 }) {
-    // Statement PDF: business details, product details, payment history (clearer for user and customer)
+    // Statement PDF: business details, product details, payment history, TDS history (clearer for user and customer)
     const totalPaid = Number(paidAmount) || 0;
-    const balance = Number(balanceDue) ?? (grandTotal - totalPaid);
+    const totalTds = Number(tdsAmount) || 0;
+    const balance = Number(balanceDue) ?? (grandTotal - totalPaid - totalTds);
     const displayBalance = balance < 0.01 ? 0 : balance;
     const invoiceTotals = computeInvoiceTotals(invoice);
     const seller = invoice.seller || {};
@@ -1088,8 +1157,10 @@ async function generateAndUploadInvoiceStatementPdf({
         items,
         grandTotal: Number(grandTotal) || 0,
         paymentHistory: Array.isArray(paymentHistory) ? paymentHistory : [],
+        tdsHistory: Array.isArray(tdsHistory) ? tdsHistory : [],
         totals: {
             totalPaid,
+            totalTds,
             balanceDue: displayBalance
         }
     };
@@ -1122,6 +1193,9 @@ module.exports = {
     renderReceiptHtml,
     uploadReceiptPdfToS3,
     generateAndUploadReceiptPdf,
+    renderTdsVoucherHtml,
+    uploadTdsVoucherPdfToS3,
+    generateAndUploadTdsVoucherPdf,
     generateAndUploadInvoiceStatementPdf,
     renderPackingSlipHtml,
     generateAndUploadPackingSlipPdf

@@ -72,6 +72,9 @@
 <table class="no-border" style="margin-top:8px;">
   <tr><td>Paid Against Invoice</td><td class="right"><b>₹ {{formatCurrency totals.paidAgainstInvoice}}</b></td></tr>
   <tr><td>Excess Amount</td><td class="right"><b>₹ {{formatCurrency totals.excessAmount}}</b></td></tr>
+  {{#if receipt.tdsAmount}}
+  <tr><td>TDS deducted</td><td class="right"><b>₹ {{formatCurrency receipt.tdsAmount}}</b></td></tr>
+  {{/if}}
   <tr><td>Total Amount Received</td><td class="right"><b>₹ {{formatCurrency receipt.amountCollected}}</b></td></tr>
 </table>
 

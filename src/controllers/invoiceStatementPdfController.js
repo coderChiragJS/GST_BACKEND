@@ -1,7 +1,8 @@
 const Invoice = require('../models/invoiceModel');
 const PaymentReceipt = require('../models/paymentReceiptModel');
+const TdsVoucher = require('../models/tdsVoucherModel');
 const invoicePdfService = require('../services/invoicePdfService');
-const { computeInvoiceTotals } = require('../services/invoiceCalculationService');
+const { getInvoiceBalanceInfo } = require('../utils/invoiceBalance');
 
 const ALLOWED_TEMPLATES = ['classic', 'modern', 'minimal'];
 
@@ -43,6 +44,44 @@ async function getPaymentHistoryForInvoice(userId, businessId, invoiceId) {
     return entries;
 }
 
+/**
+ * Fetch all TDS vouchers for the business that allocate to this invoice.
+ * Returns array of { date, amount, voucherNumber } sorted by date ascending.
+ */
+async function getTdsHistoryForInvoice(userId, businessId, invoiceId) {
+    const entries = [];
+    let exclusiveStartKey = null;
+
+    do {
+        const { items, lastEvaluatedKey } = await TdsVoucher.listByBusiness(userId, businessId, {
+            limit: 100,
+            exclusiveStartKey
+        });
+        exclusiveStartKey = lastEvaluatedKey || null;
+
+        for (const voucher of items || []) {
+            const allocations = voucher.allocations || [];
+            const alloc = allocations.find((a) => a.invoiceId === invoiceId);
+            if (!alloc) continue;
+
+            const amount = Number(alloc.tdsAllocated) || 0;
+            entries.push({
+                date: voucher.voucherDate || voucher.createdAt || '',
+                amount,
+                voucherNumber: voucher.voucherNumber || ''
+            });
+        }
+    } while (exclusiveStartKey);
+
+    entries.sort((a, b) => {
+        const dA = a.date ? new Date(a.date).getTime() : 0;
+        const dB = b.date ? new Date(b.date).getTime() : 0;
+        return dA - dB;
+    });
+
+    return entries;
+}
+
 const invoiceStatementPdfController = {
     async generateStatementPdf(req, res) {
         try {
@@ -69,11 +108,13 @@ const invoiceStatementPdfController = {
                 return res.status(404).json({ message: 'Invoice not found' });
             }
 
+            const balanceInfo = await getInvoiceBalanceInfo(userId, businessId, invoiceId);
+            if (!balanceInfo) {
+                return res.status(404).json({ message: 'Invoice not found' });
+            }
+
             const paymentHistory = await getPaymentHistoryForInvoice(userId, businessId, invoiceId);
-            const totals = computeInvoiceTotals(invoice);
-            const grandTotal = totals?.summary?.grandTotal ?? 0;
-            const paidAmount = invoice.paidAmount != null ? Number(invoice.paidAmount) : 0;
-            const balanceDue = Math.round((grandTotal - paidAmount + Number.EPSILON) * 100) / 100;
+            const tdsHistory = await getTdsHistoryForInvoice(userId, businessId, invoiceId);
 
             const pdfUrl = await invoicePdfService.generateAndUploadInvoiceStatementPdf({
                 userId,
@@ -81,9 +122,11 @@ const invoiceStatementPdfController = {
                 invoice,
                 templateId,
                 paymentHistory,
-                grandTotal,
-                paidAmount,
-                balanceDue
+                tdsHistory,
+                grandTotal: balanceInfo.grandTotal,
+                paidAmount: balanceInfo.paidAmount,
+                tdsAmount: balanceInfo.tdsAmount,
+                balanceDue: balanceInfo.balanceDue
             });
 
             return res.json({

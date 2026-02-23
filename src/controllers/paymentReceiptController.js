@@ -1,7 +1,7 @@
 const PaymentReceipt = require('../models/paymentReceiptModel');
 const Invoice = require('../models/invoiceModel');
 const VoucherIndex = require('../models/voucherIndexModel');
-const { computeInvoiceTotals } = require('../services/invoiceCalculationService');
+const { getInvoiceBalanceInfo, round2 } = require('../utils/invoiceBalance');
 const { z } = require('zod');
 
 const PAYMENT_MODES = ['Cash', 'Cheque', 'Net Banking', 'UPI', 'Card', 'Other'];
@@ -42,20 +42,6 @@ const updateReceiptSchema = z.object({
     allocations: z.array(allocationSchema).optional()
 });
 
-function round2(value) {
-    return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
-async function getInvoiceGrandTotalAndPaid(userId, businessId, invoiceId) {
-    const invoice = await Invoice.getById(userId, businessId, invoiceId);
-    if (!invoice) return null;
-    const totals = computeInvoiceTotals(invoice);
-    const grandTotal = totals?.summary?.grandTotal ?? 0;
-    const paidAmount = invoice.paidAmount != null ? Number(invoice.paidAmount) : 0;
-    const balanceDue = round2(grandTotal - paidAmount);
-    return { invoice, grandTotal: round2(grandTotal), paidAmount: round2(paidAmount), balanceDue };
-}
-
 const paymentReceiptController = {
     async createReceipt(req, res) {
         try {
@@ -86,17 +72,22 @@ const paymentReceiptController = {
                 });
             }
 
+            // Total allocated per invoice (same invoice can appear in multiple allocation rows)
+            const allocatedPerInvoice = {};
             for (const alloc of allocations) {
-                const info = await getInvoiceGrandTotalAndPaid(userId, businessId, alloc.invoiceId);
+                allocatedPerInvoice[alloc.invoiceId] = round2((allocatedPerInvoice[alloc.invoiceId] ?? 0) + alloc.allocatedAmount);
+            }
+            for (const [invId, totalAllocated] of Object.entries(allocatedPerInvoice)) {
+                const info = await getInvoiceBalanceInfo(userId, businessId, invId);
                 if (!info) {
                     return res.status(400).json({
-                        message: `Invoice not found: ${alloc.invoiceId}`,
+                        message: `Invoice not found: ${invId}`,
                         code: 'INVALID_ALLOCATION'
                     });
                 }
-                if (round2(alloc.allocatedAmount) > round2(info.balanceDue)) {
+                if (round2(totalAllocated) > round2(info.balanceDue)) {
                     return res.status(400).json({
-                        message: `Allocated amount for invoice ${alloc.invoiceNumber} exceeds balance due`,
+                        message: `Total allocated for invoice ${info.invoice.invoiceNumber || invId} exceeds balance due`,
                         code: 'INVALID_ALLOCATION'
                     });
                 }
@@ -136,7 +127,7 @@ const paymentReceiptController = {
             }
 
             for (const alloc of allocations) {
-                const info = await getInvoiceGrandTotalAndPaid(userId, businessId, alloc.invoiceId);
+                const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
                 const newPaid = round2((info.paidAmount ?? 0) + alloc.allocatedAmount);
                 await Invoice.update(userId, businessId, alloc.invoiceId, { paidAmount: newPaid });
             }
@@ -270,27 +261,31 @@ const paymentReceiptController = {
                     });
                 }
 
+                // Total allocated per invoice in new allocations (same invoice can appear in multiple rows)
+                const newAllocatedPerInvoice = {};
                 for (const alloc of allocations) {
-                    const info = await getInvoiceGrandTotalAndPaid(userId, businessId, alloc.invoiceId);
+                    newAllocatedPerInvoice[alloc.invoiceId] = round2((newAllocatedPerInvoice[alloc.invoiceId] ?? 0) + alloc.allocatedAmount);
+                }
+                for (const [invId, totalNewAllocated] of Object.entries(newAllocatedPerInvoice)) {
+                    const info = await getInvoiceBalanceInfo(userId, businessId, invId);
                     if (!info) {
                         return res.status(400).json({
-                            message: `Invoice not found: ${alloc.invoiceId}`,
+                            message: `Invoice not found: ${invId}`,
                             code: 'INVALID_ALLOCATION'
                         });
                     }
-                    const existingAlloc = (existing.allocations || []).find((a) => a.invoiceId === alloc.invoiceId);
-                    const alreadyPaidForThisInvoice = (existing.allocations || []).reduce((s, a) => s + (a.invoiceId === alloc.invoiceId ? a.allocatedAmount : 0), 0);
+                    const alreadyPaidForThisInvoice = (existing.allocations || []).reduce((s, a) => s + (a.invoiceId === invId ? a.allocatedAmount : 0), 0);
                     const balanceAfterRevert = round2(info.balanceDue + alreadyPaidForThisInvoice);
-                    if (round2(alloc.allocatedAmount) > round2(balanceAfterRevert)) {
+                    if (round2(totalNewAllocated) > round2(balanceAfterRevert)) {
                         return res.status(400).json({
-                            message: `Allocated amount for invoice ${alloc.invoiceNumber} exceeds balance due`,
+                            message: `Total allocated for invoice ${info.invoice.invoiceNumber || invId} exceeds balance due`,
                             code: 'INVALID_ALLOCATION'
                         });
                     }
                 }
 
                 for (const alloc of existing.allocations || []) {
-                    const info = await getInvoiceGrandTotalAndPaid(userId, businessId, alloc.invoiceId);
+                    const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
                     if (info) {
                         const newPaid = round2(Math.max(0, (info.paidAmount ?? 0) - alloc.allocatedAmount));
                         await Invoice.update(userId, businessId, alloc.invoiceId, { paidAmount: newPaid });
@@ -298,7 +293,7 @@ const paymentReceiptController = {
                 }
 
                 for (const alloc of allocations) {
-                    const info = await getInvoiceGrandTotalAndPaid(userId, businessId, alloc.invoiceId);
+                    const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
                     const newPaid = round2((info.paidAmount ?? 0) + alloc.allocatedAmount);
                     await Invoice.update(userId, businessId, alloc.invoiceId, { paidAmount: newPaid });
                 }
@@ -349,7 +344,7 @@ const paymentReceiptController = {
             }
 
             for (const alloc of existing.allocations || []) {
-                const info = await getInvoiceGrandTotalAndPaid(userId, businessId, alloc.invoiceId);
+                const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
                 if (info) {
                     const newPaid = round2(Math.max(0, (info.paidAmount ?? 0) - alloc.allocatedAmount));
                     await Invoice.update(userId, businessId, alloc.invoiceId, { paidAmount: newPaid });

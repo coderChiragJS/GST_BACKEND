@@ -112,8 +112,34 @@
   </tbody>
 </table>
 
+<!-- TDS history -->
+<div class="bold" style="margin-top:16px; margin-bottom:6px;">TDS deducted (history)</div>
+<table>
+  <thead>
+    <tr style="background:#eee;">
+      <th>Date</th>
+      <th class="right">Amount</th>
+      <th>Voucher No</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each tdsHistory}}
+    <tr>
+      <td>{{formatDate this.date}}</td>
+      <td class="right">₹ {{formatCurrency this.amount}}</td>
+      <td>{{this.voucherNumber}}</td>
+    </tr>
+    {{else}}
+    <tr>
+      <td colspan="3">No TDS deducted yet</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+
 <table class="no-border" style="margin-top:12px;">
   <tr><td>Total amount paid</td><td class="right"><b>₹ {{formatCurrency totals.totalPaid}}</b></td></tr>
+  <tr><td>TDS deducted</td><td class="right"><b>₹ {{formatCurrency totals.totalTds}}</b></td></tr>
   <tr><td>Balance due</td><td class="right"><b>₹ {{formatCurrency totals.balanceDue}}</b></td></tr>
 </table>
 

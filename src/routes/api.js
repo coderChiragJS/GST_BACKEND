@@ -204,6 +204,17 @@ router.put('/business/:businessId/receipts/:receiptId', authMiddleware, requireB
 router.delete('/business/:businessId/receipts/:receiptId', authMiddleware, requireBusiness, paymentReceiptController.deleteReceipt);
 router.post('/business/:businessId/receipts/:receiptId/pdf', authMiddleware, requireBusiness, receiptPdfController.generatePdf);
 
+// TDS Voucher Routes (Protected; requireBusiness) – invoices-for-party before :voucherId
+const tdsVoucherController = require('../controllers/tdsVoucherController');
+const tdsVoucherPdfController = require('../controllers/tdsVoucherPdfController');
+router.get('/business/:businessId/tds-vouchers/invoices-for-party', authMiddleware, requireBusiness, tdsVoucherController.listInvoicesForParty);
+router.post('/business/:businessId/tds-vouchers', authMiddleware, requireBusiness, tdsVoucherController.createVoucher);
+router.get('/business/:businessId/tds-vouchers', authMiddleware, requireBusiness, tdsVoucherController.listVouchers);
+router.get('/business/:businessId/tds-vouchers/:voucherId', authMiddleware, requireBusiness, tdsVoucherController.getVoucher);
+router.put('/business/:businessId/tds-vouchers/:voucherId', authMiddleware, requireBusiness, tdsVoucherController.updateVoucher);
+router.delete('/business/:businessId/tds-vouchers/:voucherId', authMiddleware, requireBusiness, tdsVoucherController.deleteVoucher);
+router.post('/business/:businessId/tds-vouchers/:voucherId/pdf', authMiddleware, requireBusiness, tdsVoucherPdfController.generatePdf);
+
 // Optional: public list of available invoice templates
 router.get('/invoice-templates', invoicePdfController.listTemplates);
 
