@@ -7,7 +7,7 @@ const quotationPdfController = {
     async generatePdf(req, res) {
         const userId = req.user.userId;
         const { businessId, quotationId } = req.params;
-        const { templateId, copyType: rawCopyType } = req.body || {};
+        const { templateId, copyType: rawCopyType, outputType: rawOutputType } = req.body || {};
 
         if (!businessId || !quotationId) {
             return res.status(400).json({ message: 'Business ID and Quotation ID are required in URL' });
@@ -22,6 +22,7 @@ const quotationPdfController = {
 
         const validCopyTypes = ['original', 'duplicate', 'triplicate'];
         const copyType = validCopyTypes.includes(rawCopyType) ? rawCopyType : 'original';
+        const outputType = rawOutputType === 'proforma' ? 'proforma' : undefined;
 
         let quotation;
         try {
@@ -41,15 +42,20 @@ const quotationPdfController = {
                 businessId,
                 quotation,
                 templateId,
-                copyType
+                copyType,
+                outputType
             });
 
-            return res.status(200).json({
+            const response = {
                 pdfUrl,
                 quotationId,
                 templateId,
                 copyType
-            });
+            };
+            if (outputType) {
+                response.outputType = outputType;
+            }
+            return res.status(200).json(response);
         } catch (error) {
             console.error('Generate Quotation PDF Error:', error);
             return res.status(503).json({

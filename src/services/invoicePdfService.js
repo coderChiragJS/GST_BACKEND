@@ -20,7 +20,7 @@ const TEMPLATE_IDS = ['classic', 'modern', 'minimal'];
 const compiledTemplates = {};
 
 // Quotation templates (separate from invoice; loaded on first use)
-const QUOTATION_TEMPLATE_IDS = ['classic'];
+const QUOTATION_TEMPLATE_IDS = ['classic', 'proforma'];
 const compiledQuotationTemplates = {};
 
 // Sales Debit Note templates (very similar to invoice layout)
@@ -556,11 +556,11 @@ async function renderQuotationHtml(quotation, templateId, copyType = 'original')
     return template(context);
 }
 
-async function uploadQuotationPdfToS3({ userId, businessId, quotationId, templateId, copyType, pdfBuffer }) {
+async function uploadQuotationPdfToS3({ userId, businessId, quotationId, templateId, copyType, outputType, pdfBuffer }) {
     if (!BUCKET_NAME) {
         throw new Error('UPLOADS_BUCKET environment variable is not set');
     }
-    const fileName = getPdfKeySuffix(templateId, copyType);
+    const fileName = outputType === 'proforma' ? getPdfKeySuffix('proforma', copyType) : getPdfKeySuffix(templateId, copyType);
     const key = `quotations/${userId}/${businessId}/${quotationId}/${fileName}`;
     const params = {
         Bucket: BUCKET_NAME,
@@ -574,8 +574,9 @@ async function uploadQuotationPdfToS3({ userId, businessId, quotationId, templat
     return publicUrl;
 }
 
-async function generateAndUploadQuotationPdf({ userId, businessId, quotation, templateId, copyType = 'original' }) {
-    const html = await renderQuotationHtml(quotation, templateId, copyType);
+async function generateAndUploadQuotationPdf({ userId, businessId, quotation, templateId, copyType = 'original', outputType }) {
+    const effectiveTemplateId = outputType === 'proforma' ? 'proforma' : templateId;
+    const html = await renderQuotationHtml(quotation, effectiveTemplateId, copyType);
     const pdfBuffer = await generatePdfBuffer(html);
     const pdfUrl = await uploadQuotationPdfToS3({
         userId,
@@ -583,6 +584,7 @@ async function generateAndUploadQuotationPdf({ userId, businessId, quotation, te
         quotationId: quotation.quotationId || quotation.id,
         templateId,
         copyType,
+        outputType,
         pdfBuffer
     });
     return pdfUrl;
