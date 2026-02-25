@@ -11,6 +11,7 @@ const {
     getStateByName,
     getAllStates
 } = require('../data/gstStates');
+const { deriveGstContext } = require('./gstDeterminationService');
 
 const s3Client = new S3Client({ region: process.env.REGION });
 const BUCKET_NAME = process.env.UPLOADS_BUCKET;
@@ -155,32 +156,55 @@ function loadTemplatesOnce() {
 }
 
 /**
- * Build supply-type and place-of-supply context from doc (invoice/note/quotation/challan).
- * Use saved transportInfo.supplyTypeDisplay; do not recompute from buyer GSTIN.
- * Returns: isInterstate, showCgstSgst, summaryCgstAmount, summarySgstAmount, placeOfSupplyDisplay
+ * Build supply-type and place-of-supply context from doc (invoice/note/challan).
+ * Place of supply = derived from Bill-To (buyer) only. Per IGST Act Section 10(1)(a) and 10(1)(b).
+ * Transport/delivery state is never used for GST. "Place of Delivery" = where truck goes (display only).
+ * Returns: isInterstate, showCgstSgst, summaryCgstAmount, summarySgstAmount, placeOfSupplyDisplay, placeOfDeliveryDisplay
  */
 function getSupplyTypeContext(doc, seller, totals) {
-    const transportInfo = doc.transportInfo || {};
-    let isInterstate = transportInfo.supplyTypeDisplay === 'interstate';
-    if (transportInfo.supplyTypeDisplay === 'intrastate') {
-        isInterstate = false;
-    } else if (
-        transportInfo.supplyTypeDisplay !== 'interstate' &&
-        transportInfo.placeOfSupplyStateCode &&
-        seller.stateCode
-    ) {
-        const posCode = String(transportInfo.placeOfSupplyStateCode).trim().padStart(2, '0').slice(-2);
-        const sellerCode = String(seller.stateCode).trim().padStart(2, '0').slice(-2);
-        isInterstate = posCode !== sellerCode;
-    } else {
+    const sellerStateCode = seller.stateCode || null;
+    const sellerStateName = seller.state ? String(seller.state).trim() : null;
+    const sellerGstNumber = seller.gstNumber || null;
+    const result = deriveGstContext({
+        sellerStateCode,
+        sellerStateName,
+        sellerGstNumber,
+        buyerGstin: doc.buyerGstin,
+        buyerStateCode: doc.buyerStateCode,
+        buyerStateName: doc.buyerStateName
+    });
+
+    let isInterstate = true;
+    let placeOfSupplyDisplay = '';
+    if (result.error) {
+        // Fallback when buyer state cannot be derived (e.g. draft): treat as interstate
         isInterstate = true;
+    } else {
+        isInterstate = result.supplyTypeDisplay === 'interstate';
+        placeOfSupplyDisplay = result.placeOfSupplyStateName || '';
     }
+
     const taxAmount = totals?.summary?.taxAmount ?? 0;
     const summaryCgstAmount = isInterstate ? 0 : Math.round((taxAmount / 2) * 100) / 100;
     const summarySgstAmount = isInterstate ? 0 : Math.round((taxAmount - summaryCgstAmount) * 100) / 100;
     const showCgstSgst = !isInterstate;
-    const placeOfSupplyDisplay = transportInfo.placeOfSupply || transportInfo.placeOfSupplyStateName || '';
-    return { isInterstate, showCgstSgst, summaryCgstAmount, summarySgstAmount, placeOfSupplyDisplay };
+
+    const transportInfo = doc.transportInfo || {};
+    const placeOfDeliveryDisplay =
+        transportInfo.placeOfDelivery ||
+        transportInfo.placeOfDeliveryStateName ||
+        transportInfo.placeOfSupply ||
+        transportInfo.placeOfSupplyStateName ||
+        '';
+
+    return {
+        isInterstate,
+        showCgstSgst,
+        summaryCgstAmount,
+        summarySgstAmount,
+        placeOfSupplyDisplay,
+        placeOfDeliveryDisplay
+    };
 }
 
 const COPY_TYPE_LABELS = {
@@ -231,9 +255,8 @@ function parseStateFromAddress(address) {
 }
 
 /**
- * Resolve place-of-supply for quotation PDF only (per BACKEND_QUOTATION_PLACE_OF_SUPPLY).
- * Uses seller.state or seller GSTIN; if shippingAddress present uses delivery state from it,
- * else uses buyerStateName or buyerGstin. Returns null if cannot determine.
+ * Resolve place-of-supply for quotation PDF. Per IGST Act Section 10(1)(a)/(b):
+ * Place of supply = Bill-To (buyer) state only. Shipping/delivery address is not used for GST.
  */
 function getQuotationPlaceOfSupply(quotation) {
     const seller = quotation.seller || {};
@@ -244,17 +267,12 @@ function getQuotationPlaceOfSupply(quotation) {
     }
     if (!sellerState) return null;
 
-    const shippingAddress = quotation.shippingAddress && String(quotation.shippingAddress).trim();
     const buyerStateName = quotation.buyerStateName && String(quotation.buyerStateName).trim();
     const buyerStateCode = quotation.buyerStateCode && String(quotation.buyerStateCode).trim();
     const buyerGstin = quotation.buyerGstin && String(quotation.buyerGstin).trim();
 
     let placeState = null;
-    if (shippingAddress) {
-        const parsedName = parseStateFromAddress(shippingAddress);
-        if (parsedName) placeState = getStateByName(parsedName);
-    }
-    if (!placeState && buyerGstin && buyerGstin.length >= 2) {
+    if (buyerGstin && buyerGstin.length >= 2) {
         placeState = getStateByGstin(buyerGstin);
     }
     if (!placeState && buyerStateCode) {
@@ -275,8 +293,8 @@ function getQuotationPlaceOfSupply(quotation) {
 }
 
 /**
- * Build supply context for quotation PDF only. Uses getQuotationPlaceOfSupply (seller/shipping/buyer)
- * and item-level GST total. Do not use for invoice/challan/debit note.
+ * Build supply context for quotation PDF only. Uses getQuotationPlaceOfSupply (seller + buyer only).
+ * Do not use for invoice/challan/debit note.
  */
 function getQuotationSupplyContext(quotation, totals) {
     const pos = getQuotationPlaceOfSupply(quotation);
@@ -340,7 +358,9 @@ async function renderInvoiceHtml(invoice, templateId, copyType = 'original') {
         transportInfo.transporterId ||
         transportInfo.docNo ||
         transportInfo.placeOfSupply ||
-        transportInfo.placeOfSupplyStateName
+        transportInfo.placeOfSupplyStateName ||
+        transportInfo.placeOfDelivery ||
+        transportInfo.placeOfDeliveryStateName
     );
 
     const supplyContext = getSupplyTypeContext(invoice, seller, totals);
@@ -437,7 +457,9 @@ async function renderSalesDebitNoteHtml(note, templateId, copyType = 'original')
         transportInfo.transporterId ||
         transportInfo.docNo ||
         transportInfo.placeOfSupply ||
-        transportInfo.placeOfSupplyStateName
+        transportInfo.placeOfSupplyStateName ||
+        transportInfo.placeOfDelivery ||
+        transportInfo.placeOfDeliveryStateName
     );
 
     const supplyContext = getSupplyTypeContext(note, seller, totals);
@@ -522,7 +544,9 @@ async function renderQuotationHtml(quotation, templateId, copyType = 'original')
         transportInfo.transporterId ||
         transportInfo.docNo ||
         transportInfo.placeOfSupply ||
-        transportInfo.placeOfSupplyStateName
+        transportInfo.placeOfSupplyStateName ||
+        transportInfo.placeOfDelivery ||
+        transportInfo.placeOfDeliveryStateName
     );
     // Quotation PDF: place-of-supply from seller/shipping/buyer (per BACKEND_QUOTATION_PLACE_OF_SUPPLY)
     const supplyContext = getQuotationSupplyContext(quotation, totals);
@@ -939,7 +963,9 @@ async function renderDeliveryChallanHtml(challan, templateId, copyType = 'origin
         transportInfo.transporterId ||
         transportInfo.docNo ||
         transportInfo.placeOfSupply ||
-        transportInfo.placeOfSupplyStateName
+        transportInfo.placeOfSupplyStateName ||
+        transportInfo.placeOfDelivery ||
+        transportInfo.placeOfDeliveryStateName
     );
 
     const supplyContext = getSupplyTypeContext(challan, seller, totals);

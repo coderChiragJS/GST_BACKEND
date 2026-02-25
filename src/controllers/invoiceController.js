@@ -5,6 +5,7 @@ const {
     applyInvoiceStockDeductions,
     reverseInvoiceStockDeductions
 } = require('../services/inventoryService');
+const { applyGstContextToDocument } = require('../services/gstDeterminationService');
 const { z } = require('zod');
 
 // --- Zod Schemas matching the shared Invoice JSON spec ---
@@ -50,7 +51,10 @@ const transportInfoSchema = z.object({
     dateOfSupply: z.string().nullable().optional(),
     placeOfSupplyStateCode: z.string().nullable().optional(),
     placeOfSupplyStateName: z.string().nullable().optional(),
-    supplyTypeDisplay: z.enum(['intrastate', 'interstate']).nullable().optional()
+    supplyTypeDisplay: z.enum(['intrastate', 'interstate']).nullable().optional(),
+    placeOfDelivery: z.string().nullable().optional(),
+    placeOfDeliveryStateCode: z.string().nullable().optional(),
+    placeOfDeliveryStateName: z.string().nullable().optional()
 });
 
 const bankDetailsSnapshotSchema = z.object({
@@ -170,12 +174,22 @@ const invoiceController = {
                 });
             }
 
+            const gstResult = applyGstContextToDocument(validation.data);
+            if (gstResult.error) {
+                return res.status(400).json({
+                    message: gstResult.error,
+                    code: 'GST_DETERMINATION_FAILED'
+                });
+            }
+            const payload = gstResult.data;
+            const gstWarnings = gstResult.warnings || [];
+
             try {
                 await VoucherIndex.claimVoucherNumber(
                     userId,
                     businessId,
                     VoucherIndex.DOC_TYPES.INVOICE,
-                    validation.data.invoiceNumber
+                    payload.invoiceNumber
                 );
             } catch (err) {
                 if (err.code === 'VOUCHER_NUMBER_TAKEN') {
@@ -190,18 +204,18 @@ const invoiceController = {
 
             let invoice;
             try {
-                invoice = await Invoice.create(userId, businessId, validation.data);
-            } catch (createErr) {
+                invoice = await Invoice.create(userId, businessId, payload);
+                } catch (createErr) {
                 await VoucherIndex.releaseVoucherNumber(
                     userId,
                     businessId,
                     VoucherIndex.DOC_TYPES.INVOICE,
-                    validation.data.invoiceNumber
+                    payload.invoiceNumber
                 ).catch(() => {});
                 throw createErr;
             }
 
-            if (validation.data.status === 'saved') {
+            if (payload.status === 'saved') {
                 try {
                     await applyInvoiceStockDeductions(userId, businessId, invoice);
                 } catch (stockErr) {
@@ -210,7 +224,7 @@ const invoiceController = {
                         userId,
                         businessId,
                         VoucherIndex.DOC_TYPES.INVOICE,
-                        validation.data.invoiceNumber
+                        payload.invoiceNumber
                     ).catch(() => {});
                     const code = stockErr.code || 'STOCK_ERROR';
                     const message = stockErr.message || 'Inventory update failed';
@@ -223,7 +237,10 @@ const invoiceController = {
                 await UserSubscription.incrementInvoicesUsed(userId, req.subscription.subscriptionId);
             }
 
-            return res.status(201).json({ invoice });
+            return res.status(201).json({
+                invoice,
+                ...(gstWarnings.length > 0 && { warnings: gstWarnings })
+            });
         } catch (error) {
             console.error('Create Invoice Error:', error);
             return res.status(500).json({
@@ -384,7 +401,21 @@ const invoiceController = {
                 await reverseInvoiceStockDeductions(userId, businessId, existing).catch(() => {});
             }
 
-            const invoice = await Invoice.update(userId, businessId, invoiceId, validation.data);
+            const merged = { ...existing, ...validation.data };
+            const gstResult = applyGstContextToDocument(merged);
+            if (gstResult.error) {
+                return res.status(400).json({
+                    message: gstResult.error,
+                    code: 'GST_DETERMINATION_FAILED'
+                });
+            }
+            const updatePayload = {
+                ...validation.data,
+                transportInfo: gstResult.data.transportInfo
+            };
+            const gstWarnings = gstResult.warnings || [];
+
+            const invoice = await Invoice.update(userId, businessId, invoiceId, updatePayload);
 
             if (invoice.status === 'saved') {
                 try {
@@ -397,7 +428,10 @@ const invoiceController = {
                 }
             }
 
-            return res.json({ invoice });
+            return res.json({
+                invoice,
+                ...(gstWarnings.length > 0 && { warnings: gstWarnings })
+            });
         } catch (error) {
             console.error('Update Invoice Error:', error);
             return res.status(500).json({ message: 'Internal Server Error' });

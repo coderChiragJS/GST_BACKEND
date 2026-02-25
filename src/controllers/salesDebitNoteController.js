@@ -1,5 +1,6 @@
 const SalesDebitNote = require('../models/salesDebitNoteModel');
 const VoucherIndex = require('../models/voucherIndexModel');
+const { applyGstContextToDocument } = require('../services/gstDeterminationService');
 const { z } = require('zod');
 
 // Zod schemas – mirror invoice structure so we can reuse totals + templates.
@@ -45,7 +46,10 @@ const transportInfoSchema = z.object({
     dateOfSupply: z.string().nullable().optional(),
     placeOfSupplyStateCode: z.string().nullable().optional(),
     placeOfSupplyStateName: z.string().nullable().optional(),
-    supplyTypeDisplay: z.enum(['intrastate', 'interstate']).nullable().optional()
+    supplyTypeDisplay: z.enum(['intrastate', 'interstate']).nullable().optional(),
+    placeOfDelivery: z.string().nullable().optional(),
+    placeOfDeliveryStateCode: z.string().nullable().optional(),
+    placeOfDeliveryStateName: z.string().nullable().optional()
 });
 
 const bankDetailsSnapshotSchema = z.object({
@@ -175,12 +179,24 @@ const salesDebitNoteController = {
                 });
             }
 
+            const gstResult = applyGstContextToDocument(validation.data, {
+                requireDerivation: validation.data.status === 'saved'
+            });
+            if (gstResult.error) {
+                return res.status(400).json({
+                    message: gstResult.error,
+                    code: 'GST_DETERMINATION_FAILED'
+                });
+            }
+            const payload = gstResult.data;
+            const gstWarnings = gstResult.warnings || [];
+
             try {
                 await VoucherIndex.claimVoucherNumber(
                     userId,
                     businessId,
                     VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
-                    validation.data.invoiceNumber
+                    payload.invoiceNumber
                 );
             } catch (err) {
                 if (err.code === 'VOUCHER_NUMBER_TAKEN') {
@@ -195,20 +211,21 @@ const salesDebitNoteController = {
 
             let note;
             try {
-                note = await SalesDebitNote.create(userId, businessId, validation.data);
+                note = await SalesDebitNote.create(userId, businessId, payload);
             } catch (createErr) {
                 await VoucherIndex.releaseVoucherNumber(
                     userId,
                     businessId,
                     VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
-                    validation.data.invoiceNumber
+                    payload.invoiceNumber
                 ).catch(() => {});
                 throw createErr;
             }
 
-            // For now, debit notes do not consume invoice / quotation usage.
-
-            return res.status(201).json({ salesDebitNote: note });
+            return res.status(201).json({
+                salesDebitNote: note,
+                ...(gstWarnings.length > 0 && { warnings: gstWarnings })
+            });
         } catch (error) {
             console.error('Create Sales Debit Note Error:', error);
             return res.status(500).json({
@@ -389,13 +406,32 @@ const salesDebitNoteController = {
                 }
             }
 
+            const merged = { ...existing, ...validation.data };
+            const gstResult = applyGstContextToDocument(merged, {
+                requireDerivation: merged.status === 'saved'
+            });
+            if (gstResult.error) {
+                return res.status(400).json({
+                    message: gstResult.error,
+                    code: 'GST_DETERMINATION_FAILED'
+                });
+            }
+            const updatePayload = {
+                ...validation.data,
+                transportInfo: gstResult.data.transportInfo
+            };
+            const gstWarnings = gstResult.warnings || [];
+
             const note = await SalesDebitNote.update(
                 userId,
                 businessId,
                 salesDebitNoteId,
-                validation.data
+                updatePayload
             );
-            return res.json({ salesDebitNote: note });
+            return res.json({
+                salesDebitNote: note,
+                ...(gstWarnings.length > 0 && { warnings: gstWarnings })
+            });
         } catch (error) {
             console.error('Update Sales Debit Note Error:', error);
             return res.status(500).json({

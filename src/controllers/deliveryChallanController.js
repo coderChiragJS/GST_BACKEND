@@ -4,6 +4,7 @@ const {
     applyDeliveryChallanStockDeductions,
     reverseDeliveryChallanStockDeductions
 } = require('../services/inventoryService');
+const { applyGstContextToDocument } = require('../services/gstDeterminationService');
 const { z } = require('zod');
 
 // Zod schemas – mirror invoice structure so we can reuse totals + templates.
@@ -49,7 +50,10 @@ const transportInfoSchema = z.object({
     dateOfSupply: z.string().nullable().optional(),
     placeOfSupplyStateCode: z.string().nullable().optional(),
     placeOfSupplyStateName: z.string().nullable().optional(),
-    supplyTypeDisplay: z.enum(['intrastate', 'interstate']).nullable().optional()
+    supplyTypeDisplay: z.enum(['intrastate', 'interstate']).nullable().optional(),
+    placeOfDelivery: z.string().nullable().optional(),
+    placeOfDeliveryStateCode: z.string().nullable().optional(),
+    placeOfDeliveryStateName: z.string().nullable().optional()
 });
 
 const bankDetailsSnapshotSchema = z.object({
@@ -174,12 +178,24 @@ const deliveryChallanController = {
                 });
             }
 
+            const gstResult = applyGstContextToDocument(validation.data, {
+                requireDerivation: validation.data.status === 'delivered'
+            });
+            if (gstResult.error) {
+                return res.status(400).json({
+                    message: gstResult.error,
+                    code: 'GST_DETERMINATION_FAILED'
+                });
+            }
+            const payload = gstResult.data;
+            const gstWarnings = gstResult.warnings || [];
+
             try {
                 await VoucherIndex.claimVoucherNumber(
                     userId,
                     businessId,
                     VoucherIndex.DOC_TYPES.DELIVERY_CHALLAN,
-                    validation.data.challanNumber
+                    payload.challanNumber
                 );
             } catch (err) {
                 if (err.code === 'VOUCHER_NUMBER_TAKEN') {
@@ -194,22 +210,18 @@ const deliveryChallanController = {
 
             let challan;
             try {
-                challan = await DeliveryChallan.create(
-                    userId,
-                    businessId,
-                    validation.data
-                );
+                challan = await DeliveryChallan.create(userId, businessId, payload);
             } catch (createErr) {
                 await VoucherIndex.releaseVoucherNumber(
                     userId,
                     businessId,
                     VoucherIndex.DOC_TYPES.DELIVERY_CHALLAN,
-                    validation.data.challanNumber
+                    payload.challanNumber
                 ).catch(() => {});
                 throw createErr;
             }
 
-            const isCancelled = validation.data.status === 'cancelled';
+            const isCancelled = payload.status === 'cancelled';
             if (!isCancelled) {
                 try {
                     await applyDeliveryChallanStockDeductions(userId, businessId, challan);
@@ -227,7 +239,10 @@ const deliveryChallanController = {
                 }
             }
 
-            return res.status(201).json({ deliveryChallan: challan });
+            return res.status(201).json({
+                deliveryChallan: challan,
+                ...(gstWarnings.length > 0 && { warnings: gstWarnings })
+            });
         } catch (error) {
             console.error('Create Delivery Challan Error:', error);
             return res.status(500).json({
@@ -410,11 +425,27 @@ const deliveryChallanController = {
                 await reverseDeliveryChallanStockDeductions(userId, businessId, existing).catch(() => {});
             }
 
+            const merged = { ...existing, ...validation.data };
+            const gstResult = applyGstContextToDocument(merged, {
+                requireDerivation: merged.status === 'delivered'
+            });
+            if (gstResult.error) {
+                return res.status(400).json({
+                    message: gstResult.error,
+                    code: 'GST_DETERMINATION_FAILED'
+                });
+            }
+            const updatePayload = {
+                ...validation.data,
+                transportInfo: gstResult.data.transportInfo
+            };
+            const gstWarnings = gstResult.warnings || [];
+
             const challan = await DeliveryChallan.update(
                 userId,
                 businessId,
                 challanId,
-                validation.data
+                updatePayload
             );
 
             const isCancelled = challan.status === 'cancelled';
@@ -429,7 +460,10 @@ const deliveryChallanController = {
                 }
             }
 
-            return res.json({ deliveryChallan: challan });
+            return res.json({
+                deliveryChallan: challan,
+                ...(gstWarnings.length > 0 && { warnings: gstWarnings })
+            });
         } catch (error) {
             console.error('Update Delivery Challan Error:', error);
             return res.status(500).json({

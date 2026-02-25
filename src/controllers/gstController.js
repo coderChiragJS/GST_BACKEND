@@ -6,62 +6,38 @@ const {
     isValidStateCode
 } = require('../data/gstStates');
 const { getHsnRate } = require('../data/hsnRates');
-
-function normalizeStateCode(v) {
-    if (v == null || v === '') return null;
-    const s = String(v).trim();
-    if (s.length === 0) return null;
-    if (/^\d{1,2}$/.test(s)) return s.padStart(2, '0').slice(-2);
-    return null;
-}
+const { deriveGstContext } = require('../services/gstDeterminationService');
 
 /**
  * POST /api/gst/place-of-supply
- * Body: supplyType, sellerStateCode, sellerStateName, buyerStateCode, buyerStateName,
- *       buyerGstin, shippingStateCode, shippingStateName
+ * Place of supply = Bill-To (buyer) state only. Per IGST Act Section 10(1)(a) and 10(1)(b).
+ * Body: sellerStateCode, sellerStateName, sellerGstNumber, buyerStateCode, buyerStateName, buyerGstin
+ * (shippingStateCode/shippingStateName are ignored for GST)
  * Returns: placeOfSupplyStateCode, placeOfSupplyStateName, supplyTypeDisplay (intrastate|interstate)
  */
 function placeOfSupply(req, res) {
     try {
         const body = req.body || {};
-        const supplyType = (body.supplyType || 'goods').toLowerCase();
-        const sellerStateCode = normalizeStateCode(body.sellerStateCode) || (body.sellerStateName ? getStateByName(body.sellerStateName)?.code : null);
-        const sellerState = sellerStateCode ? getStateByCode(sellerStateCode) : null;
+        const result = deriveGstContext({
+            sellerStateCode: body.sellerStateCode,
+            sellerStateName: body.sellerStateName,
+            sellerGstNumber: body.sellerGstNumber,
+            buyerGstin: body.buyerGstin,
+            buyerStateCode: body.buyerStateCode,
+            buyerStateName: body.buyerStateName
+        });
 
-        let placeState = null;
-        const buyerStateCode = normalizeStateCode(body.buyerStateCode);
-        const buyerStateName = body.buyerStateName;
-        const buyerGstin = body.buyerGstin && String(body.buyerGstin).trim();
-        const shippingStateCode = normalizeStateCode(body.shippingStateCode);
-        const shippingStateName = body.shippingStateName;
-
-        // Priority 1: Explicit place of supply (shipping state) - user's manual selection
-        if (shippingStateCode) placeState = getStateByCode(shippingStateCode);
-        if (!placeState && shippingStateName) placeState = getStateByName(shippingStateName);
-
-        // Priority 2: Buyer GSTIN (if no explicit place of supply)
-        if (!placeState && buyerGstin && buyerGstin.length >= 2) placeState = getStateByGstin(buyerGstin);
-
-        // Priority 3: Buyer state (fallback)
-        if (!placeState && buyerStateCode) placeState = getStateByCode(buyerStateCode);
-        if (!placeState && buyerStateName) placeState = getStateByName(buyerStateName);
-
-        if (!placeState) {
+        if (result.error) {
             return res.status(400).json({
-                error: 'Could not determine place of supply. Provide at least one of: buyerStateCode, buyerStateName, buyerGstin, shippingStateCode, shippingStateName.',
+                error: result.error,
                 code: 'INVALID_INPUT'
             });
         }
 
-        const placeOfSupplyStateCode = placeState.code;
-        const placeOfSupplyStateName = placeState.name;
-        const sellerCode = sellerState ? sellerState.code : null;
-        const supplyTypeDisplay = (sellerCode && sellerCode === placeOfSupplyStateCode) ? 'intrastate' : 'interstate';
-
         return res.status(200).json({
-            placeOfSupplyStateCode,
-            placeOfSupplyStateName,
-            supplyTypeDisplay
+            placeOfSupplyStateCode: result.placeOfSupplyStateCode,
+            placeOfSupplyStateName: result.placeOfSupplyStateName,
+            supplyTypeDisplay: result.supplyTypeDisplay
         });
     } catch (err) {
         console.error('Place of supply error:', err);
