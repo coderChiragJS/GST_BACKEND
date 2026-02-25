@@ -32,8 +32,15 @@
     .right { text-align: right; }
 
     .header-note {
+      position: relative;
       font-size: 11px;
       text-align: center;
+      width: 100%;
+    }
+    .header-note-copy {
+      position: absolute;
+      right: 0;
+      top: 0;
     }
 
     .title {
@@ -112,9 +119,9 @@
     </td>
     <td class="center">
       {{#if challan.otherDetails.reverseCharge}}
-      Reverse Charge<br><b>{{challan.otherDetails.reverseCharge}}</b>
+      Reverse Charge<br><b>Yes</b>
       {{else}}{{#if challan.reverseCharge}}
-      Reverse Charge<br><b>{{challan.reverseCharge}}</b>
+      Reverse Charge<br><b>Yes</b>
       {{/if}}{{/if}}
     </td>
     <td class="center">

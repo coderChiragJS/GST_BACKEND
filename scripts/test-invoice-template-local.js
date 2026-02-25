@@ -40,9 +40,10 @@ function getSampleInvoice() {
             docDate: '2026-02-16'
         },
         otherDetails: {
-            reverseCharge: 'No',
+            reverseCharge: true,
             challanNumber: 'CH-001'
         },
+        reverseCharge: true,
         roundOff: 0,
         bankDetails: {
             bankName: 'ICICI Bank',
