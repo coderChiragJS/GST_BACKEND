@@ -64,8 +64,8 @@
 
 <!-- TOP LINE -->
 <div class="header-note">
+  <span class="header-note-copy">{{copyLabel}}</span>
   Thank-you for doing business with us
-  <span style="float:right;">{{copyLabel}}</span>
 </div>
 
 <div class="title">{{#if invoice.billOfSupply}}BILL OF SUPPLY{{else}}TAX INVOICE{{/if}}</div>
@@ -99,13 +99,8 @@
       Invoice Date<br><b style="white-space: nowrap;">{{formatDate invoice.invoiceDate}}</b>
     </td>
     <td class="center">
-      {{#if placeOfSupplyDisplay}}
-      Place of Supply<br><b>{{placeOfSupplyDisplay}}</b>
-      {{/if}}
-    </td>
-    <td class="center">
       {{#if placeOfDeliveryDisplay}}
-      Place of Delivery<br><b>{{placeOfDeliveryDisplay}}</b>
+      Place of Supply<br><b>{{placeOfDeliveryDisplay}}</b>
       {{/if}}
     </td>
   </tr>

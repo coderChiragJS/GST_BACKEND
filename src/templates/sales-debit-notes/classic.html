@@ -32,8 +32,15 @@
     .right { text-align: right; }
 
     .header-note {
+      position: relative;
       font-size: 11px;
       text-align: center;
+      width: 100%;
+    }
+    .header-note-copy {
+      position: absolute;
+      right: 0;
+      top: 0;
     }
 
     .title {
@@ -64,8 +71,8 @@
 
 <!-- TOP LINE -->
 <div class="header-note">
+  <span class="header-note-copy">{{copyLabel}}</span>
   Thank-you for doing business with us
-  <span style="float:right;">{{copyLabel}}</span>
 </div>
 
 <div class="title">SALES DEBIT NOTE</div>
