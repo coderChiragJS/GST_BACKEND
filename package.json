@@ -10,7 +10,8 @@
     "test:challan-pdf:html": "node scripts/test-delivery-challan-template-local.js --html",
     "test:quotation-pdf:html": "node scripts/test-quotation-template-local.js --html",
     "test:all-modules-update": "node scripts/test-all-modules-update-and-verify.js",
-    "test:inventory": "node scripts/test-inventory-api.js"
+    "test:inventory": "node scripts/test-inventory-api.js",
+    "test:production": "node scripts/test-production-after-changes.js"
   },
   "keywords": [],
   "author": "",

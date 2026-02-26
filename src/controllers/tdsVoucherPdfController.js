@@ -43,8 +43,7 @@ const tdsVoucherPdfController = {
         } catch (error) {
             console.error('Generate TDS Voucher PDF Error:', error);
             return res.status(500).json({
-                message: 'Failed to generate TDS voucher PDF',
-                error: error.message
+                message: 'Failed to generate TDS voucher PDF'
             });
         }
     }

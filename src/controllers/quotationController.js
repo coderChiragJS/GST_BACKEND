@@ -67,7 +67,8 @@ const baseQuotationSchema = z.object({
     quotationNumber: z
         .string()
         .min(1, 'quotationNumber is required')
-        .regex(/^QTN-.+/, 'Quotation number must start with QTN-'),
+        .regex(/^(QTN|PRF)-.+/, 'Quotation number must start with QTN- or PRF-'),
+    documentType: z.enum(['quotation', 'proforma']).optional().default('quotation'),
     quotationDate: z.string().nullable().optional(),
     validUntil: z.string().nullable().optional(),
     status: quotationStatusEnum,
@@ -99,7 +100,18 @@ const baseQuotationSchema = z.object({
     stampUrl: z.string().nullable().optional(),
     createdAt: z.string().nullable().optional(),
     updatedAt: z.string().nullable().optional()
-});
+}).refine(
+    (data) => {
+        const dt = data.documentType || 'quotation';
+        const num = (data.quotationNumber || '').trim();
+        if (dt === 'proforma') return num.toUpperCase().startsWith('PRF-');
+        return num.toUpperCase().startsWith('QTN-');
+    },
+    { message: 'Proforma number must start with PRF-; quotation number must start with QTN-', path: ['quotationNumber'] }
+);
+
+// Flutter: Reuse Quotation screens; pass documentType. List: ?documentType=proforma or ?documentType=quotation.
+// Create/Update: include documentType in body. Proforma → PRF- prefix, Quotation → QTN-. PDF auto-detects proforma.
 
 const draftQuotationSchema = baseQuotationSchema.extend({
     status: z.literal('draft')
@@ -143,11 +155,15 @@ const quotationController = {
                 });
             }
 
+            const voucherDocType = validation.data.documentType === 'proforma'
+                ? VoucherIndex.DOC_TYPES.PROFORMA_INVOICE
+                : VoucherIndex.DOC_TYPES.QUOTATION;
+
             try {
                 await VoucherIndex.claimVoucherNumber(
                     userId,
                     businessId,
-                    VoucherIndex.DOC_TYPES.QUOTATION,
+                    voucherDocType,
                     validation.data.quotationNumber
                 );
             } catch (err) {
@@ -168,9 +184,9 @@ const quotationController = {
                 await VoucherIndex.releaseVoucherNumber(
                     userId,
                     businessId,
-                    VoucherIndex.DOC_TYPES.QUOTATION,
+                    voucherDocType,
                     validation.data.quotationNumber
-                ).catch(() => {});
+                ).catch((err) => { console.error('Quotation/Proforma create rollback: releaseVoucherNumber failed', err); });
                 throw createErr;
             }
 
@@ -183,8 +199,7 @@ const quotationController = {
         } catch (error) {
             console.error('Create Quotation Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -198,7 +213,7 @@ const quotationController = {
                 return res.status(400).json({ message: 'Business ID is required in URL' });
             }
 
-            const { status, fromDate, toDate, search, limit, nextToken } = req.query;
+            const { status, fromDate, toDate, search, limit, nextToken, documentType } = req.query;
             const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 100, 1), 100);
             let exclusiveStartKey = null;
             if (nextToken) {
@@ -215,6 +230,13 @@ const quotationController = {
             });
 
             let quotations = items;
+
+            // Filter by documentType: 'quotation' or 'proforma'. Old records without documentType default to 'quotation'.
+            if (documentType === 'proforma') {
+                quotations = quotations.filter((q) => q.documentType === 'proforma');
+            } else if (documentType === 'quotation') {
+                quotations = quotations.filter((q) => !q.documentType || q.documentType === 'quotation');
+            }
 
             if (status) {
                 quotations = quotations.filter((q) => q.status === status);
@@ -248,8 +270,7 @@ const quotationController = {
         } catch (error) {
             console.error('List Quotations Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -293,12 +314,15 @@ const quotationController = {
 
             const newNumber = validation.data.quotationNumber;
             const oldNumber = existing.quotationNumber;
+            const updateVoucherDocType = (existing.documentType === 'proforma' || validation.data.documentType === 'proforma')
+                ? VoucherIndex.DOC_TYPES.PROFORMA_INVOICE
+                : VoucherIndex.DOC_TYPES.QUOTATION;
             if (newNumber !== undefined && newNumber !== oldNumber) {
                 try {
                     await VoucherIndex.updateVoucherNumber(
                         userId,
                         businessId,
-                        VoucherIndex.DOC_TYPES.QUOTATION,
+                        updateVoucherDocType,
                         oldNumber,
                         newNumber,
                         quotationId
@@ -333,13 +357,16 @@ const quotationController = {
                 return res.status(404).json({ message: 'Quotation not found' });
             }
 
+            const deleteVoucherDocType = existing.documentType === 'proforma'
+                ? VoucherIndex.DOC_TYPES.PROFORMA_INVOICE
+                : VoucherIndex.DOC_TYPES.QUOTATION;
             await Quotation.delete(userId, businessId, quotationId);
             await VoucherIndex.releaseVoucherNumber(
                 userId,
                 businessId,
-                VoucherIndex.DOC_TYPES.QUOTATION,
+                deleteVoucherDocType,
                 existing.quotationNumber
-            ).catch(() => {});
+            ).catch((err) => { console.error('Quotation/Proforma delete: releaseVoucherNumber failed', err); });
             return res.status(204).send();
         } catch (error) {
             console.error('Delete Quotation Error:', error);

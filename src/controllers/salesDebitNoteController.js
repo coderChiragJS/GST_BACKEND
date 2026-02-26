@@ -218,7 +218,7 @@ const salesDebitNoteController = {
                     businessId,
                     VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
                     payload.invoiceNumber
-                ).catch(() => {});
+                ).catch((err) => { console.error('Sales debit note create rollback: releaseVoucherNumber failed', err); });
                 throw createErr;
             }
 
@@ -229,8 +229,7 @@ const salesDebitNoteController = {
         } catch (error) {
             console.error('Create Sales Debit Note Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -324,8 +323,7 @@ const salesDebitNoteController = {
         } catch (error) {
             console.error('List Sales Debit Notes Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -350,8 +348,7 @@ const salesDebitNoteController = {
         } catch (error) {
             console.error('Get Sales Debit Note Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -435,8 +432,7 @@ const salesDebitNoteController = {
         } catch (error) {
             console.error('Update Sales Debit Note Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -467,13 +463,12 @@ const salesDebitNoteController = {
                 businessId,
                 VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
                 existing.invoiceNumber
-            ).catch(() => {});
+            ).catch((err) => { console.error('Sales debit note delete: releaseVoucherNumber failed', err); });
             return res.status(204).send();
         } catch (error) {
             console.error('Delete Sales Debit Note Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     }

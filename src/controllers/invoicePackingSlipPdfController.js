@@ -41,8 +41,7 @@ const invoicePackingSlipPdfController = {
         } catch (error) {
             console.error('Generate Packing Slip PDF Error:', error);
             return res.status(500).json({
-                message: 'Failed to generate packing slip PDF',
-                error: error.message
+                message: 'Failed to generate packing slip PDF'
             });
         }
     }

@@ -211,7 +211,7 @@ const invoiceController = {
                     businessId,
                     VoucherIndex.DOC_TYPES.INVOICE,
                     payload.invoiceNumber
-                ).catch(() => {});
+                ).catch((err) => { console.error('Invoice create: releaseVoucherNumber failed', err); });
                 throw createErr;
             }
 
@@ -219,13 +219,13 @@ const invoiceController = {
                 try {
                     await applyInvoiceStockDeductions(userId, businessId, invoice);
                 } catch (stockErr) {
-                    await Invoice.delete(userId, businessId, invoice.invoiceId).catch(() => {});
+                    await Invoice.delete(userId, businessId, invoice.invoiceId).catch((err) => { console.error('Invoice create rollback: delete failed', err); });
                     await VoucherIndex.releaseVoucherNumber(
                         userId,
                         businessId,
                         VoucherIndex.DOC_TYPES.INVOICE,
                         payload.invoiceNumber
-                    ).catch(() => {});
+                    ).catch((err) => { console.error('Invoice create rollback: releaseVoucherNumber failed', err); });
                     const code = stockErr.code || 'STOCK_ERROR';
                     const message = stockErr.message || 'Inventory update failed';
                     return res.status(400).json({ message, code, ...(stockErr.currentStock !== undefined && { currentStock: stockErr.currentStock }) });
@@ -243,10 +243,7 @@ const invoiceController = {
             });
         } catch (error) {
             console.error('Create Invoice Error:', error);
-            return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
-            });
+            return res.status(500).json({ message: 'Internal Server Error' });
         }
     },
 
@@ -322,10 +319,7 @@ const invoiceController = {
             });
         } catch (error) {
             console.error('List Invoices Error:', error);
-            return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
-            });
+            return res.status(500).json({ message: 'Internal Server Error' });
         }
     },
 
@@ -398,7 +392,7 @@ const invoiceController = {
             }
 
             if (existing.status === 'saved') {
-                await reverseInvoiceStockDeductions(userId, businessId, existing).catch(() => {});
+                await reverseInvoiceStockDeductions(userId, businessId, existing).catch((err) => { console.error('Invoice update: reverseInvoiceStockDeductions failed', err); });
             }
 
             const merged = { ...existing, ...validation.data };
@@ -421,7 +415,7 @@ const invoiceController = {
                 try {
                     await applyInvoiceStockDeductions(userId, businessId, invoice);
                 } catch (stockErr) {
-                    await reverseInvoiceStockDeductions(userId, businessId, invoice).catch(() => {});
+                    await reverseInvoiceStockDeductions(userId, businessId, invoice).catch((err) => { console.error('Invoice update rollback: reverseInvoiceStockDeductions failed', err); });
                     const code = stockErr.code || 'STOCK_ERROR';
                     const message = stockErr.message || 'Inventory update failed';
                     return res.status(400).json({ message, code, ...(stockErr.currentStock !== undefined && { currentStock: stockErr.currentStock }) });
@@ -449,7 +443,7 @@ const invoiceController = {
             }
 
             if (existing.status === 'saved') {
-                await reverseInvoiceStockDeductions(userId, businessId, existing).catch(() => {});
+                await reverseInvoiceStockDeductions(userId, businessId, existing).catch((err) => { console.error('Invoice delete: reverseInvoiceStockDeductions failed', err); });
             }
 
             await Invoice.delete(userId, businessId, invoiceId);
@@ -458,7 +452,7 @@ const invoiceController = {
                 businessId,
                 VoucherIndex.DOC_TYPES.INVOICE,
                 existing.invoiceNumber
-            ).catch(() => {});
+            ).catch((err) => { console.error('Invoice delete: releaseVoucherNumber failed', err); });
             // Client accepts 200 or 204; body is ignored
             return res.status(204).send();
         } catch (error) {

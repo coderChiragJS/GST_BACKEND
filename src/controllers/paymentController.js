@@ -48,7 +48,7 @@ module.exports = {
             if (error.code === 'AMOUNT_TOO_LOW') {
                 return res.status(400).json({ error: error.message });
             }
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 

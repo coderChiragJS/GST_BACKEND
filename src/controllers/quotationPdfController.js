@@ -22,7 +22,9 @@ const quotationPdfController = {
 
         const validCopyTypes = ['original', 'duplicate', 'triplicate'];
         const copyType = validCopyTypes.includes(rawCopyType) ? rawCopyType : 'original';
-        const outputType = rawOutputType === 'proforma' ? 'proforma' : undefined;
+        // Auto-detect proforma: if the document was saved as proforma, always render proforma template.
+        // Frontend can also explicitly pass outputType: 'proforma' to override.
+        let outputType = rawOutputType === 'proforma' ? 'proforma' : undefined;
 
         let quotation;
         try {
@@ -34,6 +36,11 @@ const quotationPdfController = {
 
         if (!quotation) {
             return res.status(404).json({ message: 'Quotation not found' });
+        }
+
+        // If the document is a proforma, always use proforma template regardless of what was passed
+        if (quotation.documentType === 'proforma') {
+            outputType = 'proforma';
         }
 
         try {
@@ -59,8 +66,7 @@ const quotationPdfController = {
         } catch (error) {
             console.error('Generate Quotation PDF Error:', error);
             return res.status(503).json({
-                message: 'PDF generation failed',
-                error: error.message || 'Service temporarily unavailable'
+                message: 'PDF generation failed'
             });
         }
     }

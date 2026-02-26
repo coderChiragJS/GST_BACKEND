@@ -74,10 +74,7 @@ const partyController = {
 
         } catch (error) {
             console.error('Create Party Error:', error);
-            res.status(500).json({
-                error: 'Failed to create party',
-                details: error.message
-            });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -94,10 +91,7 @@ const partyController = {
 
         } catch (error) {
             console.error('List Parties Error:', error);
-            res.status(500).json({
-                error: 'Failed to fetch parties',
-                details: error.message
-            });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -116,10 +110,7 @@ const partyController = {
 
         } catch (error) {
             console.error('Get Party Error:', error);
-            res.status(500).json({
-                error: 'Failed to fetch party',
-                details: error.message
-            });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -160,10 +151,7 @@ const partyController = {
 
         } catch (error) {
             console.error('Update Party Error:', error);
-            res.status(500).json({
-                error: 'Failed to update party',
-                details: error.message
-            });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -187,10 +175,7 @@ const partyController = {
                 return res.status(404).json({ error: 'Party not found' });
             }
             console.error('Delete Party Error:', error);
-            res.status(500).json({
-                error: 'Failed to delete party',
-                details: error.message
-            });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     }
 };

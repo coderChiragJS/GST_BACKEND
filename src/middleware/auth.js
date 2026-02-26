@@ -1,6 +1,12 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
+function getJwtSecret() {
+    const secret = process.env.JWT_SECRET;
+    if (process.env.NODE_ENV === 'production' && !secret) {
+        throw new Error('JWT_SECRET must be set in production');
+    }
+    return secret || 'dev-secret';
+}
 
 module.exports = (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -12,10 +18,15 @@ module.exports = (req, res, next) => {
     const token = authHeader.split(' ')[1]; // Bearer <token>
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const secret = getJwtSecret();
+        const decoded = jwt.verify(token, secret);
         req.user = decoded; // { userId, email, role, approvalStatus }
         next();
     } catch (error) {
+        if (error.message && error.message.includes('JWT_SECRET')) {
+            console.error('Auth configuration error:', error.message);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
         return res.status(401).json({ error: 'Invalid or expired token' });
     }
 };

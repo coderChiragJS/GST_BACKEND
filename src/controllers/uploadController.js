@@ -37,7 +37,7 @@ const uploadController = {
             });
         } catch (error) {
             console.error('Upload Controller Error:', error);
-            res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     }
 };

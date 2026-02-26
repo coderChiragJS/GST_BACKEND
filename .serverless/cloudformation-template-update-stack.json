@@ -223,7 +223,7 @@
       "Properties": {
         "Code": {
           "S3Bucket": "serverless-framework-deployments-us-east-1-280b993e-594e",
-          "S3Key": "serverless/gst-billing-backend/dev/1772024881604-2026-02-25T13:08:01.604Z/gst-billing-backend.zip"
+          "S3Key": "serverless/gst-billing-backend/dev/1772099347778-2026-02-26T09:49:07.778Z/gst-billing-backend.zip"
         },
         "Handler": "src/app.handler",
         "Runtime": "nodejs20.x",
@@ -238,7 +238,7 @@
             "PRODUCTS_TABLE": "GST_PRODUCTS",
             "INVOICES_TABLE": "GST_INVOICES",
             "APP_DATA_TABLE": "GST_APP_DATA",
-            "JWT_SECRET": "change_this_in_prod",
+            "JWT_SECRET": "0ec12bc0f16c2067d50cea6769db5a5f2a26d217822ced2b465af35cae404e0a6df9d5564b8142b971afc78cc19a8a8dbb03c030cb9d795ff3b9867d1389e796",
             "ADMIN_SECRET_KEY": "change_this_admin_key",
             "UPLOADS_BUCKET": {
               "Ref": "UploadsBucket"
@@ -264,14 +264,14 @@
         "ApiLogGroup"
       ]
     },
-    "ApiLambdaVersionkrFESvpDkMMEez3tX4xXESuxa2cYsXGtdjhy8hHTk": {
+    "ApiLambdaVersionokeFDA6czAdLddrTfr3ioV9Jbv54XwKoefyOTBhWc": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ApiLambdaFunction"
         },
-        "CodeSha256": "5tREauLPDu9pKDry5GW6VgR96fmc1VRIyOIw3SsQcrQ="
+        "CodeSha256": "7mrcARZIDxyLt3c/ndBSsy/WJiSfutDBqb/Ss5Aa+HA="
       }
     },
     "ApiGatewayRestApi": {
@@ -402,7 +402,7 @@
         "ApiLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1772024861373": {
+    "ApiGatewayDeployment1772099326826": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -766,7 +766,7 @@
     "ApiLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ApiLambdaVersionkrFESvpDkMMEez3tX4xXESuxa2cYsXGtdjhy8hHTk"
+        "Ref": "ApiLambdaVersionokeFDA6czAdLddrTfr3ioV9Jbv54XwKoefyOTBhWc"
       },
       "Export": {
         "Name": "sls-gst-billing-backend-dev-ApiLambdaFunctionQualifiedArn"

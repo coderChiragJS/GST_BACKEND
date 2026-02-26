@@ -217,7 +217,7 @@ const deliveryChallanController = {
                     businessId,
                     VoucherIndex.DOC_TYPES.DELIVERY_CHALLAN,
                     payload.challanNumber
-                ).catch(() => {});
+                ).catch((err) => { console.error('Delivery challan create rollback: releaseVoucherNumber failed', err); });
                 throw createErr;
             }
 
@@ -226,13 +226,13 @@ const deliveryChallanController = {
                 try {
                     await applyDeliveryChallanStockDeductions(userId, businessId, challan);
                 } catch (stockErr) {
-                    await DeliveryChallan.delete(userId, businessId, challan.deliveryChallanId || challan.challanId).catch(() => {});
+                    await DeliveryChallan.delete(userId, businessId, challan.deliveryChallanId || challan.challanId).catch((err) => { console.error('Delivery challan create rollback: delete failed', err); });
                     await VoucherIndex.releaseVoucherNumber(
                         userId,
                         businessId,
                         VoucherIndex.DOC_TYPES.DELIVERY_CHALLAN,
                         validation.data.challanNumber
-                    ).catch(() => {});
+                    ).catch((err) => { console.error('Delivery challan create rollback: releaseVoucherNumber failed', err); });
                     const code = stockErr.code || 'STOCK_ERROR';
                     const message = stockErr.message || 'Inventory update failed';
                     return res.status(400).json({ message, code, ...(stockErr.currentStock !== undefined && { currentStock: stockErr.currentStock }) });
@@ -246,8 +246,7 @@ const deliveryChallanController = {
         } catch (error) {
             console.error('Create Delivery Challan Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -338,8 +337,7 @@ const deliveryChallanController = {
         } catch (error) {
             console.error('List Delivery Challans Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -364,8 +362,7 @@ const deliveryChallanController = {
         } catch (error) {
             console.error('Get Delivery Challan Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -422,7 +419,7 @@ const deliveryChallanController = {
 
             const wasCancelled = existing.status === 'cancelled';
             if (!wasCancelled) {
-                await reverseDeliveryChallanStockDeductions(userId, businessId, existing).catch(() => {});
+                await reverseDeliveryChallanStockDeductions(userId, businessId, existing).catch((err) => { console.error('Delivery challan update: reverseDeliveryChallanStockDeductions failed', err); });
             }
 
             const merged = { ...existing, ...validation.data };
@@ -453,7 +450,7 @@ const deliveryChallanController = {
                 try {
                     await applyDeliveryChallanStockDeductions(userId, businessId, challan);
                 } catch (stockErr) {
-                    await reverseDeliveryChallanStockDeductions(userId, businessId, challan).catch(() => {});
+                    await reverseDeliveryChallanStockDeductions(userId, businessId, challan).catch((err) => { console.error('Delivery challan update rollback: reverseDeliveryChallanStockDeductions failed', err); });
                     const code = stockErr.code || 'STOCK_ERROR';
                     const message = stockErr.message || 'Inventory update failed';
                     return res.status(400).json({ message, code, ...(stockErr.currentStock !== undefined && { currentStock: stockErr.currentStock }) });
@@ -467,8 +464,7 @@ const deliveryChallanController = {
         } catch (error) {
             console.error('Update Delivery Challan Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -490,7 +486,7 @@ const deliveryChallanController = {
             }
 
             if (existing.status !== 'cancelled') {
-                await reverseDeliveryChallanStockDeductions(userId, businessId, existing).catch(() => {});
+                await reverseDeliveryChallanStockDeductions(userId, businessId, existing).catch((err) => { console.error('Delivery challan delete: reverseDeliveryChallanStockDeductions failed', err); });
             }
 
             await DeliveryChallan.delete(
@@ -503,13 +499,12 @@ const deliveryChallanController = {
                 businessId,
                 VoucherIndex.DOC_TYPES.DELIVERY_CHALLAN,
                 existing.challanNumber
-            ).catch(() => {});
+            ).catch((err) => { console.error('Delivery challan delete: releaseVoucherNumber failed', err); });
             return res.status(204).send();
         } catch (error) {
             console.error('Delete Delivery Challan Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     }

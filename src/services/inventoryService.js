@@ -133,7 +133,7 @@ async function applyInvoiceStockDeductions(userId, businessId, invoice) {
                     referenceId: invoice.invoiceId,
                     referenceNumber: invoice.invoiceNumber || null,
                     remark: 'Reversal'
-                }).catch(() => {});
+                }).catch((err) => { console.error('Inventory applyStockChange reversal failed:', err); });
             }
             throw err;
         }
@@ -160,7 +160,7 @@ async function reverseInvoiceStockDeductions(userId, businessId, invoice) {
             referenceId: invoice.invoiceId,
             referenceNumber: invoice.invoiceNumber || null,
             remark: 'Reversal'
-        }).catch(() => {});
+        }).catch((err) => { console.error('Inventory applyStockChange reversal failed:', err); });
     }
 }
 
@@ -195,7 +195,7 @@ async function applyDeliveryChallanStockDeductions(userId, businessId, challan) 
                     referenceId: challan.deliveryChallanId || challan.challanId,
                     referenceNumber: challan.challanNumber || null,
                     remark: 'Reversal'
-                }).catch(() => {});
+                }).catch((err) => { console.error('Inventory applyStockChange reversal failed:', err); });
             }
             throw err;
         }
@@ -219,7 +219,7 @@ async function reverseDeliveryChallanStockDeductions(userId, businessId, challan
             referenceId: challan.deliveryChallanId || challan.challanId,
             referenceNumber: challan.challanNumber || null,
             remark: 'Reversal'
-        }).catch(() => {});
+        }).catch((err) => { console.error('Inventory applyStockChange reversal failed:', err); });
     }
 }
 

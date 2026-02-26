@@ -86,8 +86,7 @@ const tdsVoucherController = {
         } catch (error) {
             console.error('List Invoices for Party (TDS) Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -172,7 +171,7 @@ const tdsVoucherController = {
                     allocations
                 });
             } catch (createErr) {
-                await VoucherIndex.releaseVoucherNumber(userId, businessId, VoucherIndex.DOC_TYPES.TDS_VOUCHER, voucherNumber).catch(() => {});
+                await VoucherIndex.releaseVoucherNumber(userId, businessId, VoucherIndex.DOC_TYPES.TDS_VOUCHER, voucherNumber).catch((err) => { console.error('TDS voucher create rollback: releaseVoucherNumber failed', err); });
                 throw createErr;
             }
 
@@ -186,8 +185,7 @@ const tdsVoucherController = {
         } catch (error) {
             console.error('Create TDS Voucher Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -251,8 +249,7 @@ const tdsVoucherController = {
         } catch (error) {
             console.error('List TDS Vouchers Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -271,8 +268,7 @@ const tdsVoucherController = {
         } catch (error) {
             console.error('Get TDS Voucher Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -384,8 +380,7 @@ const tdsVoucherController = {
         } catch (error) {
             console.error('Update TDS Voucher Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -414,14 +409,13 @@ const tdsVoucherController = {
                 businessId,
                 VoucherIndex.DOC_TYPES.TDS_VOUCHER,
                 existing.voucherNumber
-            ).catch(() => {});
+            ).catch((err) => { console.error('TDS voucher delete: releaseVoucherNumber failed', err); });
 
             return res.status(204).send();
         } catch (error) {
             console.error('Delete TDS Voucher Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     }

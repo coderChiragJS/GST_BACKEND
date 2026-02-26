@@ -870,7 +870,7 @@ async function renderPackingSlipHtml(invoice, templateId) {
         shipToAddress = [a.street, a.city, a.state, a.pincode].filter(Boolean).join(', ') || '';
     }
     shipToAddress = typeof shipToAddress === 'string' ? shipToAddress : '';
-    const rawItems = Array.isArray(invoice.items) ? invoice.items : [];
+    const rawItems = (Array.isArray(invoice.items) ? invoice.items : []).filter(Boolean);
     const items = rawItems.map((it) => ({
         itemName: it.itemName || '',
         hsnSac: it.hsnSac || '',
@@ -1068,7 +1068,7 @@ async function generatePdfBuffer(html) {
                     .map((img) => new Promise((res) => { img.onload = img.onerror = res; }))
             )
         );
-        await Promise.race([waitForImages, new Promise((r) => setTimeout(r, 5000))]).catch(() => {});
+        await Promise.race([waitForImages, new Promise((r) => setTimeout(r, 5000))]).catch((err) => { console.error('PDF image load timeout or error', err); });
 
         const pdfBuffer = await page.pdf({
             format: 'A4',
@@ -1140,6 +1140,20 @@ async function uploadInvoiceStatementPdfToS3({ userId, businessId, invoiceId, te
     return publicUrl;
 }
 
+/**
+ * Compute balance due for statement PDF. When balanceDue is null/empty string/invalid,
+ * uses computed value (grandTotal - paid - tds). Used by generateAndUploadInvoiceStatementPdf; exported for tests.
+ */
+function getStatementDisplayBalance(balanceDue, grandTotal, paidAmount, tdsAmount = 0) {
+    const totalPaid = Number(paidAmount) || 0;
+    const totalTds = Number(tdsAmount) || 0;
+    const balanceDueNum = Number(balanceDue);
+    const balance = (balanceDue != null && balanceDue !== '' && Number.isFinite(balanceDueNum))
+        ? balanceDueNum
+        : (grandTotal - totalPaid - totalTds);
+    return balance < 0.01 ? 0 : balance;
+}
+
 async function generateAndUploadInvoiceStatementPdf({
     userId,
     businessId,
@@ -1152,11 +1166,9 @@ async function generateAndUploadInvoiceStatementPdf({
     tdsAmount = 0,
     balanceDue
 }) {
-    // Statement PDF: business details, product details, payment history, TDS history (clearer for user and customer)
+    const displayBalance = getStatementDisplayBalance(balanceDue, grandTotal, paidAmount, tdsAmount);
     const totalPaid = Number(paidAmount) || 0;
     const totalTds = Number(tdsAmount) || 0;
-    const balance = Number(balanceDue) ?? (grandTotal - totalPaid - totalTds);
-    const displayBalance = balance < 0.01 ? 0 : balance;
     const invoiceTotals = computeInvoiceTotals(invoice);
     const seller = invoice.seller || {};
     let buyerAddress = invoice.buyerAddress || '';
@@ -1205,6 +1217,7 @@ async function generateAndUploadInvoiceStatementPdf({
 }
 
 module.exports = {
+    getStatementDisplayBalance,
     renderInvoiceHtml,
     generatePdfBuffer,
     uploadPdfToS3,

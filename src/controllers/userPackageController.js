@@ -13,7 +13,7 @@ module.exports = {
             return res.json({ packages });
         } catch (error) {
             console.error('List Packages Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -90,7 +90,7 @@ module.exports = {
             });
         } catch (error) {
             console.error('Purchase Package Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -158,7 +158,7 @@ module.exports = {
             });
         } catch (error) {
             console.error('Get My Subscription Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -177,7 +177,7 @@ module.exports = {
             return res.json(access);
         } catch (error) {
             console.error('Get Document Access Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     }
 };

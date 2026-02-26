@@ -62,10 +62,7 @@ const productController = {
             });
         } catch (error) {
             console.error('Create Product Error:', error);
-            res.status(500).json({
-                error: 'Internal Server Error',
-                details: error.message
-            });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -105,10 +102,7 @@ const productController = {
             });
         } catch (error) {
             console.error('List Products Error:', error);
-            res.status(500).json({
-                error: 'Internal Server Error',
-                details: error.message
-            });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 

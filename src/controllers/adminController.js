@@ -12,7 +12,7 @@ module.exports = {
             return res.json({ trialDays });
         } catch (error) {
             console.error('Get Trial Days Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -30,7 +30,7 @@ module.exports = {
                 return res.status(400).json({ error: error.message });
             }
             console.error('Set Trial Days Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -54,7 +54,7 @@ module.exports = {
 
         } catch (error) {
             console.error('Admin Approve Error:', error);
-            res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -76,7 +76,7 @@ module.exports = {
 
         } catch (error) {
             console.error('Admin Approve Business Error:', error);
-            res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -109,7 +109,7 @@ module.exports = {
             return res.json({ users, nextToken: next });
         } catch (error) {
             console.error('Get Expired Trial Users Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -141,7 +141,7 @@ module.exports = {
 
         } catch (error) {
             console.error('Get Pending Reviews Error:', error);
-            res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -223,7 +223,7 @@ module.exports = {
             return res.json({ users, nextToken: next });
         } catch (error) {
             console.error('Get Users List Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -236,7 +236,7 @@ module.exports = {
             return res.json({ payments, nextToken: next });
         } catch (error) {
             console.error('Get Payments List Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     }
 };

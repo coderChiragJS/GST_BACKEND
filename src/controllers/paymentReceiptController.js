@@ -122,7 +122,7 @@ const paymentReceiptController = {
                     allocations
                 });
             } catch (createErr) {
-                await VoucherIndex.releaseVoucherNumber(userId, businessId, VoucherIndex.DOC_TYPES.PAYMENT_RECEIPT, receiptNumber).catch(() => {});
+                await VoucherIndex.releaseVoucherNumber(userId, businessId, VoucherIndex.DOC_TYPES.PAYMENT_RECEIPT, receiptNumber).catch((err) => { console.error('Payment receipt create rollback: releaseVoucherNumber failed', err); });
                 throw createErr;
             }
 
@@ -136,8 +136,7 @@ const paymentReceiptController = {
         } catch (error) {
             console.error('Create Payment Receipt Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -201,8 +200,7 @@ const paymentReceiptController = {
         } catch (error) {
             console.error('List Payment Receipts Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -221,8 +219,7 @@ const paymentReceiptController = {
         } catch (error) {
             console.error('Get Payment Receipt Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -327,8 +324,7 @@ const paymentReceiptController = {
         } catch (error) {
             console.error('Update Payment Receipt Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     },
@@ -357,14 +353,13 @@ const paymentReceiptController = {
                 businessId,
                 VoucherIndex.DOC_TYPES.PAYMENT_RECEIPT,
                 existing.receiptNumber
-            ).catch(() => {});
+            ).catch((err) => { console.error('Payment receipt delete: releaseVoucherNumber failed', err); });
 
             return res.status(204).send();
         } catch (error) {
             console.error('Delete Payment Receipt Error:', error);
             return res.status(500).json({
-                message: 'Internal Server Error',
-                error: error.message
+                message: 'Internal Server Error'
             });
         }
     }

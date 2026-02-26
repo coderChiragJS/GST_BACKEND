@@ -28,7 +28,7 @@ module.exports = {
             return res.json({ packages });
         } catch (error) {
             console.error('Admin List Packages Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -42,7 +42,7 @@ module.exports = {
             return res.json({ package: pkg });
         } catch (error) {
             console.error('Admin Get Package Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -69,7 +69,7 @@ module.exports = {
             return res.status(201).json({ package: pkg });
         } catch (error) {
             console.error('Admin Create Package Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -101,7 +101,7 @@ module.exports = {
             return res.json({ package: pkg });
         } catch (error) {
             console.error('Admin Update Package Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -116,7 +116,7 @@ module.exports = {
             return res.json({ message: 'Package deleted successfully', packageId });
         } catch (error) {
             console.error('Admin Delete Package Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     }
 };

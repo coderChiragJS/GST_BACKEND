@@ -12,13 +12,14 @@ function calculateLineItemTotals(item) {
     const unitPrice = Number(item.unitPrice || 0);
     const baseAmount = quantity * unitPrice;
 
-    // Discount
+    // Discount (default to 'percentage' when discountType missing but value/percent present, for legacy data)
     let discountAmount = 0;
-    if (item.discountType === 'percentage') {
-        const percent = Number(item.discountPercent || item.discountValue || 0);
+    const discountType = item.discountType || (item.discountPercent != null ? 'percentage' : (item.discountValue != null ? 'flat' : null));
+    if (discountType === 'percentage') {
+        const percent = Number(item.discountPercent ?? item.discountValue ?? 0);
         discountAmount = (baseAmount * percent) / 100;
-    } else if (item.discountType === 'flat') {
-        discountAmount = Number(item.discountValue || 0);
+    } else if (discountType === 'flat') {
+        discountAmount = Number(item.discountValue ?? 0);
     }
     if (discountAmount > baseAmount) {
         discountAmount = baseAmount;

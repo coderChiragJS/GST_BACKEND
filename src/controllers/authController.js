@@ -65,7 +65,7 @@ module.exports = {
             });
         } catch (error) {
             console.error('Register Error:', error);
-            res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -113,7 +113,7 @@ module.exports = {
             });
         } catch (error) {
             console.error('Login Error:', error);
-            res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -139,7 +139,7 @@ module.exports = {
             });
         } catch (error) {
             console.error('Get Profile Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -175,7 +175,7 @@ module.exports = {
             });
         } catch (error) {
             console.error('Update Profile Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -202,7 +202,7 @@ module.exports = {
             });
         } catch (error) {
             console.error('Forgot Password Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -240,7 +240,7 @@ module.exports = {
             return res.json({ message: 'Password updated successfully.' });
         } catch (error) {
             console.error('Reset Password Error:', error);
-            return res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            return res.status(500).json({ error: 'Internal Server Error' });
         }
     }
 };

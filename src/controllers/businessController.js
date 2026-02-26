@@ -67,7 +67,7 @@ const businessController = {
             res.status(201).json({ message: 'Business Profile Created', business });
         } catch (error) {
             console.error('Create Business Error:', error);
-            res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -78,7 +78,7 @@ const businessController = {
             res.json(businesses);
         } catch (error) {
             console.error('Get Businesses Error:', error);
-            res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     },
 
@@ -106,7 +106,7 @@ const businessController = {
             res.json({ message: 'Business Updated', business: updatedBusiness });
         } catch (error) {
             console.error('Update Business Error:', error);
-            res.status(500).json({ error: 'Internal Server Error', details: error.message });
+            res.status(500).json({ error: 'Internal Server Error' });
         }
     }
 };
