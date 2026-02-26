@@ -1,6 +1,6 @@
 /**
  * Comprehensive API verification: health, auth, business, party, product, invoice,
- * quotation, sales-debit-notes, delivery-challans, receipts, GST/master, invoice-templates.
+ * quotation, sales-debit-notes, credit-notes, delivery-challans, receipts, GST/master, invoice-templates.
  * Covers CRUD, PDF endpoints, and key negative cases (400, 401, 409).
  *
  * Usage:
@@ -60,6 +60,7 @@ async function run() {
     let invoiceId;
     let quotationId;
     let salesDebitNoteId;
+    let creditNoteId;
     let challanId;
     let receiptId;
     const ts = Date.now();
@@ -208,7 +209,13 @@ async function run() {
 
     // --- 5. Product: create, list, get, put, negative (missing name → 400) ---
     console.log('\n--- 5. Product (CRUD + negative) ---');
-    const productPayload = { name: 'Verify Product', type: 'product', unit: 'Nos' };
+    const productPayload = {
+        name: 'Verify Product',
+        type: 'product',
+        unit: 'Nos',
+        maintainStock: true,
+        openingStock: 100
+    };
     const createProduct = await request(
         `/business/${businessId}/products`,
         'POST',
@@ -604,6 +611,117 @@ async function run() {
     if (dupSDN.status !== 409) fail('Duplicate SDN number should return 409', String(dupSDN.status));
     else ok('Duplicate SDN 409');
 
+    // --- 8b. Credit Note: create, list, get, put, pdf, negative 409 ---
+    console.log('\n--- 8b. Credit Note (CRUD + PDF + negative) ---');
+    const cnNumber = 'CN-VERIFY-' + ts;
+    const cnPayload = {
+        invoiceNumber: cnNumber,
+        invoiceDate: today,
+        dueDate: today,
+        status: 'saved',
+        seller: { firmName: 'Verify Firm', gstNumber: '27AABCA1234F1Z1' },
+        buyerName,
+        buyerGstin: '',
+        buyerStateCode: '27',
+        buyerStateName: 'Maharashtra',
+        buyerAddress: 'Pune, MH',
+        shippingName: '',
+        shippingGstin: '',
+        shippingAddress: '',
+        items: [
+            {
+                itemId: '1',
+                itemName: 'Item A',
+                hsnSac: '',
+                quantity: 1,
+                unit: 'Nos',
+                unitPrice: 40,
+                discountType: 'percentage',
+                discountValue: 0,
+                discountPercent: 0,
+                gstPercent: 18,
+                taxInclusive: false,
+                cessType: 'Percentage',
+                cessValue: 0
+            }
+        ],
+        additionalCharges: [],
+        globalDiscountType: 'percentage',
+        globalDiscountValue: 0,
+        tcsInfo: null,
+        transportInfo: null,
+        bankDetails: null,
+        otherDetails: null,
+        customFields: [],
+        termsAndConditions: [],
+        terms: [],
+        roundOff: null,
+        notes: 'Verify all APIs Credit Note'
+    };
+    const createCN = await request(
+        `/business/${businessId}/credit-notes`,
+        'POST',
+        cnPayload,
+        token
+    );
+    if (createCN.status !== 201) {
+        fail('Create credit note', `${createCN.status} ${JSON.stringify(createCN.body)}`);
+    } else {
+        const cn = createCN.body?.creditNote || createCN.body?.data || createCN.body;
+        creditNoteId = cn?.creditNoteId || cn?.id;
+        ok('Create Credit Note', creditNoteId);
+    }
+
+    const listCN = await request(`/business/${businessId}/credit-notes`, 'GET', null, token);
+    if (listCN.status !== 200) fail('List credit notes', String(listCN.status));
+    else ok('List Credit Note');
+
+    const listCNStatus = await request(`/business/${businessId}/credit-notes?status=saved`, 'GET', null, token);
+    if (listCNStatus.status !== 200) fail('List Credit Note with status=saved', String(listCNStatus.status));
+    else ok('List Credit Note ?status=saved');
+
+    const getCN404 = await request(`/business/${businessId}/credit-notes/${fakeId}`, 'GET', null, token);
+    if (getCN404.status !== 404) fail('Get Credit Note with wrong id should return 404', String(getCN404.status));
+    else ok('Credit Note 404');
+
+    if (creditNoteId) {
+        const getCN = await request(
+            `/business/${businessId}/credit-notes/${creditNoteId}`,
+            'GET',
+            null,
+            token
+        );
+        if (getCN.status !== 200) fail('Get Credit Note', String(getCN.status));
+        else ok('Get Credit Note');
+
+        const updateCN = await request(
+            `/business/${businessId}/credit-notes/${creditNoteId}`,
+            'PUT',
+            { notes: 'Updated by verify_all_apis' },
+            token
+        );
+        if (updateCN.status !== 200) fail('Update Credit Note', String(updateCN.status));
+        else ok('Update Credit Note');
+
+        const pdfCN = await request(
+            `/business/${businessId}/credit-notes/${creditNoteId}/pdf`,
+            'POST',
+            { templateId: 'classic' },
+            token
+        );
+        if (pdfCN.status !== 200 && pdfCN.status !== 201) fail('Credit Note PDF', String(pdfCN.status));
+        else ok('Credit Note PDF');
+    }
+
+    const dupCN = await request(
+        `/business/${businessId}/credit-notes`,
+        'POST',
+        { ...cnPayload, invoiceNumber: cnNumber },
+        token
+    );
+    if (dupCN.status !== 409) fail('Duplicate Credit Note number should return 409', String(dupCN.status));
+    else ok('Duplicate Credit Note 409');
+
     // --- 9. Delivery Challan: create, list, get, put, pdf, negative 409 ---
     console.log('\n--- 9. Delivery Challan (CRUD + PDF + negative) ---');
     const dcNumber = 'DC-VERIFY-' + ts;
@@ -622,7 +740,7 @@ async function run() {
         shippingAddress: '',
         items: [
             {
-                itemId: '1',
+                itemId: productId || '1',
                 itemName: 'Item A',
                 hsnSac: '',
                 quantity: 1,
@@ -895,6 +1013,11 @@ async function run() {
         const delSDN = await request(`/business/${businessId}/sales-debit-notes/${salesDebitNoteId}`, 'DELETE', null, token);
         if (delSDN.status !== 204) fail('DELETE sales debit note', String(delSDN.status));
         else ok('DELETE SDN');
+    }
+    if (creditNoteId) {
+        const delCN = await request(`/business/${businessId}/credit-notes/${creditNoteId}`, 'DELETE', null, token);
+        if (delCN.status !== 204) fail('DELETE credit note', String(delCN.status));
+        else ok('DELETE Credit Note');
     }
     if (quotationId) {
         const delQuote = await request(`/business/${businessId}/quotations/${quotationId}`, 'DELETE', null, token);

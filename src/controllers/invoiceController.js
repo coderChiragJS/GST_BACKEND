@@ -182,6 +182,7 @@ const invoiceController = {
                 });
             }
             const payload = gstResult.data;
+            payload.invoiceNumber = VoucherIndex.normalizeVoucherNumber(payload.invoiceNumber);
             const gstWarnings = gstResult.warnings || [];
 
             try {
@@ -367,7 +368,9 @@ const invoiceController = {
                 });
             }
 
-            const newNumber = validation.data.invoiceNumber;
+            const newNumber = validation.data.invoiceNumber !== undefined
+                ? VoucherIndex.normalizeVoucherNumber(validation.data.invoiceNumber)
+                : undefined;
             const oldNumber = existing.invoiceNumber;
             if (newNumber !== undefined && newNumber !== oldNumber) {
                 try {
@@ -407,6 +410,9 @@ const invoiceController = {
                 ...validation.data,
                 transportInfo: gstResult.data.transportInfo
             };
+            if (updatePayload.invoiceNumber !== undefined) {
+                updatePayload.invoiceNumber = VoucherIndex.normalizeVoucherNumber(updatePayload.invoiceNumber);
+            }
             const gstWarnings = gstResult.warnings || [];
 
             const invoice = await Invoice.update(userId, businessId, invoiceId, updatePayload);

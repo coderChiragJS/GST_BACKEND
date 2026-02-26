@@ -1,6 +1,11 @@
 const Quotation = require('../models/quotationModel');
 const UserSubscription = require('../models/userSubscriptionModel');
 const VoucherIndex = require('../models/voucherIndexModel');
+
+/** Normalize document number for storage (no spaces after hyphen). */
+function normalizeDocumentNumber(num) {
+    return VoucherIndex.normalizeVoucherNumber(num || '');
+}
 const { z } = require('zod');
 
 // --- Zod Schemas for Quotation (aligned with Gimbook; shared shapes mirror invoice where applicable) ---
@@ -100,15 +105,19 @@ const baseQuotationSchema = z.object({
     stampUrl: z.string().nullable().optional(),
     createdAt: z.string().nullable().optional(),
     updatedAt: z.string().nullable().optional()
-}).refine(
-    (data) => {
-        const dt = data.documentType || 'quotation';
-        const num = (data.quotationNumber || '').trim();
-        if (dt === 'proforma') return num.toUpperCase().startsWith('PRF-');
-        return num.toUpperCase().startsWith('QTN-');
-    },
-    { message: 'Proforma number must start with PRF-; quotation number must start with QTN-', path: ['quotationNumber'] }
-);
+});
+
+// Refine: proforma accepts QTN- or PRF-; quotation must use QTN- (applied to union result)
+const prefixRefine = (schema) =>
+    schema.refine(
+        (data) => {
+            const dt = data.documentType || 'quotation';
+            const num = (data.quotationNumber || '').trim();
+            if (dt === 'proforma') return num.toUpperCase().startsWith('PRF-') || num.toUpperCase().startsWith('QTN-');
+            return num.toUpperCase().startsWith('QTN-');
+        },
+        { message: 'Quotation number must start with QTN- or PRF-.', path: ['quotationNumber'] }
+    );
 
 // Flutter: Reuse Quotation screens; pass documentType. List: ?documentType=proforma or ?documentType=quotation.
 // Create/Update: include documentType in body. Proforma → PRF- prefix, Quotation → QTN-. PDF auto-detects proforma.
@@ -127,11 +136,13 @@ const otherQuotationStatusSchema = baseQuotationSchema.extend({
     status: z.enum(['accepted', 'rejected', 'expired'])
 });
 
-const createQuotationSchema = z.discriminatedUnion('status', [
-    draftQuotationSchema,
-    sentQuotationSchema,
-    otherQuotationStatusSchema
-]);
+const createQuotationSchema = prefixRefine(
+    z.discriminatedUnion('status', [
+        draftQuotationSchema,
+        sentQuotationSchema,
+        otherQuotationStatusSchema
+    ])
+);
 
 const updateQuotationSchema = baseQuotationSchema.partial();
 
@@ -155,7 +166,8 @@ const quotationController = {
                 });
             }
 
-            const voucherDocType = validation.data.documentType === 'proforma'
+            const data = { ...validation.data, quotationNumber: normalizeDocumentNumber(validation.data.quotationNumber) };
+            const voucherDocType = data.documentType === 'proforma'
                 ? VoucherIndex.DOC_TYPES.PROFORMA_INVOICE
                 : VoucherIndex.DOC_TYPES.QUOTATION;
 
@@ -164,7 +176,7 @@ const quotationController = {
                     userId,
                     businessId,
                     voucherDocType,
-                    validation.data.quotationNumber
+                    data.quotationNumber
                 );
             } catch (err) {
                 if (err.code === 'VOUCHER_NUMBER_TAKEN') {
@@ -179,13 +191,13 @@ const quotationController = {
 
             let quotation;
             try {
-                quotation = await Quotation.create(userId, businessId, validation.data);
+                quotation = await Quotation.create(userId, businessId, data);
             } catch (createErr) {
                 await VoucherIndex.releaseVoucherNumber(
                     userId,
                     businessId,
                     voucherDocType,
-                    validation.data.quotationNumber
+                    data.quotationNumber
                 ).catch((err) => { console.error('Quotation/Proforma create rollback: releaseVoucherNumber failed', err); });
                 throw createErr;
             }
@@ -231,9 +243,9 @@ const quotationController = {
 
             let quotations = items;
 
-            // Filter by documentType: 'quotation' or 'proforma'. Old records without documentType default to 'quotation'.
+            // Filter by documentType: 'quotation' or 'proforma'. When proforma, return only PRF- numbers.
             if (documentType === 'proforma') {
-                quotations = quotations.filter((q) => q.documentType === 'proforma');
+                quotations = quotations.filter((q) => (q.quotationNumber || '').toUpperCase().startsWith('PRF-'));
             } else if (documentType === 'quotation') {
                 quotations = quotations.filter((q) => !q.documentType || q.documentType === 'quotation');
             }
@@ -307,14 +319,19 @@ const quotationController = {
                 });
             }
 
+            const updateData = { ...validation.data };
+            if (updateData.quotationNumber !== undefined) {
+                updateData.quotationNumber = normalizeDocumentNumber(updateData.quotationNumber);
+            }
+
             const existing = await Quotation.getById(userId, businessId, quotationId);
             if (!existing) {
                 return res.status(404).json({ message: 'Quotation not found' });
             }
 
-            const newNumber = validation.data.quotationNumber;
+            const newNumber = updateData.quotationNumber;
             const oldNumber = existing.quotationNumber;
-            const updateVoucherDocType = (existing.documentType === 'proforma' || validation.data.documentType === 'proforma')
+            const updateVoucherDocType = (existing.documentType === 'proforma' || updateData.documentType === 'proforma')
                 ? VoucherIndex.DOC_TYPES.PROFORMA_INVOICE
                 : VoucherIndex.DOC_TYPES.QUOTATION;
             if (newNumber !== undefined && newNumber !== oldNumber) {
@@ -339,7 +356,7 @@ const quotationController = {
                 }
             }
 
-            const quotation = await Quotation.update(userId, businessId, quotationId, validation.data);
+            const quotation = await Quotation.update(userId, businessId, quotationId, updateData);
             return res.json({ quotation });
         } catch (error) {
             console.error('Update Quotation Error:', error);

@@ -62,7 +62,8 @@ const paymentReceiptController = {
                 });
             }
 
-            const { receiptNumber, receiptDate, partyId, partyName, amountCollected, paymentMode, accountId, accountName, notes, tdsAmount, allocations } = validation.data;
+            const receiptNumber = VoucherIndex.normalizeVoucherNumber(validation.data.receiptNumber);
+            const { receiptDate, partyId, partyName, amountCollected, paymentMode, accountId, accountName, notes, tdsAmount, allocations } = validation.data;
 
             const sumAllocated = allocations.reduce((s, a) => s + a.allocatedAmount, 0);
             if (round2(sumAllocated) > round2(amountCollected)) {
@@ -245,6 +246,9 @@ const paymentReceiptController = {
             }
 
             const updates = validation.data;
+            if (updates.receiptNumber !== undefined) {
+                updates.receiptNumber = VoucherIndex.normalizeVoucherNumber(updates.receiptNumber);
+            }
             const hasNewAllocations = updates.allocations !== undefined;
 
             if (hasNewAllocations) {

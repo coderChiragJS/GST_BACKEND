@@ -188,6 +188,7 @@ const deliveryChallanController = {
                 });
             }
             const payload = gstResult.data;
+            payload.challanNumber = VoucherIndex.normalizeVoucherNumber(payload.challanNumber);
             const gstWarnings = gstResult.warnings || [];
 
             try {
@@ -231,7 +232,7 @@ const deliveryChallanController = {
                         userId,
                         businessId,
                         VoucherIndex.DOC_TYPES.DELIVERY_CHALLAN,
-                        validation.data.challanNumber
+                        payload.challanNumber
                     ).catch((err) => { console.error('Delivery challan create rollback: releaseVoucherNumber failed', err); });
                     const code = stockErr.code || 'STOCK_ERROR';
                     const message = stockErr.message || 'Inventory update failed';
@@ -393,7 +394,9 @@ const deliveryChallanController = {
                     .json({ message: 'Delivery Challan not found' });
             }
 
-            const newNumber = validation.data.challanNumber;
+            const newNumber = validation.data.challanNumber !== undefined
+                ? VoucherIndex.normalizeVoucherNumber(validation.data.challanNumber)
+                : undefined;
             const oldNumber = existing.challanNumber;
             if (newNumber !== undefined && newNumber !== oldNumber) {
                 try {
@@ -436,6 +439,9 @@ const deliveryChallanController = {
                 ...validation.data,
                 transportInfo: gstResult.data.transportInfo
             };
+            if (updatePayload.challanNumber !== undefined) {
+                updatePayload.challanNumber = VoucherIndex.normalizeVoucherNumber(updatePayload.challanNumber);
+            }
             const gstWarnings = gstResult.warnings || [];
 
             const challan = await DeliveryChallan.update(

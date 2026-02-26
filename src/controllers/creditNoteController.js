@@ -1,4 +1,4 @@
-const SalesDebitNote = require('../models/salesDebitNoteModel');
+const CreditNote = require('../models/creditNoteModel');
 const VoucherIndex = require('../models/voucherIndexModel');
 const { applyGstContextToDocument } = require('../services/gstDeterminationService');
 const { z } = require('zod');
@@ -79,21 +79,21 @@ const sellerSchema = z.object({
     gstNumber: z.string().min(1, 'Seller GST number is required')
 }).passthrough();
 
-// Status for debit note itself – draft/saved/cancelled to mirror invoices.
-const salesDebitNoteStatusEnum = z.enum(['draft', 'saved', 'cancelled']);
+// Status for credit note – draft/saved/cancelled to mirror invoices.
+const creditNoteStatusEnum = z.enum(['draft', 'saved', 'cancelled']);
 
-const baseSalesDebitNoteSchema = z.object({
+const baseCreditNoteSchema = z.object({
     id: z.string().optional().nullable(),
-    salesDebitNoteId: z.string().optional().nullable(),
+    creditNoteId: z.string().optional().nullable(),
     // We reuse invoiceNumber & dates for compatibility with templates and clients.
     invoiceNumber: z
         .string()
-        .min(1, 'Sales Debit Note Number is required')
-        .regex(/^SDN-.+/, 'Sales Debit Note number must start with SDN-'),
+        .min(1, 'Credit Note Number is required')
+        .regex(/^CN-.+/, 'Credit Note number must start with CN-'),
     invoiceDate: z.string().nullable().optional(),
     dueDate: z.string().nullable().optional(),
-    status: salesDebitNoteStatusEnum,
-    // Reference to original invoice (for debit notes linked to invoices)
+    status: creditNoteStatusEnum,
+    // Reference to original invoice (for credit notes linked to invoices)
     referenceInvoiceId: z.string().nullable().optional(),
     referenceInvoiceNumber: z.string().nullable().optional(),
     referenceInvoiceDate: z.string().nullable().optional(),
@@ -134,11 +134,11 @@ const baseSalesDebitNoteSchema = z.object({
     updatedAt: z.string().nullable().optional()
 });
 
-const savedNoteSchema = baseSalesDebitNoteSchema.extend({
+const savedNoteSchema = baseCreditNoteSchema.extend({
     status: z.literal('saved')
 });
 
-const draftNoteSchema = baseSalesDebitNoteSchema.extend({
+const draftNoteSchema = baseCreditNoteSchema.extend({
     status: z.literal('draft'),
     buyerName: z.string().optional().default(''),
     items: z.array(lineItemSchema).optional().default([]),
@@ -146,20 +146,20 @@ const draftNoteSchema = baseSalesDebitNoteSchema.extend({
     globalDiscountValue: z.number().nonnegative().optional().default(0)
 });
 
-const cancelledNoteSchema = baseSalesDebitNoteSchema.extend({
+const cancelledNoteSchema = baseCreditNoteSchema.extend({
     status: z.literal('cancelled')
 });
 
-const createSalesDebitNoteSchema = z.discriminatedUnion('status', [
+const createCreditNoteSchema = z.discriminatedUnion('status', [
     savedNoteSchema,
     draftNoteSchema,
     cancelledNoteSchema
 ]);
 
-const updateSalesDebitNoteSchema = baseSalesDebitNoteSchema.partial();
+const updateCreditNoteSchema = baseCreditNoteSchema.partial();
 
-const salesDebitNoteController = {
-    async createSalesDebitNote(req, res) {
+const creditNoteController = {
+    async createCreditNote(req, res) {
         try {
             const userId = req.user.userId;
             const { businessId } = req.params;
@@ -170,7 +170,7 @@ const salesDebitNoteController = {
                     .json({ message: 'Business ID is required in URL' });
             }
 
-            const validation = createSalesDebitNoteSchema.safeParse(req.body);
+            const validation = createCreditNoteSchema.safeParse(req.body);
             if (!validation.success) {
                 return res.status(400).json({
                     message: 'Validation failed',
@@ -197,7 +197,7 @@ const salesDebitNoteController = {
                 await VoucherIndex.claimVoucherNumber(
                     userId,
                     businessId,
-                    VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
+                    VoucherIndex.DOC_TYPES.SALES_CREDIT_NOTE,
                     payload.invoiceNumber
                 );
             } catch (err) {
@@ -213,30 +213,30 @@ const salesDebitNoteController = {
 
             let note;
             try {
-                note = await SalesDebitNote.create(userId, businessId, payload);
+                note = await CreditNote.create(userId, businessId, payload);
             } catch (createErr) {
                 await VoucherIndex.releaseVoucherNumber(
                     userId,
                     businessId,
-                    VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
+                    VoucherIndex.DOC_TYPES.SALES_CREDIT_NOTE,
                     payload.invoiceNumber
-                ).catch((err) => { console.error('Sales debit note create rollback: releaseVoucherNumber failed', err); });
+                ).catch((err) => { console.error('Credit note create rollback: releaseVoucherNumber failed', err); });
                 throw createErr;
             }
 
             return res.status(201).json({
-                salesDebitNote: note,
+                creditNote: note,
                 ...(gstWarnings.length > 0 && { warnings: gstWarnings })
             });
         } catch (error) {
-            console.error('Create Sales Debit Note Error:', error);
+            console.error('Create Credit Note Error:', error);
             return res.status(500).json({
                 message: 'Internal Server Error'
             });
         }
     },
 
-    async listSalesDebitNotes(req, res) {
+    async listCreditNotes(req, res) {
         try {
             const userId = req.user.userId;
             const { businessId } = req.params;
@@ -274,7 +274,7 @@ const salesDebitNoteController = {
             }
 
             const { items, lastEvaluatedKey } =
-                await SalesDebitNote.listByBusiness(userId, businessId, {
+                await CreditNote.listByBusiness(userId, businessId, {
                     limit: parsedLimit,
                     exclusiveStartKey
                 });
@@ -318,49 +318,49 @@ const salesDebitNoteController = {
                 : null;
 
             return res.json({
-                salesDebitNotes: notes,
+                creditNotes: notes,
                 count: notes.length,
                 ...(nextTokenOut && { nextToken: nextTokenOut })
             });
         } catch (error) {
-            console.error('List Sales Debit Notes Error:', error);
+            console.error('List Credit Notes Error:', error);
             return res.status(500).json({
                 message: 'Internal Server Error'
             });
         }
     },
 
-    async getSalesDebitNote(req, res) {
+    async getCreditNote(req, res) {
         try {
             const userId = req.user.userId;
-            const { businessId, salesDebitNoteId } = req.params;
+            const { businessId, creditNoteId } = req.params;
 
-            const note = await SalesDebitNote.getById(
+            const note = await CreditNote.getById(
                 userId,
                 businessId,
-                salesDebitNoteId
+                creditNoteId
             );
             if (!note) {
                 return res
                     .status(404)
-                    .json({ message: 'Sales Debit Note not found' });
+                    .json({ message: 'Credit Note not found' });
             }
 
-            return res.json({ salesDebitNote: note });
+            return res.json({ creditNote: note });
         } catch (error) {
-            console.error('Get Sales Debit Note Error:', error);
+            console.error('Get Credit Note Error:', error);
             return res.status(500).json({
                 message: 'Internal Server Error'
             });
         }
     },
 
-    async updateSalesDebitNote(req, res) {
+    async updateCreditNote(req, res) {
         try {
             const userId = req.user.userId;
-            const { businessId, salesDebitNoteId } = req.params;
+            const { businessId, creditNoteId } = req.params;
 
-            const validation = updateSalesDebitNoteSchema.safeParse(req.body);
+            const validation = updateCreditNoteSchema.safeParse(req.body);
             if (!validation.success) {
                 return res.status(400).json({
                     message: 'Validation failed',
@@ -370,15 +370,15 @@ const salesDebitNoteController = {
                 });
             }
 
-            const existing = await SalesDebitNote.getById(
+            const existing = await CreditNote.getById(
                 userId,
                 businessId,
-                salesDebitNoteId
+                creditNoteId
             );
             if (!existing) {
                 return res
                     .status(404)
-                    .json({ message: 'Sales Debit Note not found' });
+                    .json({ message: 'Credit Note not found' });
             }
 
             const newNumber = validation.data.invoiceNumber !== undefined
@@ -390,10 +390,10 @@ const salesDebitNoteController = {
                     await VoucherIndex.updateVoucherNumber(
                         userId,
                         businessId,
-                        VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
+                        VoucherIndex.DOC_TYPES.SALES_CREDIT_NOTE,
                         oldNumber,
                         newNumber,
-                        salesDebitNoteId
+                        creditNoteId
                     );
                 } catch (err) {
                     if (err.code === 'VOUCHER_NUMBER_TAKEN') {
@@ -426,54 +426,54 @@ const salesDebitNoteController = {
             }
             const gstWarnings = gstResult.warnings || [];
 
-            const note = await SalesDebitNote.update(
+            const note = await CreditNote.update(
                 userId,
                 businessId,
-                salesDebitNoteId,
+                creditNoteId,
                 updatePayload
             );
             return res.json({
-                salesDebitNote: note,
+                creditNote: note,
                 ...(gstWarnings.length > 0 && { warnings: gstWarnings })
             });
         } catch (error) {
-            console.error('Update Sales Debit Note Error:', error);
+            console.error('Update Credit Note Error:', error);
             return res.status(500).json({
                 message: 'Internal Server Error'
             });
         }
     },
 
-    async deleteSalesDebitNote(req, res) {
+    async deleteCreditNote(req, res) {
         try {
             const userId = req.user.userId;
-            const { businessId, salesDebitNoteId } = req.params;
+            const { businessId, creditNoteId } = req.params;
 
-            const existing = await SalesDebitNote.getById(
+            const existing = await CreditNote.getById(
                 userId,
                 businessId,
-                salesDebitNoteId
+                creditNoteId
             );
             if (!existing) {
                 return res
                     .status(404)
-                    .json({ message: 'Sales Debit Note not found' });
+                    .json({ message: 'Credit Note not found' });
             }
 
-            await SalesDebitNote.delete(
+            await CreditNote.delete(
                 userId,
                 businessId,
-                salesDebitNoteId
+                creditNoteId
             );
             await VoucherIndex.releaseVoucherNumber(
                 userId,
                 businessId,
-                VoucherIndex.DOC_TYPES.SALES_DEBIT_NOTE,
+                VoucherIndex.DOC_TYPES.SALES_CREDIT_NOTE,
                 existing.invoiceNumber
-            ).catch((err) => { console.error('Sales debit note delete: releaseVoucherNumber failed', err); });
+            ).catch((err) => { console.error('Credit note delete: releaseVoucherNumber failed', err); });
             return res.status(204).send();
         } catch (error) {
-            console.error('Delete Sales Debit Note Error:', error);
+            console.error('Delete Credit Note Error:', error);
             return res.status(500).json({
                 message: 'Internal Server Error'
             });
@@ -481,5 +481,4 @@ const salesDebitNoteController = {
     }
 };
 
-module.exports = salesDebitNoteController;
-
+module.exports = creditNoteController;

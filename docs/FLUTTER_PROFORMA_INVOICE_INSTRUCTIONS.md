@@ -206,6 +206,16 @@ Numbers are **independent** — the backend keeps them in separate indexes so `P
 
 ---
 
+## Backend Updates
+
+| Change | Details |
+|--------|---------|
+| **Proforma validation** | When `documentType: 'proforma'`, both `QTN-` and `PRF-` prefixes are accepted for `quotationNumber`. Error message if invalid: "Quotation number must start with QTN- or PRF-." |
+| **List filter** | When `documentType=proforma`, the API returns only documents whose `quotationNumber` starts with `PRF-` (not by stored `documentType` field). |
+| **Document numbers** | All document numbers are stored and returned in normalized form (no spaces after the hyphen). Use `PRF-000001`, not `PRF- 000001`. The backend normalizes on create/update. |
+
+---
+
 ## API Quick Reference
 
 ### List

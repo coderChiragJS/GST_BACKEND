@@ -11,7 +11,8 @@
     "test:quotation-pdf:html": "node scripts/test-quotation-template-local.js --html",
     "test:all-modules-update": "node scripts/test-all-modules-update-and-verify.js",
     "test:inventory": "node scripts/test-inventory-api.js",
-    "test:production": "node scripts/test-production-after-changes.js"
+    "test:production": "node scripts/test-production-after-changes.js",
+    "test:sdn-credit-note": "node scripts/test-sdn-and-credit-note-production.js"
   },
   "keywords": [],
   "author": "",

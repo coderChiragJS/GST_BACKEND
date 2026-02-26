@@ -28,6 +28,10 @@ const compiledQuotationTemplates = {};
 const SALES_DEBIT_NOTE_TEMPLATE_IDS = ['classic'];
 const compiledSalesDebitNoteTemplates = {};
 
+// Credit Note templates (same layout as sales debit note)
+const CREDIT_NOTE_TEMPLATE_IDS = ['classic'];
+const compiledCreditNoteTemplates = {};
+
 // Delivery Challan templates
 const DELIVERY_CHALLAN_TEMPLATE_IDS = ['classic'];
 const compiledDeliveryChallanTemplates = {};
@@ -490,6 +494,103 @@ async function renderSalesDebitNoteHtml(note, templateId, copyType = 'original')
     return template(context);
 }
 
+function loadCreditNoteTemplatesOnce() {
+    if (Object.keys(compiledCreditNoteTemplates).length > 0) return;
+    loadTemplatesOnce();
+    CREDIT_NOTE_TEMPLATE_IDS.forEach((id) => {
+        const filePath = path.join(
+            __dirname,
+            '..',
+            'templates',
+            'credit-notes',
+            `${id}.html`
+        );
+        try {
+            const source = fs.readFileSync(filePath, 'utf8');
+            compiledCreditNoteTemplates[id] = Handlebars.compile(source);
+        } catch (err) {
+            console.error(
+                `Failed to load credit note template "${id}" from ${filePath}:`,
+                err
+            );
+        }
+    });
+}
+
+async function renderCreditNoteHtml(note, templateId, copyType = 'original') {
+    loadCreditNoteTemplatesOnce();
+    const template = compiledCreditNoteTemplates[templateId];
+    if (!template) {
+        throw new Error(`Credit note template not found: ${templateId}`);
+    }
+
+    const copyLabel = getCopyLabel(copyType);
+    const totals = computeInvoiceTotals(note);
+
+    const seller = note.seller || {};
+    const buyerAddress = note.buyerAddress || '';
+    const shippingAddress = note.shippingAddress || buyerAddress;
+    const showShippingAddress =
+        !!(note.shippingAddress && String(note.shippingAddress).trim());
+
+    const hasDispatchAddress = (() => {
+        const d = seller.dispatchAddress;
+        if (d == null) return false;
+        if (typeof d === 'string') return d.trim() !== '';
+        if (typeof d === 'object')
+            return !!(d.street || d.city || d.state || d.pincode);
+        return false;
+    })();
+
+    const bankDetails = note.bankDetails || {};
+    const hasBankDetails = !!(
+        bankDetails.bankName ||
+        bankDetails.accountNumber ||
+        bankDetails.ifscCode ||
+        bankDetails.upiId
+    );
+
+    const transportInfo = note.transportInfo || {};
+    const hasTransportInfo = !!(
+        transportInfo.vehicleNumber ||
+        transportInfo.mode ||
+        transportInfo.transporterName ||
+        transportInfo.transporterId ||
+        transportInfo.docNo ||
+        transportInfo.placeOfSupply ||
+        transportInfo.placeOfSupplyStateName ||
+        transportInfo.placeOfDelivery ||
+        transportInfo.placeOfDeliveryStateName
+    );
+
+    const supplyContext = getSupplyTypeContext(note, seller, totals);
+
+    const termsAndConditions = note.termsAndConditions || [];
+    const customFields = note.customFields || [];
+
+    const context = {
+        invoice: note,
+        seller,
+        buyerAddress,
+        shippingAddress,
+        shippingName: note.shippingName || note.buyerName || '',
+        shippingGstin: note.shippingGstin || note.buyerGstin || '',
+        showShippingAddress,
+        hasDispatchAddress,
+        bankDetails,
+        hasBankDetails,
+        transportInfo,
+        hasTransportInfo,
+        ...supplyContext,
+        termsAndConditions,
+        customFields,
+        totals,
+        copyLabel
+    };
+
+    return template(context);
+}
+
 function loadQuotationTemplatesOnce() {
     if (Object.keys(compiledQuotationTemplates).length > 0) return;
     loadTemplatesOnce();
@@ -658,6 +759,57 @@ async function generateAndUploadSalesDebitNotePdf({
         userId,
         businessId,
         salesDebitNoteId: salesDebitNote.salesDebitNoteId || salesDebitNote.id,
+        templateId,
+        copyType,
+        pdfBuffer
+    });
+    return pdfUrl;
+}
+
+async function uploadCreditNotePdfToS3({
+    userId,
+    businessId,
+    creditNoteId,
+    templateId,
+    copyType,
+    pdfBuffer
+}) {
+    if (!BUCKET_NAME) {
+        throw new Error('UPLOADS_BUCKET environment variable is not set');
+    }
+    const fileName = getPdfKeySuffix(templateId, copyType);
+    const key = `credit-notes/${userId}/${businessId}/${creditNoteId}/${fileName}`;
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: pdfBuffer,
+        ContentType: 'application/pdf',
+        ACL: 'public-read'
+    };
+    await s3Client.send(new PutObjectCommand(params));
+    const publicUrl = `https://${BUCKET_NAME}.s3.${process.env.REGION}.amazonaws.com/${key}`;
+    return publicUrl;
+}
+
+async function generateAndUploadCreditNotePdf({
+    userId,
+    businessId,
+    creditNote,
+    templateId,
+    copyType = 'original',
+    business
+}) {
+    const noteWithDefaults = {
+        ...creditNote,
+        signatureUrl: creditNote.signatureUrl || business?.defaultSignatureUrl,
+        stampUrl: creditNote.stampUrl || business?.defaultStampUrl
+    };
+    const html = await renderCreditNoteHtml(noteWithDefaults, templateId, copyType);
+    const pdfBuffer = await generatePdfBuffer(html);
+    const pdfUrl = await uploadCreditNotePdfToS3({
+        userId,
+        businessId,
+        creditNoteId: creditNote.creditNoteId || creditNote.id,
         templateId,
         copyType,
         pdfBuffer
@@ -1225,6 +1377,9 @@ module.exports = {
     renderSalesDebitNoteHtml,
     uploadSalesDebitNotePdfToS3,
     generateAndUploadSalesDebitNotePdf,
+    renderCreditNoteHtml,
+    uploadCreditNotePdfToS3,
+    generateAndUploadCreditNotePdf,
     renderQuotationHtml,
     uploadQuotationPdfToS3,
     generateAndUploadQuotationPdf,

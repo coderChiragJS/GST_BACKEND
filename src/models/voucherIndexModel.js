@@ -10,19 +10,20 @@ const DOC_TYPES = {
     QUOTATION: 'QUOTATION',
     PROFORMA_INVOICE: 'PROFORMA_INVOICE',
     SALES_DEBIT_NOTE: 'SALES_DEBIT_NOTE',
+    SALES_CREDIT_NOTE: 'SALES_CREDIT_NOTE',
     DELIVERY_CHALLAN: 'DELIVERY_CHALLAN',
     PAYMENT_RECEIPT: 'PAYMENT_RECEIPT',
     TDS_VOUCHER: 'TDS_VOUCHER'
 };
 
 /**
- * Normalize voucher number for storage/comparison: trim and use as-is (case-sensitive).
+ * Normalize voucher number for storage: trim, remove spaces after hyphen (e.g. PRF- 000001 → PRF-000001).
  * @param {string} voucherNumber
  * @returns {string}
  */
 function normalizeVoucherNumber(voucherNumber) {
     if (typeof voucherNumber !== 'string') return '';
-    return voucherNumber.trim();
+    return voucherNumber.trim().replace(/-\s+/g, '-');
 }
 
 /**

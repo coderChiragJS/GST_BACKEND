@@ -153,6 +153,47 @@ router.post(
     salesDebitNotePdfController.generatePdf
 );
 
+// Credit Note Routes (Protected; mirror invoice structure)
+const creditNoteController = require('../controllers/creditNoteController');
+const creditNotePdfController = require('../controllers/creditNotePdfController');
+router.post(
+    '/business/:businessId/credit-notes',
+    authMiddleware,
+    requireBusiness,
+    canCreateDocument,
+    creditNoteController.createCreditNote
+);
+router.get(
+    '/business/:businessId/credit-notes',
+    authMiddleware,
+    requireBusiness,
+    creditNoteController.listCreditNotes
+);
+router.get(
+    '/business/:businessId/credit-notes/:creditNoteId',
+    authMiddleware,
+    requireBusiness,
+    creditNoteController.getCreditNote
+);
+router.put(
+    '/business/:businessId/credit-notes/:creditNoteId',
+    authMiddleware,
+    requireBusiness,
+    creditNoteController.updateCreditNote
+);
+router.delete(
+    '/business/:businessId/credit-notes/:creditNoteId',
+    authMiddleware,
+    requireBusiness,
+    creditNoteController.deleteCreditNote
+);
+router.post(
+    '/business/:businessId/credit-notes/:creditNoteId/pdf',
+    authMiddleware,
+    requireBusiness,
+    creditNotePdfController.generatePdf
+);
+
 // Delivery Challan Routes (Protected; mirror invoice structure)
 const deliveryChallanController = require('../controllers/deliveryChallanController');
 const deliveryChallanPdfController = require('../controllers/deliveryChallanPdfController');

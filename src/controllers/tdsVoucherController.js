@@ -110,7 +110,8 @@ const tdsVoucherController = {
                 });
             }
 
-            const { voucherNumber, voucherDate, partyId, partyName, tdsAmountCollected, allocations } = validation.data;
+            const voucherNumber = VoucherIndex.normalizeVoucherNumber(validation.data.voucherNumber);
+            const { voucherDate, partyId, partyName, tdsAmountCollected, allocations } = validation.data;
 
             const sumTdsAllocated = allocations.reduce((s, a) => s + a.tdsAllocated, 0);
             if (round2(sumTdsAllocated) > round2(tdsAmountCollected)) {
@@ -294,6 +295,9 @@ const tdsVoucherController = {
             }
 
             const updates = validation.data;
+            if (updates.voucherNumber !== undefined) {
+                updates.voucherNumber = VoucherIndex.normalizeVoucherNumber(updates.voucherNumber);
+            }
             const hasNewAllocations = updates.allocations !== undefined;
 
             if (hasNewAllocations) {
