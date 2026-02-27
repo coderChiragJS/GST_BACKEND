@@ -56,6 +56,10 @@ const compiledTdsVoucherTemplates = {};
 const PARTY_LEDGER_TEMPLATE_IDS = ['classic'];
 const compiledPartyLedgerTemplates = {};
 
+// Report templates
+const REPORT_TEMPLATE_IDS = ['classic'];
+const compiledReportTemplates = {};
+
 function loadTemplatesOnce() {
     if (Object.keys(compiledTemplates).length > 0) return;
 
@@ -160,6 +164,16 @@ function loadTemplatesOnce() {
         result += ' Only';
         
         return result;
+    });
+
+    Handlebars.registerHelper('statusClass', function (status) {
+        const s = String(status || '').toLowerCase();
+        if (s === 'saved') return 'status-saved';
+        if (s === 'cancelled') return 'status-cancelled';
+        if (s === 'draft') return 'status-draft';
+        if (s === 'pending') return 'status-pending';
+        if (s === 'delivered') return 'status-delivered';
+        return '';
     });
 }
 
@@ -1452,6 +1466,79 @@ async function generateAndUploadPartyLedgerPdf({
     return pdfUrl;
 }
 
+// ─── Report PDF ───
+
+function loadReportTemplatesOnce() {
+    if (Object.keys(compiledReportTemplates).length > 0) return;
+    loadTemplatesOnce();
+    REPORT_TEMPLATE_IDS.forEach((id) => {
+        const filePath = path.join(__dirname, '..', 'templates', 'reports', `${id}.html`);
+        try {
+            const source = fs.readFileSync(filePath, 'utf8');
+            compiledReportTemplates[id] = Handlebars.compile(source);
+        } catch (err) {
+            console.error(`Failed to load report template "${id}" from ${filePath}:`, err);
+        }
+    });
+}
+
+async function renderReportHtml(context, templateId) {
+    loadReportTemplatesOnce();
+    const template = compiledReportTemplates[templateId];
+    if (!template) {
+        throw new Error(`Report template not found: ${templateId}`);
+    }
+    return template(context);
+}
+
+async function uploadReportPdfToS3({ userId, businessId, reportType, templateId, pdfBuffer }) {
+    if (!BUCKET_NAME) {
+        throw new Error('UPLOADS_BUCKET environment variable is not set');
+    }
+    const ts = Date.now();
+    const key = `reports/${userId}/${businessId}/${reportType}-${templateId}-${ts}.pdf`;
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: pdfBuffer,
+        ContentType: 'application/pdf',
+        ACL: 'public-read'
+    };
+    await s3Client.send(new PutObjectCommand(params));
+    return `https://${BUCKET_NAME}.s3.${process.env.REGION}.amazonaws.com/${key}`;
+}
+
+async function generateAndUploadReportPdf({
+    userId,
+    businessId,
+    reportType,
+    templateId,
+    business,
+    report,
+    reportTitle,
+    period
+}) {
+    const context = {
+        business,
+        reportType,
+        reportTitle,
+        period,
+        generatedAt: new Date().toISOString(),
+        ...report
+    };
+
+    const html = await renderReportHtml(context, templateId);
+    const pdfBuffer = await generatePdfBuffer(html);
+    const pdfUrl = await uploadReportPdfToS3({
+        userId,
+        businessId,
+        reportType,
+        templateId,
+        pdfBuffer
+    });
+    return pdfUrl;
+}
+
 module.exports = {
     getStatementDisplayBalance,
     renderInvoiceHtml,
@@ -1481,6 +1568,9 @@ module.exports = {
     generateAndUploadPackingSlipPdf,
     renderPartyLedgerHtml,
     uploadPartyLedgerPdfToS3,
-    generateAndUploadPartyLedgerPdf
+    generateAndUploadPartyLedgerPdf,
+    renderReportHtml,
+    uploadReportPdfToS3,
+    generateAndUploadReportPdf
 };
 

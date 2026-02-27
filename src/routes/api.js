@@ -262,6 +262,11 @@ router.get('/business/:businessId/ledger/summary', authMiddleware, requireBusine
 router.get('/business/:businessId/parties/:partyId/ledger', authMiddleware, requireBusiness, partyLedgerController.getPartyLedger);
 router.post('/business/:businessId/parties/:partyId/ledger-pdf', authMiddleware, requireBusiness, partyLedgerController.generatePartyLedgerPdf);
 
+// Report Routes (Protected; requireBusiness)
+const reportController = require('../controllers/reportController');
+router.get('/business/:businessId/reports/:reportType', authMiddleware, requireBusiness, reportController.getReport);
+router.post('/business/:businessId/reports/:reportType/pdf', authMiddleware, requireBusiness, reportController.generateReportPdf);
+
 // Optional: public list of available invoice templates
 router.get('/invoice-templates', invoicePdfController.listTemplates);
 

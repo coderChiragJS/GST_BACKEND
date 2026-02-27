@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{reportTitle}}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #1a1a1a; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 5px 8px; vertical-align: top; }
+
+    .header-box {
+      border: 1px solid #aaa;
+      padding: 14px 18px;
+      margin-bottom: 4px;
+    }
+    .firm-name { font-size: 16px; font-weight: bold; color: #111; margin-bottom: 3px; }
+    .firm-detail { font-size: 10px; color: #444; line-height: 1.5; }
+
+    .report-title {
+      font-size: 13px;
+      font-weight: bold;
+      text-align: center;
+      padding: 7px 0;
+      border: 1px solid #aaa;
+      border-top: none;
+      background: #f0f4f8;
+      color: #1a1a1a;
+    }
+
+    .period {
+      text-align: center;
+      font-size: 10px;
+      color: #555;
+      padding: 5px 0;
+      border: 1px solid #aaa;
+      border-top: none;
+      margin-bottom: 10px;
+    }
+
+    .data-table { margin-bottom: 12px; }
+    .data-table th {
+      background: #e8ecf0;
+      font-size: 9px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      padding: 6px 8px;
+      border: 1px solid #bbb;
+      color: #333;
+    }
+    .data-table td {
+      border: 1px solid #ccc;
+      font-size: 10px;
+      padding: 5px 8px;
+    }
+    .data-table tr:nth-child(even) td { background: #f9fafb; }
+    .data-table tr:hover td { background: #f0f4f8; }
+
+    .right { text-align: right; }
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .nowrap { white-space: nowrap; }
+
+    .summary-row td {
+      background: #e8ecf0 !important;
+      font-weight: bold;
+      font-size: 10px;
+      border-top: 2px solid #999;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: bold;
+      padding: 8px 10px;
+      margin: 14px 0 4px 0;
+      background: #f0f4f8;
+      border: 1px solid #bbb;
+      color: #1a1a1a;
+    }
+
+    .sub-summary {
+      background: #f5f7f9;
+      font-weight: bold;
+    }
+    .sub-summary td { border-top: 1.5px solid #aaa; }
+
+    .low-stock { color: #c0392b; font-weight: bold; }
+
+    .footer {
+      margin-top: 14px;
+      font-size: 9px;
+      color: #888;
+      text-align: right;
+      border-top: 1px solid #ddd;
+      padding-top: 6px;
+    }
+
+    .status-saved { color: #27ae60; }
+    .status-cancelled { color: #c0392b; }
+    .status-draft { color: #f39c12; }
+    .status-pending { color: #e67e22; }
+    .status-delivered { color: #2980b9; }
+
+    @media print {
+      body { padding: 10px; }
+      .data-table { page-break-inside: auto; }
+      .data-table tr { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══ HEADER ═══ -->
+  <div class="header-box">
+    <div class="firm-name">{{business.firmName}}</div>
+    {{#if business.address}}<div class="firm-detail">{{business.address}}</div>{{/if}}
+    {{#if business.gstin}}<div class="firm-detail"><strong>GSTIN:</strong> {{business.gstin}}</div>{{/if}}
+    {{#if business.mobile}}<div class="firm-detail"><strong>Phone:</strong> {{business.mobile}}{{#if business.email}} &nbsp;|&nbsp; <strong>Email:</strong> {{business.email}}{{/if}}</div>{{/if}}
+  </div>
+
+  <div class="report-title">{{reportTitle}}</div>
+
+  {{#if period}}
+  <div class="period">
+    {{#if period.from}}From: {{formatDate period.from}}{{/if}}
+    {{#if period.to}} &nbsp;To: {{formatDate period.to}}{{/if}}
+    {{#unless period.from}}{{#unless period.to}}All Dates{{/unless}}{{/unless}}
+  </div>
+  {{else}}
+  <div class="period">As on {{formatDate generatedAt}}</div>
+  {{/if}}
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- REPORT 1: INVOICE DETAILS                      -->
+  <!-- ═══════════════════════════════════════════════ -->
+  {{#ifEq reportType "invoice-details"}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Date</th>
+        <th>Invoice No.</th>
+        <th>Party Name</th>
+        <th>GSTIN</th>
+        <th class="right">Taxable</th>
+        <th class="right">Tax</th>
+        <th class="right">Total</th>
+        <th class="right">Balance</th>
+        <th class="center">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each data}}
+      <tr>
+        <td class="center">{{inc @index}}</td>
+        <td class="nowrap">{{formatDate this.date}}</td>
+        <td>{{this.invoiceNumber}}</td>
+        <td>{{this.partyName}}</td>
+        <td style="font-size:9px">{{this.gstin}}</td>
+        <td class="right nowrap">{{formatCurrency this.taxableAmount}}</td>
+        <td class="right nowrap">{{formatCurrency this.taxAmount}}</td>
+        <td class="right nowrap">{{formatCurrency this.grandTotal}}</td>
+        <td class="right nowrap">{{formatCurrency this.balanceDue}}</td>
+        <td class="center {{statusClass this.status}}">{{this.status}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td colspan="5" class="right">TOTAL ({{summary.invoiceCount}} Invoices)</td>
+        <td class="right nowrap">{{formatCurrency summary.totalTaxable}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalTax}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalGrand}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalBalance}}</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  {{/ifEq}}
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- REPORT 2: DELIVERY CHALLAN                     -->
+  <!-- ═══════════════════════════════════════════════ -->
+  {{#ifEq reportType "delivery-challan"}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Date</th>
+        <th>Challan No.</th>
+        <th>Party Name</th>
+        <th class="center">Items</th>
+        <th class="right">Qty</th>
+        <th class="right">Amount</th>
+        <th class="center">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each data}}
+      <tr>
+        <td class="center">{{inc @index}}</td>
+        <td class="nowrap">{{formatDate this.date}}</td>
+        <td>{{this.challanNumber}}</td>
+        <td>{{this.partyName}}</td>
+        <td class="center">{{this.itemCount}}</td>
+        <td class="right">{{this.totalQuantity}}</td>
+        <td class="right nowrap">{{formatCurrency this.amount}}</td>
+        <td class="center {{statusClass this.status}}">{{this.status}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td colspan="4" class="right">TOTAL ({{summary.challanCount}} Challans)</td>
+        <td></td>
+        <td class="right">{{summary.totalQuantity}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalAmount}}</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  {{/ifEq}}
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- REPORT 3: CURRENT STOCK                        -->
+  <!-- ═══════════════════════════════════════════════ -->
+  {{#ifEq reportType "current-stock"}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Product Name</th>
+        <th>HSN/SAC</th>
+        <th class="center">Unit</th>
+        <th class="right">Stock Qty</th>
+        <th class="right">Alert Qty</th>
+        <th class="right">Sale Price</th>
+        <th class="right">Stock Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each data}}
+      <tr>
+        <td class="center">{{inc @index}}</td>
+        <td>{{this.productName}}</td>
+        <td>{{this.hsnSac}}</td>
+        <td class="center">{{this.unit}}</td>
+        <td class="right {{#if this.isLowStock}}low-stock{{/if}}">{{this.currentStock}}</td>
+        <td class="right">{{this.lowStockAlertQty}}</td>
+        <td class="right nowrap">{{formatCurrency this.salesPrice}}</td>
+        <td class="right nowrap">{{formatCurrency this.stockValue}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td colspan="7" class="right">TOTAL ({{summary.productCount}} Products)</td>
+        <td class="right nowrap">{{formatCurrency summary.totalStockValue}}</td>
+      </tr>
+    </tbody>
+  </table>
+  {{/ifEq}}
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- REPORT 4: PARTY WISE SALES                     -->
+  <!-- ═══════════════════════════════════════════════ -->
+  {{#ifEq reportType "party-wise-sales"}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Party Name</th>
+        <th>GSTIN</th>
+        <th class="center">Invoices</th>
+        <th class="right">Taxable</th>
+        <th class="right">Tax</th>
+        <th class="right">Total Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each data}}
+      <tr>
+        <td class="center">{{inc @index}}</td>
+        <td>{{this.partyName}}</td>
+        <td style="font-size:9px">{{this.gstin}}</td>
+        <td class="center">{{this.invoiceCount}}</td>
+        <td class="right nowrap">{{formatCurrency this.totalTaxable}}</td>
+        <td class="right nowrap">{{formatCurrency this.totalTax}}</td>
+        <td class="right nowrap">{{formatCurrency this.totalAmount}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td colspan="3" class="right">TOTAL ({{summary.partyCount}} Parties)</td>
+        <td class="center">{{summary.totalInvoices}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalTaxable}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalTax}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalAmount}}</td>
+      </tr>
+    </tbody>
+  </table>
+  {{/ifEq}}
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- REPORT 5: PRODUCT WISE SALES                   -->
+  <!-- ═══════════════════════════════════════════════ -->
+  {{#ifEq reportType "product-wise-sales"}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Product Name</th>
+        <th>HSN/SAC</th>
+        <th class="center">Unit</th>
+        <th class="right">Qty Sold</th>
+        <th class="right">Taxable</th>
+        <th class="right">Tax</th>
+        <th class="right">Total Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each data}}
+      <tr>
+        <td class="center">{{inc @index}}</td>
+        <td>{{this.productName}}</td>
+        <td>{{this.hsnSac}}</td>
+        <td class="center">{{this.unit}}</td>
+        <td class="right">{{this.quantitySold}}</td>
+        <td class="right nowrap">{{formatCurrency this.totalTaxable}}</td>
+        <td class="right nowrap">{{formatCurrency this.totalTax}}</td>
+        <td class="right nowrap">{{formatCurrency this.totalAmount}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td colspan="4" class="right">TOTAL ({{summary.productCount}} Products)</td>
+        <td class="right">{{summary.totalQuantity}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalTaxable}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalTax}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalAmount}}</td>
+      </tr>
+    </tbody>
+  </table>
+  {{/ifEq}}
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- REPORT 6: TDS SUMMARY RECEIVABLE               -->
+  <!-- ═══════════════════════════════════════════════ -->
+  {{#ifEq reportType "tds-summary"}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Party Name</th>
+        <th>TDS Section</th>
+        <th class="center">Vouchers</th>
+        <th class="right">TDS Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each data}}
+      <tr>
+        <td class="center">{{inc @index}}</td>
+        <td>{{this.partyName}}</td>
+        <td>{{this.section}}</td>
+        <td class="center">{{this.voucherCount}}</td>
+        <td class="right nowrap">{{formatCurrency this.totalTds}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td colspan="3" class="right">TOTAL ({{summary.partyCount}} Parties)</td>
+        <td class="center">{{summary.totalVouchers}}</td>
+        <td class="right nowrap">{{formatCurrency summary.grandTotalTds}}</td>
+      </tr>
+    </tbody>
+  </table>
+  {{/ifEq}}
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- REPORT 7: HSN SALES REPORT                     -->
+  <!-- ═══════════════════════════════════════════════ -->
+  {{#ifEq reportType "hsn-sales"}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>HSN/SAC</th>
+        <th>Description</th>
+        <th class="center">UQC</th>
+        <th class="right">Qty</th>
+        <th class="right">Taxable Value</th>
+        <th class="right">IGST</th>
+        <th class="right">CGST</th>
+        <th class="right">SGST</th>
+        <th class="right">Cess</th>
+        <th class="right">Total Tax</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each data}}
+      <tr>
+        <td class="center">{{inc @index}}</td>
+        <td>{{this.hsnSac}}</td>
+        <td>{{this.description}}</td>
+        <td class="center">{{this.uqc}}</td>
+        <td class="right">{{this.totalQuantity}}</td>
+        <td class="right nowrap">{{formatCurrency this.taxableValue}}</td>
+        <td class="right nowrap">{{formatCurrency this.igst}}</td>
+        <td class="right nowrap">{{formatCurrency this.cgst}}</td>
+        <td class="right nowrap">{{formatCurrency this.sgst}}</td>
+        <td class="right nowrap">{{formatCurrency this.cess}}</td>
+        <td class="right nowrap">{{formatCurrency this.totalTax}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td colspan="5" class="right">TOTAL</td>
+        <td class="right nowrap">{{formatCurrency summary.totalTaxable}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalIgst}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalCgst}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalSgst}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalCess}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalTax}}</td>
+      </tr>
+    </tbody>
+  </table>
+  {{/ifEq}}
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- REPORT 8: GST SALES REPORT                     -->
+  <!-- ═══════════════════════════════════════════════ -->
+  {{#ifEq reportType "gst-sales"}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>GST Rate</th>
+        <th class="right">Taxable Value</th>
+        <th class="right">CGST</th>
+        <th class="right">SGST</th>
+        <th class="right">IGST</th>
+        <th class="right">Cess</th>
+        <th class="right">Total Tax</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each data}}
+      <tr>
+        <td class="bold">{{this.gstRate}}%</td>
+        <td class="right nowrap">{{formatCurrency this.taxableValue}}</td>
+        <td class="right nowrap">{{formatCurrency this.cgst}}</td>
+        <td class="right nowrap">{{formatCurrency this.sgst}}</td>
+        <td class="right nowrap">{{formatCurrency this.igst}}</td>
+        <td class="right nowrap">{{formatCurrency this.cess}}</td>
+        <td class="right nowrap">{{formatCurrency this.totalTax}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td class="right bold">TOTAL</td>
+        <td class="right nowrap">{{formatCurrency summary.totalTaxable}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalCgst}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalSgst}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalIgst}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalCess}}</td>
+        <td class="right nowrap">{{formatCurrency summary.totalTax}}</td>
+      </tr>
+      <tr class="summary-row">
+        <td colspan="6" class="right bold">TOTAL INVOICE VALUE</td>
+        <td class="right nowrap">{{formatCurrency summary.totalInvoiceValue}}</td>
+      </tr>
+    </tbody>
+  </table>
+  {{/ifEq}}
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- REPORT 9: GSTR-1                               -->
+  <!-- ═══════════════════════════════════════════════ -->
+  {{#ifEq reportType "gstr1"}}
+
+  <!-- B2B Section -->
+  <div class="section-title">B2B Invoices - Supplies to Registered Persons ({{b2b.summary.count}})</div>
+  {{#if b2b.data.length}}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>GSTIN</th>
+        <th>Party Name</th>
+        <th>Invoice No.</th>
+        <th>Date</th>
+        <th class="right">Taxable</th>
+        <th class="right">IGST</th>
+        <th class="right">CGST</th>
+        <th class="right">SGST</th>
+        <th class="right">Cess</th>
+        <th class="right">Invoice Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each b2b.data}}
+      <tr>
+        <td class="center">{{inc @index}}</td>
+        <td style="font-size:9px">{{this.gstin}}</td>
+        <td>{{this.partyName}}</td>
+        <td>{{this.invoiceNumber}}</td>
+        <td class="nowrap">{{formatDate this.date}}</td>
+        <td class="right nowrap">{{formatCurrency this.taxableValue}}</td>
+        <td class="right nowrap">{{formatCurrency this.igst}}</td>
+        <td class="right nowrap">{{formatCurrency this.cgst}}</td>
+        <td class="right nowrap">{{formatCurrency this.sgst}}</td>
+        <td class="right nowrap">{{formatCurrency this.cess}}</td>
+        <td class="right nowrap">{{formatCurrency this.invoiceValue}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td colspan="5" class="right">SUB-TOTAL</td>
+        <td class="right nowrap">{{formatCurrency b2b.summary.taxableValue}}</td>
+        <td class="right nowrap">{{formatCurrency b2b.summary.igst}}</td>
+        <td class="right nowrap">{{formatCurrency b2b.summary.cgst}}</td>
+        <td class="right nowrap">{{formatCurrency b2b.summary.sgst}}</td>
+        <td class="right nowrap">{{formatCurrency b2b.summary.cess}}</td>
+        <td class="right nowrap">{{formatCurrency b2b.summary.invoiceValue}}</td>
+      </tr>
+    </tbody>
+  </table>
+  {{else}}
+  <p style="padding:8px 10px; color:#888;">No B2B invoices in this period.</p>
+  {{/if}}
+
+  <!-- B2C Small Section -->
+  <div class="section-title">B2CS - Supplies to Unregistered Persons (Intrastate)</div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th class="right">Taxable Value</th>
+        <th class="right">CGST</th>
+        <th class="right">SGST</th>
+        <th class="right">Cess</th>
+        <th class="right">Total Tax</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="right nowrap">{{formatCurrency b2cs.data.taxableValue}}</td>
+        <td class="right nowrap">{{formatCurrency b2cs.data.cgst}}</td>
+        <td class="right nowrap">{{formatCurrency b2cs.data.sgst}}</td>
+        <td class="right nowrap">{{formatCurrency b2cs.data.cess}}</td>
+        <td class="right nowrap">{{formatCurrency b2cs.data.totalTax}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- B2C Large Section -->
+  {{#if b2cl.data.length}}
+  <div class="section-title">B2CL - Supplies to Unregistered Persons (Interstate > 2.5L) ({{b2cl.summary.count}})</div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Party Name</th>
+        <th>Invoice No.</th>
+        <th>Date</th>
+        <th>Place of Supply</th>
+        <th class="right">Taxable</th>
+        <th class="right">IGST</th>
+        <th class="right">Invoice Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each b2cl.data}}
+      <tr>
+        <td class="center">{{inc @index}}</td>
+        <td>{{this.partyName}}</td>
+        <td>{{this.invoiceNumber}}</td>
+        <td class="nowrap">{{formatDate this.date}}</td>
+        <td>{{this.placeOfSupply}}</td>
+        <td class="right nowrap">{{formatCurrency this.taxableValue}}</td>
+        <td class="right nowrap">{{formatCurrency this.igst}}</td>
+        <td class="right nowrap">{{formatCurrency this.invoiceValue}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td colspan="5" class="right">SUB-TOTAL</td>
+        <td class="right nowrap">{{formatCurrency b2cl.summary.taxableValue}}</td>
+        <td class="right nowrap">{{formatCurrency b2cl.summary.igst}}</td>
+        <td class="right nowrap">{{formatCurrency b2cl.summary.invoiceValue}}</td>
+      </tr>
+    </tbody>
+  </table>
+  {{/if}}
+
+  <!-- CDNR Section -->
+  {{#if cdnr.data.length}}
+  <div class="section-title">CDNR - Credit/Debit Notes to Registered Persons ({{cdnr.summary.count}})</div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>GSTIN</th>
+        <th>Party Name</th>
+        <th>Note No.</th>
+        <th>Type</th>
+        <th>Ref. Invoice</th>
+        <th>Date</th>
+        <th class="right">Taxable</th>
+        <th class="right">IGST</th>
+        <th class="right">CGST</th>
+        <th class="right">SGST</th>
+        <th class="right">Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each cdnr.data}}
+      <tr>
+        <td class="center">{{inc @index}}</td>
+        <td style="font-size:9px">{{this.gstin}}</td>
+        <td>{{this.partyName}}</td>
+        <td>{{this.noteNumber}}</td>
+        <td>{{this.noteType}}</td>
+        <td>{{this.referenceInvoiceNumber}}</td>
+        <td class="nowrap">{{formatDate this.date}}</td>
+        <td class="right nowrap">{{formatCurrency this.taxableValue}}</td>
+        <td class="right nowrap">{{formatCurrency this.igst}}</td>
+        <td class="right nowrap">{{formatCurrency this.cgst}}</td>
+        <td class="right nowrap">{{formatCurrency this.sgst}}</td>
+        <td class="right nowrap">{{formatCurrency this.invoiceValue}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td colspan="7" class="right">SUB-TOTAL</td>
+        <td class="right nowrap">{{formatCurrency cdnr.summary.taxableValue}}</td>
+        <td class="right nowrap">{{formatCurrency cdnr.summary.igst}}</td>
+        <td class="right nowrap">{{formatCurrency cdnr.summary.cgst}}</td>
+        <td class="right nowrap">{{formatCurrency cdnr.summary.sgst}}</td>
+        <td class="right nowrap">{{formatCurrency cdnr.summary.invoiceValue}}</td>
+      </tr>
+    </tbody>
+  </table>
+  {{/if}}
+
+  <!-- HSN Summary Section -->
+  <div class="section-title">HSN Summary ({{hsn.summary.hsnCount}} Items)</div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>HSN/SAC</th>
+        <th>Description</th>
+        <th class="center">UQC</th>
+        <th class="right">Qty</th>
+        <th class="right">Taxable</th>
+        <th class="right">IGST</th>
+        <th class="right">CGST</th>
+        <th class="right">SGST</th>
+        <th class="right">Cess</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each hsn.data}}
+      <tr>
+        <td class="center">{{inc @index}}</td>
+        <td>{{this.hsnSac}}</td>
+        <td>{{this.description}}</td>
+        <td class="center">{{this.uqc}}</td>
+        <td class="right">{{this.totalQuantity}}</td>
+        <td class="right nowrap">{{formatCurrency this.taxableValue}}</td>
+        <td class="right nowrap">{{formatCurrency this.igst}}</td>
+        <td class="right nowrap">{{formatCurrency this.cgst}}</td>
+        <td class="right nowrap">{{formatCurrency this.sgst}}</td>
+        <td class="right nowrap">{{formatCurrency this.cess}}</td>
+      </tr>
+      {{/each}}
+      <tr class="summary-row">
+        <td colspan="5" class="right">TOTAL</td>
+        <td class="right nowrap">{{formatCurrency hsn.summary.totalTaxable}}</td>
+        <td class="right nowrap">{{formatCurrency hsn.summary.totalIgst}}</td>
+        <td class="right nowrap">{{formatCurrency hsn.summary.totalCgst}}</td>
+        <td class="right nowrap">{{formatCurrency hsn.summary.totalSgst}}</td>
+        <td class="right nowrap">{{formatCurrency hsn.summary.totalCess}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  {{/ifEq}}
+
+  <!-- ═══ FOOTER ═══ -->
+  <div class="footer">
+    Generated on {{formatDate generatedAt}} &nbsp;|&nbsp; {{reportTitle}}
+  </div>
+
+</body>
+</html>
