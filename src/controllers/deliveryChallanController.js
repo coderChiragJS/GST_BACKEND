@@ -222,8 +222,7 @@ const deliveryChallanController = {
                 throw createErr;
             }
 
-            const isCancelled = payload.status === 'cancelled';
-            if (!isCancelled) {
+            if (payload.status === 'delivered') {
                 try {
                     await applyDeliveryChallanStockDeductions(userId, businessId, challan);
                 } catch (stockErr) {
@@ -393,6 +392,12 @@ const deliveryChallanController = {
                     .status(404)
                     .json({ message: 'Delivery Challan not found' });
             }
+            if (existing.status === 'cancelled') {
+                return res.status(403).json({
+                    message: 'Cancelled delivery challans cannot be edited',
+                    code: 'CANCELLED_DOCUMENT_EDIT_FORBIDDEN'
+                });
+            }
 
             const newNumber = validation.data.challanNumber !== undefined
                 ? VoucherIndex.normalizeVoucherNumber(validation.data.challanNumber)
@@ -420,8 +425,7 @@ const deliveryChallanController = {
                 }
             }
 
-            const wasCancelled = existing.status === 'cancelled';
-            if (!wasCancelled) {
+            if (existing.status === 'delivered') {
                 await reverseDeliveryChallanStockDeductions(userId, businessId, existing).catch((err) => { console.error('Delivery challan update: reverseDeliveryChallanStockDeductions failed', err); });
             }
 
@@ -451,8 +455,7 @@ const deliveryChallanController = {
                 updatePayload
             );
 
-            const isCancelled = challan.status === 'cancelled';
-            if (!isCancelled) {
+            if (challan.status === 'delivered') {
                 try {
                     await applyDeliveryChallanStockDeductions(userId, businessId, challan);
                 } catch (stockErr) {
@@ -491,7 +494,7 @@ const deliveryChallanController = {
                     .json({ message: 'Delivery Challan not found' });
             }
 
-            if (existing.status !== 'cancelled') {
+            if (existing.status === 'delivered') {
                 await reverseDeliveryChallanStockDeductions(userId, businessId, existing).catch((err) => { console.error('Delivery challan delete: reverseDeliveryChallanStockDeductions failed', err); });
             }
 

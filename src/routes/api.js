@@ -238,7 +238,7 @@ router.post(
 // Payment Receipt Routes (Protected; requireBusiness)
 const paymentReceiptController = require('../controllers/paymentReceiptController');
 const receiptPdfController = require('../controllers/receiptPdfController');
-router.post('/business/:businessId/receipts', authMiddleware, requireBusiness, paymentReceiptController.createReceipt);
+router.post('/business/:businessId/receipts', authMiddleware, requireBusiness, canCreateDocument, paymentReceiptController.createReceipt);
 router.get('/business/:businessId/receipts', authMiddleware, requireBusiness, paymentReceiptController.listReceipts);
 router.get('/business/:businessId/receipts/:receiptId', authMiddleware, requireBusiness, paymentReceiptController.getReceipt);
 router.put('/business/:businessId/receipts/:receiptId', authMiddleware, requireBusiness, paymentReceiptController.updateReceipt);
@@ -249,7 +249,7 @@ router.post('/business/:businessId/receipts/:receiptId/pdf', authMiddleware, req
 const tdsVoucherController = require('../controllers/tdsVoucherController');
 const tdsVoucherPdfController = require('../controllers/tdsVoucherPdfController');
 router.get('/business/:businessId/tds-vouchers/invoices-for-party', authMiddleware, requireBusiness, tdsVoucherController.listInvoicesForParty);
-router.post('/business/:businessId/tds-vouchers', authMiddleware, requireBusiness, tdsVoucherController.createVoucher);
+router.post('/business/:businessId/tds-vouchers', authMiddleware, requireBusiness, canCreateDocument, tdsVoucherController.createVoucher);
 router.get('/business/:businessId/tds-vouchers', authMiddleware, requireBusiness, tdsVoucherController.listVouchers);
 router.get('/business/:businessId/tds-vouchers/:voucherId', authMiddleware, requireBusiness, tdsVoucherController.getVoucher);
 router.put('/business/:businessId/tds-vouchers/:voucherId', authMiddleware, requireBusiness, tdsVoucherController.updateVoucher);

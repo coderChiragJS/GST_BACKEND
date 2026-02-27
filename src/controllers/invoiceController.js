@@ -394,10 +394,6 @@ const invoiceController = {
                 }
             }
 
-            if (existing.status === 'saved') {
-                await reverseInvoiceStockDeductions(userId, businessId, existing).catch((err) => { console.error('Invoice update: reverseInvoiceStockDeductions failed', err); });
-            }
-
             const merged = { ...existing, ...validation.data };
             const gstResult = applyGstContextToDocument(merged);
             if (gstResult.error) {
@@ -405,6 +401,10 @@ const invoiceController = {
                     message: gstResult.error,
                     code: 'GST_DETERMINATION_FAILED'
                 });
+            }
+
+            if (existing.status === 'saved') {
+                await reverseInvoiceStockDeductions(userId, businessId, existing).catch((err) => { console.error('Invoice update: reverseInvoiceStockDeductions failed', err); });
             }
             const updatePayload = {
                 ...validation.data,
@@ -446,6 +446,17 @@ const invoiceController = {
             const existing = await Invoice.getById(userId, businessId, invoiceId);
             if (!existing) {
                 return res.status(404).json({ message: 'Invoice not found' });
+            }
+
+            const hasPaid = (Number(existing.paidAmount) || 0) > 0;
+            const hasTds = (Number(existing.tdsAmount) || 0) > 0;
+            if (hasPaid || hasTds) {
+                return res.status(409).json({
+                    message: 'Cannot delete invoice with linked payments or TDS vouchers. Delete the payment receipts and TDS vouchers first.',
+                    code: 'LINKED_DOCUMENTS_EXIST',
+                    paidAmount: existing.paidAmount || 0,
+                    tdsAmount: existing.tdsAmount || 0
+                });
             }
 
             if (existing.status === 'saved') {

@@ -177,9 +177,7 @@ const tdsVoucherController = {
             }
 
             for (const alloc of allocations) {
-                const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
-                const newTds = round2((info.tdsAmount ?? 0) + alloc.tdsAllocated);
-                await Invoice.update(userId, businessId, alloc.invoiceId, { tdsAmount: newTds });
+                await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'tdsAmount', round2(alloc.tdsAllocated));
             }
 
             return res.status(201).json({ voucher });
@@ -342,17 +340,11 @@ const tdsVoucherController = {
                 }
 
                 for (const alloc of existing.allocations || []) {
-                    const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
-                    if (info) {
-                        const newTds = round2(Math.max(0, (info.tdsAmount ?? 0) - alloc.tdsAllocated));
-                        await Invoice.update(userId, businessId, alloc.invoiceId, { tdsAmount: newTds });
-                    }
+                    await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'tdsAmount', -round2(alloc.tdsAllocated));
                 }
 
                 for (const alloc of allocations) {
-                    const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
-                    const newTds = round2((info.tdsAmount ?? 0) + alloc.tdsAllocated);
-                    await Invoice.update(userId, businessId, alloc.invoiceId, { tdsAmount: newTds });
+                    await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'tdsAmount', round2(alloc.tdsAllocated));
                 }
             }
 
@@ -400,11 +392,7 @@ const tdsVoucherController = {
             }
 
             for (const alloc of existing.allocations || []) {
-                const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
-                if (info) {
-                    const newTds = round2(Math.max(0, (info.tdsAmount ?? 0) - alloc.tdsAllocated));
-                    await Invoice.update(userId, businessId, alloc.invoiceId, { tdsAmount: newTds });
-                }
+                await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'tdsAmount', -round2(alloc.tdsAllocated));
             }
 
             await TdsVoucher.delete(userId, businessId, voucherId);

@@ -223,6 +223,49 @@ async function reverseDeliveryChallanStockDeductions(userId, businessId, challan
     }
 }
 
+/**
+ * Apply stock additions for a saved credit note (returned goods increase stock).
+ * Only applies when reduceStockOn === 'invoice' (credit notes are invoice-related).
+ */
+async function applyCreditNoteStockAdditions(userId, businessId, creditNote) {
+    const settings = await getBusinessInventorySettings(userId, businessId);
+    if (settings.reduceStockOn !== 'invoice') return;
+
+    const items = Array.isArray(creditNote.items) ? creditNote.items : [];
+    for (const item of items) {
+        const productId = item.itemId;
+        const qty = Number(item.quantity) || 0;
+        if (!productId || qty <= 0) continue;
+        await applyStockChange(userId, businessId, productId, qty, {
+            activityType: 'creditNote',
+            referenceId: creditNote.creditNoteId || creditNote.id,
+            referenceNumber: creditNote.invoiceNumber || null,
+            remark: null
+        }).catch((err) => { console.error('Credit note stock addition failed:', err); });
+    }
+}
+
+/**
+ * Reverse stock additions for a credit note (deduct the stock that was added back).
+ */
+async function reverseCreditNoteStockAdditions(userId, businessId, creditNote) {
+    const settings = await getBusinessInventorySettings(userId, businessId);
+    if (settings.reduceStockOn !== 'invoice') return;
+
+    const items = Array.isArray(creditNote.items) ? creditNote.items : [];
+    for (const item of items) {
+        const productId = item.itemId;
+        const qty = Number(item.quantity) || 0;
+        if (!productId || qty <= 0) continue;
+        await applyStockChange(userId, businessId, productId, -qty, {
+            activityType: 'creditNote',
+            referenceId: creditNote.creditNoteId || creditNote.id,
+            referenceNumber: creditNote.invoiceNumber || null,
+            remark: 'Reversal'
+        }).catch((err) => { console.error('Credit note stock reversal failed:', err); });
+    }
+}
+
 module.exports = {
     getInventorySettings,
     getBusinessInventorySettings,
@@ -232,5 +275,7 @@ module.exports = {
     reverseInvoiceStockDeductions,
     applyDeliveryChallanStockDeductions,
     reverseDeliveryChallanStockDeductions,
+    applyCreditNoteStockAdditions,
+    reverseCreditNoteStockAdditions,
     DEFAULT_INVENTORY_SETTINGS
 };

@@ -380,6 +380,12 @@ const salesDebitNoteController = {
                     .status(404)
                     .json({ message: 'Sales Debit Note not found' });
             }
+            if (existing.status === 'cancelled') {
+                return res.status(403).json({
+                    message: 'Cancelled sales debit notes cannot be edited',
+                    code: 'CANCELLED_DOCUMENT_EDIT_FORBIDDEN'
+                });
+            }
 
             const newNumber = validation.data.invoiceNumber !== undefined
                 ? VoucherIndex.normalizeVoucherNumber(validation.data.invoiceNumber)

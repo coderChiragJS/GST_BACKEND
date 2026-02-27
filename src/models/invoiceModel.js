@@ -112,6 +112,31 @@ const Invoice = {
         return result.Attributes;
     },
 
+    /**
+     * Atomically increment a numeric field on an invoice (e.g. paidAmount, tdsAmount).
+     * Uses DynamoDB SET with if_not_exists to handle the case where the field doesn't exist yet.
+     */
+    async atomicIncrement(userId, businessId, invoiceId, field, delta) {
+        const now = new Date().toISOString();
+        const params = {
+            TableName: TABLE_NAME,
+            Key: {
+                PK: `USER#${userId}#BUSINESS#${businessId}`,
+                SK: `INVOICE#${invoiceId}`
+            },
+            UpdateExpression: 'SET #field = if_not_exists(#field, :zero) + :delta, updatedAt = :now',
+            ExpressionAttributeNames: { '#field': field },
+            ExpressionAttributeValues: {
+                ':delta': delta,
+                ':zero': 0,
+                ':now': now
+            },
+            ReturnValues: 'ALL_NEW'
+        };
+        const result = await dynamoDb.send(new UpdateCommand(params));
+        return result.Attributes;
+    },
+
     async delete(userId, businessId, invoiceId) {
         const params = {
             TableName: TABLE_NAME,

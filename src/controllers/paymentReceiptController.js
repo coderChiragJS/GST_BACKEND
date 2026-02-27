@@ -128,9 +128,7 @@ const paymentReceiptController = {
             }
 
             for (const alloc of allocations) {
-                const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
-                const newPaid = round2((info.paidAmount ?? 0) + alloc.allocatedAmount);
-                await Invoice.update(userId, businessId, alloc.invoiceId, { paidAmount: newPaid });
+                await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'paidAmount', round2(alloc.allocatedAmount));
             }
 
             return res.status(201).json({ receipt });
@@ -286,17 +284,11 @@ const paymentReceiptController = {
                 }
 
                 for (const alloc of existing.allocations || []) {
-                    const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
-                    if (info) {
-                        const newPaid = round2(Math.max(0, (info.paidAmount ?? 0) - alloc.allocatedAmount));
-                        await Invoice.update(userId, businessId, alloc.invoiceId, { paidAmount: newPaid });
-                    }
+                    await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'paidAmount', -round2(alloc.allocatedAmount));
                 }
 
                 for (const alloc of allocations) {
-                    const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
-                    const newPaid = round2((info.paidAmount ?? 0) + alloc.allocatedAmount);
-                    await Invoice.update(userId, businessId, alloc.invoiceId, { paidAmount: newPaid });
+                    await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'paidAmount', round2(alloc.allocatedAmount));
                 }
             }
 
@@ -344,11 +336,7 @@ const paymentReceiptController = {
             }
 
             for (const alloc of existing.allocations || []) {
-                const info = await getInvoiceBalanceInfo(userId, businessId, alloc.invoiceId);
-                if (info) {
-                    const newPaid = round2(Math.max(0, (info.paidAmount ?? 0) - alloc.allocatedAmount));
-                    await Invoice.update(userId, businessId, alloc.invoiceId, { paidAmount: newPaid });
-                }
+                await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'paidAmount', -round2(alloc.allocatedAmount));
             }
 
             await PaymentReceipt.delete(userId, businessId, receiptId);

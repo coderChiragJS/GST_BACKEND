@@ -1,6 +1,12 @@
 const CreditNote = require('../models/creditNoteModel');
 const VoucherIndex = require('../models/voucherIndexModel');
 const { applyGstContextToDocument } = require('../services/gstDeterminationService');
+const { getInvoiceBalanceInfo } = require('../utils/invoiceBalance');
+const { computeInvoiceTotals } = require('../services/invoiceCalculationService');
+const {
+    applyCreditNoteStockAdditions,
+    reverseCreditNoteStockAdditions
+} = require('../services/inventoryService');
 const { z } = require('zod');
 
 // Zod schemas – mirror invoice structure so we can reuse totals + templates.
@@ -211,6 +217,20 @@ const creditNoteController = {
                 throw err;
             }
 
+            if (payload.status === 'saved' && payload.referenceInvoiceId) {
+                const refInfo = await getInvoiceBalanceInfo(userId, businessId, payload.referenceInvoiceId);
+                if (refInfo) {
+                    const cnTotals = computeInvoiceTotals(payload);
+                    const cnTotal = cnTotals?.summary?.grandTotal ?? 0;
+                    if (cnTotal > refInfo.grandTotal) {
+                        return res.status(400).json({
+                            message: `Credit note amount (${cnTotal}) cannot exceed referenced invoice total (${refInfo.grandTotal})`,
+                            code: 'CN_EXCEEDS_INVOICE'
+                        });
+                    }
+                }
+            }
+
             let note;
             try {
                 note = await CreditNote.create(userId, businessId, payload);
@@ -222,6 +242,10 @@ const creditNoteController = {
                     payload.invoiceNumber
                 ).catch((err) => { console.error('Credit note create rollback: releaseVoucherNumber failed', err); });
                 throw createErr;
+            }
+
+            if (payload.status === 'saved') {
+                await applyCreditNoteStockAdditions(userId, businessId, note);
             }
 
             return res.status(201).json({
@@ -380,6 +404,12 @@ const creditNoteController = {
                     .status(404)
                     .json({ message: 'Credit Note not found' });
             }
+            if (existing.status === 'cancelled') {
+                return res.status(403).json({
+                    message: 'Cancelled credit notes cannot be edited',
+                    code: 'CANCELLED_DOCUMENT_EDIT_FORBIDDEN'
+                });
+            }
 
             const newNumber = validation.data.invoiceNumber !== undefined
                 ? VoucherIndex.normalizeVoucherNumber(validation.data.invoiceNumber)
@@ -407,11 +437,18 @@ const creditNoteController = {
                 }
             }
 
+            if (existing.status === 'saved') {
+                await reverseCreditNoteStockAdditions(userId, businessId, existing);
+            }
+
             const merged = { ...existing, ...validation.data };
             const gstResult = applyGstContextToDocument(merged, {
                 requireDerivation: merged.status === 'saved'
             });
             if (gstResult.error) {
+                if (existing.status === 'saved') {
+                    await applyCreditNoteStockAdditions(userId, businessId, existing);
+                }
                 return res.status(400).json({
                     message: gstResult.error,
                     code: 'GST_DETERMINATION_FAILED'
@@ -432,6 +469,11 @@ const creditNoteController = {
                 creditNoteId,
                 updatePayload
             );
+
+            if (note.status === 'saved') {
+                await applyCreditNoteStockAdditions(userId, businessId, note);
+            }
+
             return res.json({
                 creditNote: note,
                 ...(gstWarnings.length > 0 && { warnings: gstWarnings })
@@ -458,6 +500,10 @@ const creditNoteController = {
                 return res
                     .status(404)
                     .json({ message: 'Credit Note not found' });
+            }
+
+            if (existing.status === 'saved') {
+                await reverseCreditNoteStockAdditions(userId, businessId, existing);
             }
 
             await CreditNote.delete(
