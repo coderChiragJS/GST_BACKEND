@@ -52,6 +52,10 @@ const compiledPackingSlipTemplates = {};
 const TDS_VOUCHER_TEMPLATE_IDS = ['classic'];
 const compiledTdsVoucherTemplates = {};
 
+// Party Ledger templates
+const PARTY_LEDGER_TEMPLATE_IDS = ['classic'];
+const compiledPartyLedgerTemplates = {};
+
 function loadTemplatesOnce() {
     if (Object.keys(compiledTemplates).length > 0) return;
 
@@ -1368,6 +1372,86 @@ async function generateAndUploadInvoiceStatementPdf({
     return pdfUrl;
 }
 
+// ─── Party Ledger PDF ───
+
+function loadPartyLedgerTemplatesOnce() {
+    if (Object.keys(compiledPartyLedgerTemplates).length > 0) return;
+    loadTemplatesOnce();
+    PARTY_LEDGER_TEMPLATE_IDS.forEach((id) => {
+        const filePath = path.join(__dirname, '..', 'templates', 'party-ledger', `${id}.html`);
+        try {
+            const source = fs.readFileSync(filePath, 'utf8');
+            compiledPartyLedgerTemplates[id] = Handlebars.compile(source);
+        } catch (err) {
+            console.error(`Failed to load party ledger template "${id}" from ${filePath}:`, err);
+        }
+    });
+}
+
+async function renderPartyLedgerHtml(context, templateId) {
+    loadPartyLedgerTemplatesOnce();
+    const template = compiledPartyLedgerTemplates[templateId];
+    if (!template) {
+        throw new Error(`Party ledger template not found: ${templateId}`);
+    }
+    return template(context);
+}
+
+async function uploadPartyLedgerPdfToS3({ userId, businessId, partyId, templateId, pdfBuffer }) {
+    if (!BUCKET_NAME) {
+        throw new Error('UPLOADS_BUCKET environment variable is not set');
+    }
+    const key = `ledger/${userId}/${businessId}/${partyId}/party-ledger-${templateId}.pdf`;
+    const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: pdfBuffer,
+        ContentType: 'application/pdf',
+        ACL: 'public-read'
+    };
+    await s3Client.send(new PutObjectCommand(params));
+    return `https://${BUCKET_NAME}.s3.${process.env.REGION}.amazonaws.com/${key}`;
+}
+
+async function generateAndUploadPartyLedgerPdf({
+    userId,
+    businessId,
+    partyId,
+    templateId,
+    business,
+    ledger
+}) {
+    const openingBal = Number(ledger.openingBalance) || 0;
+    const closingBal = Number(ledger.closingBalance) || 0;
+
+    const grandDebitSide = ledger.totalDebit + (openingBal > 0 ? openingBal : 0) + (closingBal < 0 ? Math.abs(closingBal) : 0);
+    const grandCreditSide = ledger.totalCredit + (openingBal < 0 ? Math.abs(openingBal) : 0) + (closingBal > 0 ? closingBal : 0);
+
+    const context = {
+        business,
+        party: ledger.party,
+        period: ledger.period,
+        openingBalance: openingBal,
+        transactions: ledger.transactions,
+        totalDebit: ledger.totalDebit,
+        totalCredit: ledger.totalCredit,
+        closingBalance: closingBal,
+        grandDebitSide: Math.round((grandDebitSide + Number.EPSILON) * 100) / 100,
+        grandCreditSide: Math.round((grandCreditSide + Number.EPSILON) * 100) / 100
+    };
+
+    const html = await renderPartyLedgerHtml(context, templateId);
+    const pdfBuffer = await generatePdfBuffer(html);
+    const pdfUrl = await uploadPartyLedgerPdfToS3({
+        userId,
+        businessId,
+        partyId,
+        templateId,
+        pdfBuffer
+    });
+    return pdfUrl;
+}
+
 module.exports = {
     getStatementDisplayBalance,
     renderInvoiceHtml,
@@ -1394,6 +1478,9 @@ module.exports = {
     generateAndUploadTdsVoucherPdf,
     generateAndUploadInvoiceStatementPdf,
     renderPackingSlipHtml,
-    generateAndUploadPackingSlipPdf
+    generateAndUploadPackingSlipPdf,
+    renderPartyLedgerHtml,
+    uploadPartyLedgerPdfToS3,
+    generateAndUploadPartyLedgerPdf
 };
 

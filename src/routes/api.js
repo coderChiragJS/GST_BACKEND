@@ -256,6 +256,12 @@ router.put('/business/:businessId/tds-vouchers/:voucherId', authMiddleware, requ
 router.delete('/business/:businessId/tds-vouchers/:voucherId', authMiddleware, requireBusiness, tdsVoucherController.deleteVoucher);
 router.post('/business/:businessId/tds-vouchers/:voucherId/pdf', authMiddleware, requireBusiness, tdsVoucherPdfController.generatePdf);
 
+// Party Ledger Routes (Protected; requireBusiness)
+const partyLedgerController = require('../controllers/partyLedgerController');
+router.get('/business/:businessId/ledger/summary', authMiddleware, requireBusiness, partyLedgerController.getLedgerSummary);
+router.get('/business/:businessId/parties/:partyId/ledger', authMiddleware, requireBusiness, partyLedgerController.getPartyLedger);
+router.post('/business/:businessId/parties/:partyId/ledger-pdf', authMiddleware, requireBusiness, partyLedgerController.generatePartyLedgerPdf);
+
 // Optional: public list of available invoice templates
 router.get('/invoice-templates', invoicePdfController.listTemplates);
 

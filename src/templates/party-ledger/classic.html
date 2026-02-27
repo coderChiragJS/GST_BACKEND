@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Party Statement</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; margin: 0; padding: 16px; color: #000; }
+    table { width: 100%; border-collapse: collapse; }
+    td, th { padding: 5px 8px; vertical-align: top; }
+    .bordered td, .bordered th { border: 1px solid #999; }
+    .bold { font-weight: bold; }
+    .right { text-align: right; }
+    .center { text-align: center; }
+
+    .header-box {
+      border: 1px solid #999;
+      padding: 12px 16px;
+      margin-bottom: 6px;
+    }
+    .header-box .firm-name {
+      font-size: 15px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .header-box .address {
+      font-size: 11px;
+      color: #333;
+    }
+
+    .title {
+      font-size: 13px;
+      font-weight: bold;
+      text-align: center;
+      padding: 6px 0;
+      border: 1px solid #999;
+      border-top: none;
+      margin-bottom: 6px;
+    }
+
+    .party-box {
+      border: 1px solid #999;
+      padding: 10px 16px;
+      margin-bottom: 10px;
+    }
+    .party-box .label {
+      font-size: 10px;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 2px;
+    }
+    .party-box .name {
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .party-box .detail {
+      font-size: 11px;
+      color: #333;
+    }
+
+    .period {
+      text-align: center;
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+
+    .opening-row {
+      background: #e8f0fe;
+    }
+    .opening-row td {
+      font-weight: bold;
+      text-align: center;
+      padding: 6px 8px;
+    }
+    .opening-row .amount {
+      text-align: right;
+    }
+
+    .ledger-table th {
+      background: #f5f5f5;
+      font-size: 10px;
+      text-transform: uppercase;
+      border: 1px solid #999;
+      padding: 5px 6px;
+    }
+    .ledger-table td {
+      border: 1px solid #999;
+      font-size: 11px;
+    }
+
+    .totals-row td {
+      font-weight: bold;
+      border-top: 2px solid #333;
+    }
+
+    .closing-row {
+      background: #e8f0fe;
+    }
+    .closing-row td {
+      font-weight: bold;
+      font-size: 12px;
+      padding: 6px 8px;
+    }
+
+    .balance-footer td {
+      border: none;
+      padding: 3px 8px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Business header -->
+<div class="header-box">
+  <div class="firm-name">{{business.firmName}}</div>
+  {{#if business.address}}<div class="address">{{business.address}}</div>{{/if}}
+</div>
+
+<div class="title">Party Statement</div>
+
+<!-- Statement To (party details) -->
+<div class="party-box">
+  <div class="label">Statement To</div>
+  <div class="name">{{party.partyName}}</div>
+  {{#if party.address}}<div class="detail">{{party.address}}</div>{{/if}}
+  {{#if party.gstin}}<div class="detail"><b>GSTIN :</b> {{party.gstin}}</div>{{/if}}
+</div>
+
+<!-- Period -->
+{{#if period.from}}
+<div class="period"><b>Period:</b> {{formatDate period.from}} - {{formatDate period.to}}</div>
+{{/if}}
+
+<!-- Ledger table -->
+<table class="ledger-table">
+  <thead>
+    <!-- Opening Balance row -->
+    <tr class="opening-row">
+      <td colspan="4" style="text-align:center; border:1px solid #999;"><b>Opening Balance:</b></td>
+      <td class="amount" style="border:1px solid #999;">{{formatCurrency openingBalance}}</td>
+      <td style="border:1px solid #999;"></td>
+    </tr>
+    <tr>
+      <th>Date</th>
+      <th>Particulars</th>
+      <th>Voucher Type</th>
+      <th>Voucher Number</th>
+      <th class="right">Debit (&#8377;)</th>
+      <th class="right">Credit (&#8377;)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each transactions}}
+    <tr>
+      <td>{{formatDate this.date}}</td>
+      <td>{{this.particulars}}</td>
+      <td>{{this.voucherType}}</td>
+      <td>{{this.voucherNumber}}</td>
+      <td class="right">{{#if this.debit}}{{formatCurrency this.debit}}{{/if}}</td>
+      <td class="right">{{#if this.credit}}{{formatCurrency this.credit}}{{/if}}</td>
+    </tr>
+    {{else}}
+    <tr>
+      <td colspan="6" class="center">No transactions in this period</td>
+    </tr>
+    {{/each}}
+  </tbody>
+  <tfoot>
+    <!-- Totals -->
+    <tr class="totals-row">
+      <td colspan="4" class="right">Total:</td>
+      <td class="right">{{formatCurrency totalDebit}}</td>
+      <td class="right">{{formatCurrency totalCredit}}</td>
+    </tr>
+    <!-- Closing balance -->
+    <tr class="closing-row">
+      <td colspan="4" class="right" style="border:1px solid #999;"><b>Closing Balance:</b></td>
+      <td class="right" style="border:1px solid #999; color: #1a73e8;">{{formatCurrency closingBalance}}</td>
+      <td style="border:1px solid #999;"></td>
+    </tr>
+    <!-- Grand total verification row -->
+    <tr class="balance-footer">
+      <td colspan="4"></td>
+      <td class="right">{{formatCurrency grandDebitSide}}</td>
+      <td class="right">{{formatCurrency grandCreditSide}}</td>
+    </tr>
+  </tfoot>
+</table>
+
+</body>
+</html>
