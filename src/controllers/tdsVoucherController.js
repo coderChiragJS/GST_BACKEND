@@ -3,6 +3,7 @@ const Invoice = require('../models/invoiceModel');
 const VoucherIndex = require('../models/voucherIndexModel');
 const { getInvoiceBalanceInfo, round2 } = require('../utils/invoiceBalance');
 const { z } = require('zod');
+const accountService = require('../services/accountService');
 
 const tdsAllocationSchema = z.object({
     invoiceId: z.string().min(1),
@@ -179,6 +180,20 @@ const tdsVoucherController = {
             for (const alloc of allocations) {
                 await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'tdsAmount', round2(alloc.tdsAllocated));
             }
+
+            // Optional: record TDS as money flowing out from default cash/bank (fire-and-forget)
+            accountService
+                .withdrawMoney(userId, businessId, null, {
+                    amount: tdsAmountCollected,
+                    type: 'tds',
+                    referenceType: 'TDS_VOUCHER',
+                    referenceId: voucher.tdsVoucherId || voucher.id,
+                    referenceNumber: voucher.voucherNumber,
+                    narration: `TDS voucher for ${partyName}`
+                })
+                .catch((err) => {
+                    console.error('Account withdrawMoney for TDS voucher failed:', err);
+                });
 
             return res.status(201).json({ voucher });
         } catch (error) {
@@ -394,6 +409,20 @@ const tdsVoucherController = {
             for (const alloc of existing.allocations || []) {
                 await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'tdsAmount', -round2(alloc.tdsAllocated));
             }
+
+            // Reverse TDS account effect (best-effort)
+            accountService
+                .addMoney(userId, businessId, null, {
+                    amount: existing.tdsAmountCollected,
+                    type: 'tds-reversal',
+                    referenceType: 'TDS_VOUCHER',
+                    referenceId: existing.tdsVoucherId || existing.id,
+                    referenceNumber: existing.voucherNumber,
+                    narration: 'Delete TDS voucher'
+                })
+                .catch((err) => {
+                    console.error('Account addMoney for TDS voucher delete failed:', err);
+                });
 
             await TdsVoucher.delete(userId, businessId, voucherId);
             await VoucherIndex.releaseVoucherNumber(

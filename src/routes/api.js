@@ -88,6 +88,15 @@ router.get('/business/:businessId/products/:productId/stock-movements', authMidd
 router.get('/business/:businessId/settings/inventory', authMiddleware, requireBusiness, inventoryController.getInventorySettings);
 router.put('/business/:businessId/settings/inventory', authMiddleware, requireBusiness, inventoryController.updateInventorySettings);
 
+// Cash & Bank Accounts
+const accountController = require('../controllers/accountController');
+router.get('/business/:businessId/accounts', authMiddleware, requireBusiness, accountController.listAccounts);
+router.post('/business/:businessId/accounts', authMiddleware, requireBusiness, accountController.createAccount);
+router.get('/business/:businessId/accounts/:accountId/transactions', authMiddleware, requireBusiness, accountController.getAccountLedger);
+router.post('/business/:businessId/accounts/:accountId/add-money', authMiddleware, requireBusiness, accountController.addMoney);
+router.post('/business/:businessId/accounts/:accountId/withdraw', authMiddleware, requireBusiness, accountController.withdrawMoney);
+router.post('/business/:businessId/accounts/contra', authMiddleware, requireBusiness, accountController.createContra);
+
 // Invoice Routes (Protected; requireBusiness ensures businessId belongs to user)
 const invoiceController = require('../controllers/invoiceController');
 const invoicePdfController = require('../controllers/invoicePdfController');

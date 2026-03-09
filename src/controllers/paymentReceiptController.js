@@ -3,6 +3,7 @@ const Invoice = require('../models/invoiceModel');
 const VoucherIndex = require('../models/voucherIndexModel');
 const { getInvoiceBalanceInfo, round2 } = require('../utils/invoiceBalance');
 const { z } = require('zod');
+const accountService = require('../services/accountService');
 
 const PAYMENT_MODES = ['Cash', 'Cheque', 'Net Banking', 'UPI', 'Card', 'Other'];
 
@@ -130,6 +131,20 @@ const paymentReceiptController = {
             for (const alloc of allocations) {
                 await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'paidAmount', round2(alloc.allocatedAmount));
             }
+
+            // Record into Cash/Bank Accounts (fire-and-forget; failure must not break receipt creation)
+            accountService
+                .addMoney(userId, businessId, accountId, {
+                    amount: amountCollected,
+                    type: 'receipt',
+                    referenceType: 'RECEIPT',
+                    referenceId: receipt.receiptId || receipt.id,
+                    referenceNumber: receipt.receiptNumber,
+                    narration: `Receipt from ${partyName}`
+                })
+                .catch((err) => {
+                    console.error('Account addMoney for receipt failed:', err);
+                });
 
             return res.status(201).json({ receipt });
         } catch (error) {
@@ -316,6 +331,10 @@ const paymentReceiptController = {
 
             const updatePayload = { ...updates };
             const receipt = await PaymentReceipt.update(userId, businessId, receiptId, updatePayload);
+
+            // Best-effort account adjustment is complex on update (previous amount vs new amount, account change).
+            // For now we only ensure create/delete keep the cash/bank balances roughly correct.
+
             return res.json({ receipt });
         } catch (error) {
             console.error('Update Payment Receipt Error:', error);
@@ -338,6 +357,20 @@ const paymentReceiptController = {
             for (const alloc of existing.allocations || []) {
                 await Invoice.atomicIncrement(userId, businessId, alloc.invoiceId, 'paidAmount', -round2(alloc.allocatedAmount));
             }
+
+            // Reverse Cash/Bank account effect (best-effort; ignore failures)
+            accountService
+                .withdrawMoney(userId, businessId, existing.accountId, {
+                    amount: existing.amountCollected,
+                    type: 'receipt-reversal',
+                    referenceType: 'RECEIPT',
+                    referenceId: existing.receiptId || existing.id,
+                    referenceNumber: existing.receiptNumber,
+                    narration: 'Delete receipt'
+                })
+                .catch((err) => {
+                    console.error('Account withdrawMoney for receipt delete failed:', err);
+                });
 
             await PaymentReceipt.delete(userId, businessId, receiptId);
             await VoucherIndex.releaseVoucherNumber(
