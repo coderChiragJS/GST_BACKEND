@@ -156,13 +156,35 @@ module.exports = {
                 const businesses = await Business.getByUserId(u.userId);
                 const allSubs = await UserSubscription.getByUser(u.userId);
 
-                // Filter active subscriptions by usage / endDate
+                // Filter active subscriptions using the same semantics as the main access rules:
+                // - usage_limited: active while there is remaining usage and no endDate
+                // - time_unlimited: active while today <= endDate
+                // - lifetime: active indefinitely (endDate only matters if set in the past)
+                const now = new Date();
                 const activeSubs = (allSubs || []).filter((sub) => {
-                    const invoicesExhausted = sub.invoicesUsed >= sub.invoiceLimit;
-                    const quotationsExhausted = sub.quotationsUsed >= sub.quotationLimit;
-                    if (invoicesExhausted && quotationsExhausted) return false;
-                    if (sub.endDate) return false;
-                    return true;
+                    const packageType = sub.packageType || 'usage_limited';
+                    const invoicesLimit = sub.invoiceLimit ?? 0;
+                    const quotationsLimit = sub.quotationLimit ?? 0;
+                    const invoicesUsed = sub.invoicesUsed ?? 0;
+                    const quotationsUsed = sub.quotationsUsed ?? 0;
+                    const remainingInvoices = invoicesLimit > 0 ? invoicesLimit - invoicesUsed : 0;
+                    const remainingQuotations = quotationsLimit > 0 ? quotationsLimit - quotationsUsed : 0;
+
+                    if (packageType === 'usage_limited') {
+                        const hasRemainingUsage = remainingInvoices > 0 || remainingQuotations > 0;
+                        return hasRemainingUsage && !sub.endDate;
+                    }
+
+                    if (packageType === 'time_unlimited') {
+                        if (!sub.endDate) return false;
+                        const end = new Date(sub.endDate);
+                        return end >= now;
+                    }
+
+                    // lifetime
+                    if (!sub.endDate) return true;
+                    const end = new Date(sub.endDate);
+                    return end >= now;
                 });
 
                 const hasPackage = activeSubs.length > 0;
@@ -192,6 +214,27 @@ module.exports = {
                     startDate: sub.startDate
                 }));
 
+                // User > Business AND its subscription: each business with its active subscription (if any)
+                const businessesWithSubscription = (businesses || []).map((biz) => {
+                    const sub = activeSubs.find((s) => s.businessId === biz.businessId);
+                    return {
+                        business: biz,
+                        subscription: sub ? {
+                            subscriptionId: sub.subscriptionId,
+                            packageId: sub.packageId,
+                            packageName: sub.packageName,
+                            packageType: sub.packageType || 'usage_limited',
+                            billingPeriod: sub.billingPeriod || null,
+                            invoiceLimit: sub.invoiceLimit,
+                            quotationLimit: sub.quotationLimit,
+                            invoicesUsed: sub.invoicesUsed || 0,
+                            quotationsUsed: sub.quotationsUsed || 0,
+                            startDate: sub.startDate,
+                            endDate: sub.endDate || null
+                        } : null
+                    };
+                });
+
                 return {
                     userId: u.userId,
                     name: u.name,
@@ -217,6 +260,7 @@ module.exports = {
                     remainingInvoices,
                     remainingQuotations,
                     subscriptionsByBusiness,
+                    businessesWithSubscription,
                 };
             }));
 

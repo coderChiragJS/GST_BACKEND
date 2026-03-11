@@ -18,6 +18,14 @@ const Package = {
             price: Number(packageData.price) || 0,
             invoiceLimit: Number(packageData.invoiceLimit) || 0,
             quotationLimit: Number(packageData.quotationLimit) || 0,
+            // packageType:
+            // - 'usage_limited'  (default / legacy)
+            // - 'time_unlimited' (monthly/yearly unlimited usage, expires by date)
+            // - 'lifetime'       (unlimited usage, no expiry)
+            packageType: packageData.packageType || 'usage_limited',
+            // billingPeriod is only relevant for time_unlimited packages
+            // allowed values: 'monthly', 'yearly', or null
+            billingPeriod: packageData.billingPeriod || null,
             validityDays: packageData.validityDays != null ? Number(packageData.validityDays) : null,
             isActive: packageData.isActive !== false,
             createdAt: now,
@@ -51,7 +59,7 @@ const Package = {
 
     async update(packageId, updateData) {
         const now = new Date().toISOString();
-        const allowed = ['name', 'price', 'invoiceLimit', 'quotationLimit', 'validityDays', 'isActive'];
+        const allowed = ['name', 'price', 'invoiceLimit', 'quotationLimit', 'validityDays', 'isActive', 'packageType', 'billingPeriod'];
         let updateExp = 'SET updatedAt = :updatedAt';
         const expAttrNames = {};
         const expAttrValues = { ':updatedAt': now };
@@ -66,6 +74,11 @@ const Package = {
                     expAttrValues[`:${field}`] = updateData[field] == null ? null : Number(updateData[field]);
                 } else if (['price', 'invoiceLimit', 'quotationLimit'].includes(field)) {
                     expAttrValues[`:${field}`] = Number(updateData[field]) || 0;
+                } else if (field === 'packageType') {
+                    // Trust caller to provide a valid string; no enum enforcement at this layer
+                    expAttrValues[`:${field}`] = updateData[field];
+                } else if (field === 'billingPeriod') {
+                    expAttrValues[`:${field}`] = updateData[field] || null;
                 } else {
                     expAttrValues[`:${field}`] = updateData[field];
                 }

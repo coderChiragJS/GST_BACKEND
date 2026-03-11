@@ -64,39 +64,70 @@ async function getDocumentAccess(userId, businessContext = {}) {
         };
     }
 
-    const remainingInvoices = Math.max(0, (subscription.invoiceLimit || 0) - (subscription.invoicesUsed || 0));
-    const remainingQuotations = Math.max(0, (subscription.quotationLimit || 0) - (subscription.quotationsUsed || 0));
-    const hasRemaining = remainingInvoices > 0 || remainingQuotations > 0;
+    const pkgType = subscription.packageType || 'usage_limited';
 
-    if (!hasRemaining) {
+    if (pkgType === 'usage_limited') {
+        const remainingInvoices = Math.max(0, (subscription.invoiceLimit || 0) - (subscription.invoicesUsed || 0));
+        const remainingQuotations = Math.max(0, (subscription.quotationLimit || 0) - (subscription.quotationsUsed || 0));
+        const hasRemaining = remainingInvoices > 0 || remainingQuotations > 0;
+
+        if (!hasRemaining) {
+            return {
+                canCreateDocuments: false,
+                onTrial: false,
+                trialEndDate: user.trialEndDate,
+                hasActiveSubscription: false,
+                remainingInvoices: 0,
+                remainingQuotations: 0,
+                subscription: null,
+                message: 'Your package limits are exhausted. Purchase a package to create more invoices and quotations.'
+            };
+        }
+
         return {
-            canCreateDocuments: false,
+            canCreateDocuments: true,
             onTrial: false,
             trialEndDate: user.trialEndDate,
-            hasActiveSubscription: false,
-            remainingInvoices: 0,
-            remainingQuotations: 0,
-            subscription: null,
-            message: 'Your package limits are exhausted. Purchase a package to create more invoices and quotations.'
+            hasActiveSubscription: true,
+            remainingInvoices,
+            remainingQuotations,
+            subscription: {
+                subscriptionId: subscription.subscriptionId,
+                packageId: subscription.packageId,
+                packageName: subscription.packageName,
+                packageType: pkgType,
+                billingPeriod: subscription.billingPeriod || null,
+                invoiceLimit: subscription.invoiceLimit,
+                quotationLimit: subscription.quotationLimit,
+                invoicesUsed: subscription.invoicesUsed || 0,
+                quotationsUsed: subscription.quotationsUsed || 0,
+                startDate: subscription.startDate,
+                endDate: subscription.endDate || null
+            },
+            message: null
         };
     }
 
+    // time_unlimited and lifetime: unlimited usage while subscription is active (getActiveSubscription already enforced)
     return {
         canCreateDocuments: true,
         onTrial: false,
         trialEndDate: user.trialEndDate,
         hasActiveSubscription: true,
-        remainingInvoices,
-        remainingQuotations,
+        remainingInvoices: null,
+        remainingQuotations: null,
         subscription: {
             subscriptionId: subscription.subscriptionId,
             packageId: subscription.packageId,
             packageName: subscription.packageName,
+            packageType: pkgType,
+            billingPeriod: subscription.billingPeriod || null,
             invoiceLimit: subscription.invoiceLimit,
             quotationLimit: subscription.quotationLimit,
             invoicesUsed: subscription.invoicesUsed || 0,
             quotationsUsed: subscription.quotationsUsed || 0,
-            startDate: subscription.startDate
+            startDate: subscription.startDate,
+            endDate: subscription.endDate || null
         },
         message: null
     };

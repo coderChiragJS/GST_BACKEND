@@ -23,6 +23,16 @@ const UserSubscription = {
             return null;
         }
 
+        // Only cumulative-add limits for usage_limited subscriptions of the same type.
+        // For time_unlimited / lifetime packages (or type changes), fall back to creating
+        // a new subscription record for simpler semantics.
+        if (activeSub.packageType && activeSub.packageType !== 'usage_limited') {
+            return null;
+        }
+        if (packageData.packageType && packageData.packageType !== 'usage_limited') {
+            return null;
+        }
+
         const pk = pkUser(userId);
         const sk = skSub(activeSub.subscriptionId);
         const now = new Date().toISOString();
@@ -73,9 +83,22 @@ const UserSubscription = {
         const subscriptionId = uuidv4();
         const now = new Date();
         const startDate = now.toISOString();
-        // Packages have no time-based validity - endDate is always null
-        // Subscriptions only expire when usage limits are exhausted
-        const endDate = null;
+        // Time validity is derived from packageType/billingPeriod:
+        // - usage_limited: endDate = null (no time-based expiry, only usage-based)
+        // - time_unlimited: endDate computed from billingPeriod
+        // - lifetime: endDate = null (never expires)
+        let endDate = null;
+        const pkgType = packageData.packageType || 'usage_limited';
+        const billingPeriod = packageData.billingPeriod || null;
+        if (pkgType === 'time_unlimited') {
+            const end = new Date(now);
+            if (billingPeriod === 'monthly') {
+                end.setMonth(end.getMonth() + 1);
+            } else if (billingPeriod === 'yearly') {
+                end.setFullYear(end.getFullYear() + 1);
+            }
+            endDate = end.toISOString();
+        }
 
         const pk = pkUser(userId);
         const sk = skSub(subscriptionId);
@@ -88,6 +111,8 @@ const UserSubscription = {
             packageName: packageData.name,
             invoiceLimit: packageData.invoiceLimit,
             quotationLimit: packageData.quotationLimit,
+            packageType: pkgType,
+            billingPeriod,
             invoicesUsed: 0,
             quotationsUsed: 0,
             // Per-business binding fields (nullable for legacy/unbound subscriptions)
@@ -131,6 +156,28 @@ const UserSubscription = {
 
         // Helper: is subscription active by usage/time rules
         function isUsageActive(sub) {
+            const type = sub.packageType || 'usage_limited';
+
+            // Time-based expiry for time_unlimited packages
+            if (type === 'time_unlimited') {
+                if (!sub.endDate) return false;
+                const now = new Date();
+                const end = new Date(sub.endDate);
+                if (now > end) return false;
+                return true;
+            }
+
+            // Lifetime: no endDate, ignore limits
+            if (type === 'lifetime') {
+                if (sub.endDate) {
+                    const now = new Date();
+                    const end = new Date(sub.endDate);
+                    if (now > end) return false;
+                }
+                return true;
+            }
+
+            // Default (usage_limited): active while any usage remains and no endDate
             if (sub.invoicesUsed >= sub.invoiceLimit && sub.quotationsUsed >= sub.quotationLimit) return false;
             if (sub.endDate) return false;
             return true;

@@ -45,17 +45,16 @@ module.exports = {
                 return res.status(404).json({ error: 'Package not found or inactive' });
             }
 
-            // Packages have no time-based validity - subscriptions only expire when usage limits are exhausted
-            // If user has an active subscription for this business, limits will be added cumulatively
             const subscription = await UserSubscription.create(userId, {
                 packageId: pkg.packageId,
                 name: pkg.name,
                 invoiceLimit: pkg.invoiceLimit,
                 quotationLimit: pkg.quotationLimit,
+                packageType: pkg.packageType || 'usage_limited',
+                billingPeriod: pkg.billingPeriod || null,
                 // per-business binding
                 businessId,
                 gstNumber: business.gstNumber || null
-                // validityDays is ignored - packages have unlimited time validity
             });
 
             // For non-PhonePe purchases, also record a successful payment so that
@@ -76,9 +75,14 @@ module.exports = {
                 console.error('Failed to record payment for manual subscription purchase:', paymentError);
             }
 
-            // Calculate remaining limits for response
-            const remainingInvoices = Math.max(0, (subscription.invoiceLimit || 0) - (subscription.invoicesUsed || 0));
-            const remainingQuotations = Math.max(0, (subscription.quotationLimit || 0) - (subscription.quotationsUsed || 0));
+            // Calculate remaining limits for response (only meaningful for usage_limited packages)
+            const isUsageLimited = (subscription.packageType || 'usage_limited') === 'usage_limited';
+            const remainingInvoices = isUsageLimited
+                ? Math.max(0, (subscription.invoiceLimit || 0) - (subscription.invoicesUsed || 0))
+                : null;
+            const remainingQuotations = isUsageLimited
+                ? Math.max(0, (subscription.quotationLimit || 0) - (subscription.quotationsUsed || 0))
+                : null;
 
             return res.status(201).json({ 
                 subscription,
@@ -137,8 +141,14 @@ module.exports = {
                 });
             }
 
-            const remainingInvoices = Math.max(0, subscription.invoiceLimit - (subscription.invoicesUsed || 0));
-            const remainingQuotations = Math.max(0, subscription.quotationLimit - (subscription.quotationsUsed || 0));
+            const type = subscription.packageType || 'usage_limited';
+            const isUsageLimited = type === 'usage_limited';
+            const remainingInvoices = isUsageLimited
+                ? Math.max(0, subscription.invoiceLimit - (subscription.invoicesUsed || 0))
+                : null;
+            const remainingQuotations = isUsageLimited
+                ? Math.max(0, subscription.quotationLimit - (subscription.quotationsUsed || 0))
+                : null;
 
             return res.json({
                 hasActiveSubscription: true,
@@ -146,6 +156,8 @@ module.exports = {
                     subscriptionId: subscription.subscriptionId,
                     packageId: subscription.packageId,
                     packageName: subscription.packageName,
+                    packageType: type,
+                    billingPeriod: subscription.billingPeriod || null,
                     invoiceLimit: subscription.invoiceLimit,
                     quotationLimit: subscription.quotationLimit,
                     invoicesUsed: subscription.invoicesUsed || 0,

@@ -1,15 +1,34 @@
 const Package = require('../models/packageModel');
 const { z } = require('zod');
 
+const packageTypeEnum = z.enum(['usage_limited', 'time_unlimited', 'lifetime']);
+const billingPeriodEnum = z.enum(['monthly', 'yearly']);
+
 const createPackageSchema = z.object({
     name: z.string().min(1, 'Package name is required'),
     price: z.number().nonnegative(),
     invoiceLimit: z.number().int().nonnegative(),
     quotationLimit: z.number().int().nonnegative(),
+    // Package type:
+    // - usage_limited  -> limited invoices/quotations, no time expiry (existing behaviour)
+    // - time_unlimited -> unlimited invoices/quotations, expires by billingPeriod (monthly/yearly)
+    // - lifetime       -> unlimited invoices/quotations, no time expiry
+    packageType: packageTypeEnum.default('usage_limited'),
+    // Required only when packageType == 'time_unlimited'
+    billingPeriod: billingPeriodEnum.optional(),
     // validityDays is optional and deprecated - packages have no time-based validity
     // Subscriptions only expire when usage limits (invoices/quotations) are exhausted
+    // or by endDate for time-based packages derived from packageType/billingPeriod.
     validityDays: z.number().int().nonnegative().nullable().optional(),
     isActive: z.boolean().optional().default(true)
+}).superRefine((data, ctx) => {
+    if (data.packageType === 'time_unlimited' && !data.billingPeriod) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'billingPeriod is required when packageType is time_unlimited',
+            path: ['billingPeriod']
+        });
+    }
 });
 
 const updatePackageSchema = z.object({
@@ -17,8 +36,18 @@ const updatePackageSchema = z.object({
     price: z.number().nonnegative().optional(),
     invoiceLimit: z.number().int().nonnegative().optional(),
     quotationLimit: z.number().int().nonnegative().optional(),
+    packageType: packageTypeEnum.optional(),
+    billingPeriod: billingPeriodEnum.optional(),
     validityDays: z.number().int().nonnegative().nullable().optional(),
     isActive: z.boolean().optional()
+}).superRefine((data, ctx) => {
+    if (data.packageType === 'time_unlimited' && !data.billingPeriod) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'billingPeriod is required when packageType is time_unlimited',
+            path: ['billingPeriod']
+        });
+    }
 });
 
 module.exports = {
@@ -54,6 +83,8 @@ module.exports = {
                 price: body.price != null ? Number(body.price) : 0,
                 invoiceLimit: body.invoiceLimit != null ? Number(body.invoiceLimit) : 0,
                 quotationLimit: body.quotationLimit != null ? Number(body.quotationLimit) : 0,
+                 packageType: body.packageType,
+                 billingPeriod: body.billingPeriod,
                 validityDays: body.validityDays != null ? Number(body.validityDays) : null
             });
 
